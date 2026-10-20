@@ -13,6 +13,8 @@ Keywords aim the box at one source (a *provider*):
 
 **Tab** turns a typed keyword into a chip (`yt` + Tab → a *YouTube* chip, the rest of the line is the query). With no keyword typed, Tab steps through the chips (Commands, YouTube, Apps, none); **Shift + Tab** goes back. **Backspace** on an empty line removes the chip. **Esc**, a click outside the box, or the keybind again closes it. **↑ / ↓** or **Ctrl + J / K** move the highlight.
 
+Apps are found by name, by initials (`vsc` → Visual Studio Code, `lo` → LibreOffice), by the command they run (`code`) and by generic name or keywords. Apps you launch often rise: with nothing typed the most launched come first, and among apps that match equally well the more launched wins.
+
 Commands: open settings, restart ScotchOS, open Daily Theory and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
 
 Switch it off with `scotchos disable launcher`: the keybind stays but does nothing.
@@ -37,7 +39,9 @@ Which keyword picks which provider is in each provider file (`keywords`).
 | `Launcher.qml` | Loaded by `shell.qml` while `launcher` is on. The `launcher` IPC target, the provider list, and the window's loader. |
 | `LauncherWindow.qml` | The window: chip, input, result rows, keys. Exists only while open. |
 | `Provider.qml` | The shape of a provider (keywords, `search`, `fallback`). |
-| `AppsProvider.qml` | Applications, from Quickshell's desktop entries. |
+| `AppsProvider.qml` | Applications, from Quickshell's desktop entries; keeps the launch counts. |
+| `score.js` | Ranks the apps for a query (pure JS, also run by the tests). |
+| `tests/score.test.mjs` | Tests for `score.js` (`scotchos test`, needs node). |
 | `YouTubeProvider.qml` | The "Search YouTube" rows. |
 | `CommandsProvider.qml` | ScotchOS commands and the on/off switches. |
 | `yt-open.sh` | Opens the search (or the first video) in the browser on the `[launcher]` workspace, then restores focus. |
@@ -115,8 +119,12 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 2. The window is a full-screen layer on the focused monitor (overlay layer, exclusive keyboard focus, a dimmed backdrop that closes on click) with the card inside.
 3. Every keystroke recomputes `results`: a keyword or chip asks that one provider; plain text asks the providers marked `inDefault` (top five each), then appends every provider's `fallback` rows, which are never cut off.
 4. The rows are a fixed set of nine delegates that show or hide, so typing doesn't create or destroy anything. App icons are decoded at 28 px.
-5. Running a row calls its `run()`. Programs are started with `Quickshell.execDetached`, so they outlive the window.
+5. Running a row calls its `run()`. For an app that also adds one to its count in `launcher-counts.json` (in Quickshell's cache folder, `{ desktop id: launches }`, written only then, atomically; ids no longer installed are dropped). Programs are started with `Quickshell.execDetached`, so they outlive the window.
 6. YouTube: `yt-open.sh` URL-encodes the query, optionally fetches the first video id, reads `[launcher]` with `scotchos get`, focuses that workspace, starts the browser, waits for it to appear and returns to your workspace.
+
+### Ranking
+
+`score.js` gives each app a tier by how it matched: name starts with the query (4000), name contains it (3000), initials start with it (2000, two letters or more), the command's basename contains it (1500), generic name or keywords contain it (1000). The launch bonus is `100 × log2(1 + launches)`, at most 400, so it reorders apps in the same tier but a worse kind of match never passes a better one. Ties go by name.
 
 ## Uninstall
 

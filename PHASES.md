@@ -26,7 +26,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 1: Launcher remembers what you pick
 
-**Status:** todo
+**Status:** done
 
 **Model:** Sonnet 5.5, medium effort (small, clear task; the scoring is plain JS with tests).
 
@@ -35,18 +35,21 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** `tools/launcher/AppsProvider.qml` (32 lines), `tools/launcher/Provider.qml`, `tools/launcher/README.md`. `LauncherWindow.qml` (278) only if you need to know how `run` is called.
 
 **Tasks:**
-- [ ] Move the scoring into a pure `tools/launcher/score.js` (`.pragma library`, like `common/conf.js`) so it can be tested: name prefix > name contains > initials > exec/genericName/keywords, plus a bonus from the launch count that reorders apps that match about equally well but never puts a bad match above a good one. Empty query: most launched first, then by name.
-- [ ] Match `e.execString` on the command's basename (without `env`, flags or `%U` field codes).
-- [ ] Initials: the first letter of each word of the name ("Visual Studio Code" → "vsc"). Also split camelCase ("LibreOffice" → "lo").
-- [ ] Launch counts in `Quickshell.cacheDir + "/launcher-counts.json"` (`{ desktop id: count }`), read with a `FileView`, written atomically only when something is launched. Forget ids that are no longer installed when the file is written.
-- [ ] `tools/launcher/tests/score.test.mjs` (node, loaded like `common/tests/conf.test.mjs`), and add the folder to `scotchos test` in `bin/scotchos`.
-- [ ] README: "How it works" and "Files in this folder".
+- [x] Move the scoring into a pure `tools/launcher/score.js` (`.pragma library`, like `common/conf.js`) so it can be tested: name prefix > name contains > initials > exec/genericName/keywords, plus a bonus from the launch count that reorders apps that match about equally well but never puts a bad match above a good one. Empty query: most launched first, then by name.
+- [x] Match `e.execString` on the command's basename (without `env`, flags or `%U` field codes).
+- [x] Initials: the first letter of each word of the name ("Visual Studio Code" → "vsc"). Also split camelCase ("LibreOffice" → "lo").
+- [x] Launch counts in `Quickshell.cacheDir + "/launcher-counts.json"` (`{ desktop id: count }`), read with a `FileView`, written atomically only when something is launched. Forget ids that are no longer installed when the file is written.
+- [x] `tools/launcher/tests/score.test.mjs` (node, loaded like `common/tests/conf.test.mjs`), and add the folder to `scotchos test` in `bin/scotchos`.
+- [x] README: "How it works" and "Files in this folder".
 
 **Done when:** `scotchos test` passes; with the launcher open, "vsc" and "code" find VS Code (or another app that has a fitting name/command); an app launched three times shows above its neighbours on an empty query and stays there after `scotchos restart`.
 
 **Not in this phase:** new providers (dropped), fuzzy matching beyond initials.
 
 **Handoff:**
+- `score.js` ranks by tier (name prefix/contains, initials, command, other) + launch bonus ≤ 400; `AppsProvider.record()` writes `launcher-counts.json` in `Quickshell.cacheDir`.
+- `scotchos test` now loops over suites (`common/tests`, `tools/launcher/tests`): add a folder to that `for` list for new node tests.
+- Not checked live: launching an app and seeing it rise after `scotchos restart` (would open a window on the user's screen); the user should try it.
 
 ---
 
