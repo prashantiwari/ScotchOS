@@ -14,7 +14,7 @@ Keep context small: read only what these steps name.
    - `grep -n '^## Phase\|^\*\*Status:\*\*' PHASES.md` (every phase's status).
    - `sed -n '/^## Phase $ARGUMENTS:/,/^---/p' PHASES.md` (this phase). If there's no such phase, say so and stop.
 
-2. **Gate.** Look at the status of the phase before this one (phase 1 has none):
+2. **Gate.** Look at the status of the phase before this one (phase 1 has none; for phase 4 look at phase 2, since 3 and 4 run in parallel):
    - `approved …`: go on.
    - `done`: ask the user (AskUserQuestion) whether they approve it, with the previous phase's "Done when" as what they should have tried. Yes → set its status to `approved <today>` and commit that line alone ("PHASES.md: approve phase N-1"). No → ask what's wrong, note it in that phase's Handoff and stop; fixing it happens in a chat for that phase, not this one.
    - `todo` or `in progress`: say that phase isn't finished and stop.

@@ -4,7 +4,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Rules for every phase
 
-- **Gate:** phase N starts only when phase N-1's status is `approved`. Claude sets `done`; only the user sets `approved` (by saying so, or by answering yes when `/start-phase N+1` asks).
+- **Gate:** phase N starts only when phase N-1's status is `approved`. Claude sets `done`; only the user sets `approved` (by saying so, or by answering yes when `/start-phase N+1` asks). **Exception:** phase 4 doesn't wait for phase 3 (it only needs phase 2 approved), so 3 and 4 can run in parallel in separate chats.
 - **Statuses:** `todo` → `in progress` → `done` (awaiting the user's approval) → `approved YYYY-MM-DD`.
 - **Context:** read `CLAUDE.md` (already loaded), this file's "Rules" and your own phase only, then the files the phase lists under "Read first". Open other files only when a task needs them. No subagents unless the user asks.
 - **Finish:** tick the tasks, run the phase's checks plus `scotchos doctor`, `scotchos test`, `scotchos restart` and a clean `scotchos log 2>&1 | grep -E 'WARN|ERROR'`. Update the touched READMEs, `scotchos.default.conf`, the settings window and the live conf for any new setting (CLAUDE.md's conventions). Write the "Handoff" lines (what the next phase should know, ≤ 5 lines), set the status to `done`, commit, and tell the user what to try before approving.

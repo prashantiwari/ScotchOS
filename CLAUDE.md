@@ -2,7 +2,7 @@
 
 Desktop widgets (Quickshell/QML) and keybind tools (shell scripts) for Hyprland on CachyOS + HyDE. Machine: i5-9300H, GTX 1650, laptop `eDP-1` (1280×720 logical) + `HDMI-A-1`. See `README.md` for what exists and how it's laid out.
 
-Planned work is in `PHASES.md`, one phase per chat with `/start-phase N`; a phase starts only after the previous one is approved by the user.
+Planned work is in `PHASES.md`, one phase per chat with `/start-phase N`; a phase starts only after the previous one is approved by the user (except phase 4, which doesn't wait for phase 3).
 
 ## Architecture
 
