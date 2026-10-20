@@ -95,7 +95,7 @@ These replaced three separate `qs` lines, one per widget. The config before that
 
 ## Resource use
 
-One Quickshell process for all three widgets uses about **205 MB** of RAM. When each widget ran as its own process they used about **550 MB** together, because each one loaded its own copy of the Qt runtime and watched the colors and Hyprland events separately. Helper processes only run while needed: `stats.py` while the dashboard is visible, cava while music plays and the card is visible.
+One Quickshell process for every widget and tool uses about **260 MB** of RAM (four widgets and three tools on, right after a restart, 2026-10-21). Back when there were three widgets, one process held them in about 205 MB, while three separate processes used about **550 MB** together, because each one loaded its own copy of the Qt runtime and watched the colors and Hyprland events separately. Helper processes only run while needed: `stats.py` while the dashboard is visible, cava while music plays and the card is visible.
 
 ## Adding a widget or tool
 

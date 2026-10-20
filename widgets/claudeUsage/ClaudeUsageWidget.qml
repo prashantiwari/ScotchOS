@@ -112,6 +112,8 @@ DesktopWidget {
         onLoaded: {
             try { w.creds = JSON.parse(text()).claudeAiOauth ?? null; } catch (e) { w.creds = null; }
             if (!w.startedUp) { w.startedUp = true; w.fetchUsage(); }
+            // Claude Code saved a new token (a refresh or a login): retry now instead of waiting out retryMs.
+            else if (w.error) w.refresh();
         }
         onLoadFailed: {
             w.creds = null;

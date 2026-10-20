@@ -27,7 +27,7 @@ These are the plan-wide limits, so they include claude.ai chats as well as Claud
 - **At every login**, or more exactly every time the shell starts (`scotchos restart`, enabling the widget): one fetch as soon as the credentials file is read, whatever the cache says.
 - **Every `interval` minutes** (30 by default) after that.
 - **Once a limit's reset time passes**, so the card doesn't keep showing the old percentage (at most once every 10 minutes).
-- **After a failure**, it waits 10 minutes before trying again.
+- **After a failure**, it waits 10 minutes before trying again, or tries right away when Claude Code saves a new token (at most once every 30 s).
 - **Whenever you ask:** `scotchos claude refresh`, or **Refresh now** on the Claude usage page of the settings window. Either one skips the waits above, but not a 30-second cooldown, so repeated presses can't get the endpoint to rate-limit you. The command prints `fetching`, or why it skipped. While a fetch runs, the clock in the title shows `…` (the icon dims on the compact card).
 
 The minute timer only runs while some screen shows an empty workspace. If your windows cover every screen for longer than `interval`, it fetches as soon as one is empty again.

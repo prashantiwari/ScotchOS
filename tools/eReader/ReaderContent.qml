@@ -16,9 +16,9 @@ Item {
         const k = event.key;
         if (k === Qt.Key_Q && r.view === "book" && !r.panel) { r.open = false; return true; }
         if (r.view === "library") {
-            if (k === Qt.Key_Escape && !library.filter) r.open = false;
+            if (k === Qt.Key_Escape && !library.item?.filter) r.open = false;
             else if (k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
-            else if (!library.key(event)) return false;
+            else if (!library.item?.key(event)) return false;
             return true;
         }
         if (r.panel) {
@@ -62,11 +62,12 @@ Item {
     }
 
     // ---- Library ----
-    ReaderLibrary {
+    // Only exists while shown: its sort reads the positions, which change on every page turn.
+    Loader {
         id: library
         anchors.fill: parent
-        visible: c.reader.view === "library"
-        reader: c.reader
+        active: c.reader.view === "library"
+        sourceComponent: ReaderLibrary { reader: c.reader }
     }
 
     // ---- Book ----

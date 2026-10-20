@@ -39,12 +39,16 @@ DesktopWidget {
         return out.length > 60 ? out.slice(out.length - 60) : out;
     }
 
-    // Only while the card is shown on some screen; collectorAlive drops for 2s to restart it if it dies.
+    // Only while the card is shown on some screen; collectorAlive drops for a while to restart it if it dies.
     property bool collectorAlive: true
+    property real collectorStarted: 0
+    // Doubles after each quick crash (2 s, 4 s … 64 s), so a broken stats.py doesn't restart every 2 s forever.
+    property int restartDelay: 2000
 
     Process {
         command: ["python3", Quickshell.shellDir + "/widgets/systemDashboard/stats.py"]
         running: w.anyEmpty && w.collectorAlive
+        onStarted: w.collectorStarted = Date.now()
         stdout: SplitParser {
             onRead: line => {
                 try {
@@ -60,10 +64,18 @@ DesktopWidget {
                 }
             }
         }
-        // Restart the collector if it ever dies.
-        onExited: { w.collectorAlive = false; restartTimer.start(); }
+        // Restart the collector if it dies, but not when it was stopped because the card was hidden.
+        onExited: {
+            if (!w.anyEmpty) return;
+            if (Date.now() - w.collectorStarted > 60000) w.restartDelay = 2000;     // it ran fine for a while
+            console.warn("stats.py exited, restarting in", w.restartDelay / 1000, "s");
+            restartTimer.interval = w.restartDelay;
+            w.restartDelay = Math.min(64000, w.restartDelay * 2);
+            w.collectorAlive = false;
+            restartTimer.start();
+        }
     }
-    Timer { id: restartTimer; interval: 2000; onTriggered: w.collectorAlive = true }
+    Timer { id: restartTimer; onTriggered: w.collectorAlive = true }
 
     // ---- One panel per screen, only where the workspace is empty ----
     Variants {

@@ -38,8 +38,13 @@ get() {
 
 is_on() { [[ "$(get enabled "$1" no)" =~ ^(yes|on|true|1)$ ]]; }
 
+# The shell's pid, if it's running.
+shell_pid() { pgrep -f "qs -n -d -p $root\$" | head -1; }
+
 # set_enabled <name> yes|no: rewrites the value in [enabled], keeping the line's comment.
 set_enabled() {
+    # The name goes into grep and awk patterns, so "dash.*" would match "dashboard".
+    [[ "$1" =~ ^[a-z][a-z0-9_]*$ ]] || { echo "scotchos: '$1' isn't a widget or tool name" >&2; exit 1; }
     grep -qE "^[[:space:]]*$1[[:space:]]*=" <(awk '/^\[/{s=$0} s=="[enabled]"' "$conf") ||
         { echo "scotchos: no '$1' in [enabled] of $conf" >&2; exit 1; }
     awk -v k="$1" -v v="$2" '
@@ -57,7 +62,11 @@ set_enabled() {
 case "$1" in
     start)   qs -n -d -p "$root" ;;
     stop)    qs kill -p "$root" ;;
-    restart) qs kill -p "$root" >/dev/null 2>&1; sleep 0.5; qs -n -d -p "$root" ;;
+    restart)
+        qs kill -p "$root" >/dev/null 2>&1
+        # -n refuses to start while the old shell is still exiting, so wait for it (up to 5 s).
+        for _ in {1..50}; do [[ -z "$(shell_pid)" ]] && break; sleep 0.1; done
+        qs -n -d -p "$root" ;;
     log)     qs log -p "$root" ;;
     settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     theory)  qs ipc -p "$root" call dailytheory "${2:-toggle}" ;;
@@ -67,7 +76,7 @@ case "$1" in
         "$0" enabled claudeusage || { echo "claudeusage is off (scotchos enable claudeusage)" >&2; exit 1; }
         qs ipc -p "$root" call claudeusage "${2:-refresh}" ;;
     status)
-        pid=$(pgrep -f "qs -n -d -p $root\$" | head -1)
+        pid=$(shell_pid)
         if [[ -n "$pid" ]]; then
             echo "running (pid $pid, $(( $(ps -o rss= -p "$pid") / 1024 )) MB)"
         else

@@ -62,7 +62,7 @@ In `[reader]` of [`scotchos.conf`](../../scotchos.conf), or in the settings wind
 | `ReaderWindow.qml` | The floating window (70 % × 85 % of the focused screen). Exists only while open. |
 | `ReaderFullscreen.qml` | The fullscreen overlay layer (`scotchos-reader`, exclusive keyboard). Exists only while open in fullscreen. |
 | `ReaderContent.qml` | What both windows show: library or book, the title and status lines, and every key. |
-| `ReaderLibrary.qml` | The cover grid and the filter. |
+| `ReaderLibrary.qml` | The cover grid and the filter. Created only while the library is shown, so page turns (which update the positions it sorts by) don't touch it. |
 | `ReaderBook.qml` | The chapter: rich text with a stylesheet made from the theme, pagination, the page layouts (and the second page), scrolling, links. |
 | `ReaderPanel.qml` | The side panel: contents, bookmarks, search, and fonts and text settings. |
 | `book.py` | Lists the library (metadata and covers, cached), converts a book once into theme-free HTML chapters, and searches a converted book. |

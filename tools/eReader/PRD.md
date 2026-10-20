@@ -29,7 +29,7 @@ One user, on this machine. The reader is opened from:
 
 | Entry | How |
 |---|---|
-| App launcher (Super+Space, or rofi) | **E-reader**: the `scotchos-reader.desktop` entry (installed by `install.sh`) |
+| App launcher (rofi, or the ScotchOS launcher on Super+Y) | **E-reader**: the `scotchos-reader.desktop` entry (installed by `install.sh`) |
 | ScotchOS commands in the launcher | `> reader` → **Open E-reader** |
 | Terminal | `scotchos reader [open\|close\|toggle]` |
 

@@ -33,7 +33,7 @@ Desktop widgets (Quickshell/QML) and keybind tools (shell scripts) for Hyprland 
 - Widgets only show on empty workspaces, and the user's screens usually have windows. To look at one: `hyprctl dispatch 'hl.dsp.focus({workspace = "9"})'`, `hyprctl layers -j` (look for `scotchos-*`), `grim -o <monitor> <scratchpad>/shot.png`, then focus the previous workspace again. Tell the user first; it moves their view.
 - Hyprland uses the **Lua** config: dispatchers look like `hyprctl dispatch 'hl.dsp.focus({workspace = "N"})'`; binds show up in `hyprctl binds` as `__lua` callbacks.
 - `pgrep -f <name>` also matches the shell running your own command; use `pgrep -x` or `pgrep -af` and read the output.
-- Don't run `yt-search.sh` with the tool on: it opens rofi and Brave.
+- Don't run `tools/launcher/yt-open.sh`: it opens a Brave window and moves focus to workspace 1.
 
 ## System changes
 
