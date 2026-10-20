@@ -55,7 +55,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 2: Dashboard disk and battery
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Sonnet 5.5, medium effort (`/sys` reads and a card layout; the care is in measuring CPU before and after).
 
