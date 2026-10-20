@@ -1,0 +1,47 @@
+/* Floating single-line YouTube search bar. Colors follow HyDE's wallbash. */
+
+configuration {
+    font:               "JetBrainsMono Nerd Font 12";
+    show-icons:         false;
+}
+
+@import "~/.config/rofi/theme.rasi"
+
+window {
+    location:           center;
+    anchor:             center;
+    width:              600px;
+    border:             2px;
+    border-radius:      12px;
+    border-color:       @main-br;
+    background-color:   @main-bg;
+}
+
+mainbox {
+    children:           [ inputbar ];
+    background-color:   transparent;
+}
+
+listview {
+    enabled:            false;
+}
+
+inputbar {
+    children:           [ prompt, entry ];
+    spacing:            14px;
+    padding:            16px 20px;
+    background-color:   transparent;
+}
+
+prompt {
+    text-color:         @main-ex;
+    background-color:   transparent;
+}
+
+entry {
+    placeholder:        "Search YouTube…   (Shift+Enter: play first video)";
+    placeholder-color:  @main-ex;
+    text-color:         @main-fg;
+    cursor:             text;
+    background-color:   transparent;
+}
