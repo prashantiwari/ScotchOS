@@ -54,6 +54,17 @@ FloatingWindow {
               { key: "server", label: "Server", type: "text", def: "http://localhost:8080", placeholder: "http://localhost:8080" },
               { key: "registration_key", label: "Registration key", type: "text", def: "", secret: true, placeholder: "only if the server needs one" },
           ] },
+        { key: "reader", name: "E-reader", kind: "tool", icon: "\u{F00BA}",
+          about: "A minimalist e-book reader in the theme's colors: EPUB, MOBI, AZW3, FB2, TXT and Markdown from one folder. Open it from the app launcher (E-reader) or `scotchos reader`. In a book: T contents, F fullscreen, S pages/scroll, + - [ ] , . adjust.",
+          settings: [
+              { key: "library_dir", label: "Library folder", type: "text", def: "~/Books", placeholder: "~/Books" },
+              { key: "layout", label: "Layout", type: "choice", options: ["pages", "scroll"], def: "pages" },
+              { key: "font", label: "Font", type: "text", def: "serif", placeholder: "serif" },
+              { key: "font_size", label: "Font size", type: "number", def: 16, min: 10, max: 32, step: 1, unit: "px" },
+              { key: "width", label: "Column width", type: "number", def: 720, min: 400, max: 1600, step: 40, unit: "px" },
+              { key: "line_height", label: "Line spacing", type: "number", def: 150, min: 100, max: 220, step: 10, unit: "%" },
+              { key: "justify", label: "Justify text", type: "flag", def: "no" },
+          ] },
     ]
     property string selected: items[0].key
     readonly property var item: items.find(i => i.key === selected)

@@ -11,6 +11,7 @@ Usage: scotchos <command>
   settings [open|close]      the settings window (toggles it by default)
   theory [open|close]        the dailyTheory window (toggles it by default)
   launcher [open|close]      the launcher (toggles it by default)
+  reader [open|close]        the e-reader window (toggles it by default)
   claude refresh             fetch the Claude usage now (30 s cooldown)
   status                     is it running, its memory use, and what's switched on
   log                        the shell's log (qs log)
@@ -61,6 +62,7 @@ case "$1" in
     settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     theory)  qs ipc -p "$root" call dailytheory "${2:-toggle}" ;;
     launcher) qs ipc -p "$root" call launcher "${2:-toggle}" ;;
+    reader)  qs ipc -p "$root" call reader "${2:-toggle}" ;;
     claude)
         "$0" enabled claudeusage || { echo "claudeusage is off (scotchos enable claudeusage)" >&2; exit 1; }
         qs ipc -p "$root" call claudeusage "${2:-refresh}" ;;

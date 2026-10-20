@@ -18,6 +18,7 @@ check rofi     rofi       "app launcher entries (optional)"
 check jq       jq         "launcher: YouTube search"
 check curl     curl       "launcher: YouTube first video"
 check brave    brave-bin  "launcher: YouTube search (AUR)"
+python3 -c "import mobi" 2>/dev/null || echo "  optional: python-mobi (AUR) for MOBI / AZW3 books in the e-reader"
 fc-list | grep -qi "JetBrainsMono Nerd" && ok "JetBrainsMono Nerd Font" ||
     { warn "JetBrainsMono Nerd Font missing"; missing+=(ttf-jetbrains-mono-nerd); }
 if ((${#missing[@]})); then
@@ -50,6 +51,8 @@ sed "s|@SCOTCHOS@|$root/bin/scotchos|" "$root/settings/scotchos-settings.desktop
     > ~/.local/share/applications/scotchos-settings.desktop && ok "ScotchOS Settings in rofi / app launchers"
 sed "s|@DIR@|$root/tools/dailyTheoryClient|" "$root/tools/dailyTheoryClient/scotchos-dailytheory.desktop" \
     > ~/.local/share/applications/scotchos-dailytheory.desktop && ok "Daily Theory in rofi / app launchers"
+sed "s|@DIR@|$root/tools/eReader|" "$root/tools/eReader/scotchos-reader.desktop" \
+    > ~/.local/share/applications/scotchos-reader.desktop && ok "E-reader in rofi / app launchers"
 
 cat <<EOF
 

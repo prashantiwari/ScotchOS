@@ -12,6 +12,7 @@ import "widgets/claudeUsage"
 import "settings"
 import "tools/dailyTheoryClient"
 import "tools/launcher"
+import "tools/eReader"
 
 ShellRoot {
     id: root
@@ -156,6 +157,12 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("dailytheory")
         DailyTheory { core: root }
+    }
+
+    // ---- E-reader: `scotchos reader` / the "E-reader" launcher entry opens its window ----
+    LazyLoader {
+        active: root.enabled("reader")
+        Reader { core: root }
     }
 
     // ---- Launcher: `scotchos launcher` (the keybind) opens its window ----

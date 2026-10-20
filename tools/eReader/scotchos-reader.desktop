@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=E-reader
+GenericName=E-book reader
+Comment=Read EPUB, MOBI, AZW3, FB2, TXT and Markdown books from ~/Books (ScotchOS)
+Keywords=scotchos;reader;ebook;epub;mobi;book;kindle;
+# install.sh replaces @DIR@ with this folder's full path (rofi may not have ~/.local/bin in PATH).
+Exec=@DIR@/reader.sh
+Icon=accessories-ebook-reader
+Terminal=false
+Categories=Office;Viewer;
