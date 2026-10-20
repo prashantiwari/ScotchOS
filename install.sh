@@ -12,12 +12,12 @@ check() {   # check <command> <package> <what for>
     if command -v "$1" >/dev/null; then ok "$1"; else warn "$1 missing ($3)"; missing+=("$2"); fi
 }
 check qs       quickshell "every widget"
-check python3  python     "system dashboard, YouTube search"
+check python3  python     "system dashboard"
 check cava     cava       "now playing visualizer (optional)"
-check rofi     rofi       "YouTube search"
-check jq       jq         "YouTube search"
-check curl     curl       "YouTube search, first video"
-check brave    brave-bin  "YouTube search (AUR)"
+check rofi     rofi       "app launcher entries (optional)"
+check jq       jq         "launcher: YouTube search"
+check curl     curl       "launcher: YouTube first video"
+check brave    brave-bin  "launcher: YouTube search (AUR)"
 fc-list | grep -qi "JetBrainsMono Nerd" && ok "JetBrainsMono Nerd Font" ||
     { warn "JetBrainsMono Nerd Font missing"; missing+=(ttf-jetbrains-mono-nerd); }
 if ((${#missing[@]})); then
@@ -56,12 +56,12 @@ cat <<EOF
 Add to Hyprland
   Lua config (~/.config/hypr/hyprland.lua), inside hl.on("hyprland.start", function() … end):
       hl.exec_cmd("qs -n -d -p $root")
-  and the YouTube search bind:
-      hl.bind("SUPER + Y", hl.dsp.exec_cmd("$root/tools/youtubeSearch/yt-search.sh"))
+  and the launcher bind:
+      hl.bind("SUPER + Y", hl.dsp.exec_cmd("$root/tools/launcher/launcher.sh"))
 
   Old-style config (hyprland.conf):
       exec-once = qs -n -d -p $root
-      bind = SUPER, Y, exec, $root/tools/youtubeSearch/yt-search.sh
+      bind = SUPER, Y, exec, $root/tools/launcher/launcher.sh
 
 Then start it now with:  scotchos start
 EOF

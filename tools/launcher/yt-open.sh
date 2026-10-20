@@ -1,29 +1,15 @@
 #!/usr/bin/env bash
-# Floating YouTube search: rofi prompt -> Brave incognito window.
-dir="$(dirname "$(readlink -f "$0")")"
-
-# Switched off in scotchos.conf ([enabled] yt_search): the bind does nothing.
-"$dir/../../bin/scotchos" enabled yt_search || exit 0
-
-# Pressing the bind again while the box is open closes it.
-pkill -x rofi && exit 0
-
-# Enter opens the results page; Shift+Enter (custom-1, exit code 10) plays the first video.
-query=$(rofi -dmenu -p $'  YouTube' -theme "$dir/yt-search.rasi" \
-    -kb-accept-alt "" -kb-custom-1 "Shift+Return" </dev/null)
-case $? in
-    0) play_first=false ;;
-    10) play_first=true ;;
-    *) exit 0 ;;
-esac
+# Opens a YouTube search (or its first video) in a Brave private window on workspace 1; run by the launcher.
+# Usage: yt-open.sh <query> results|first
+query=$1 mode=${2:-results}
 [[ -z "${query//[[:space:]]/}" ]] && exit 0
 
-encoded=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))' "$query")
+encoded=$(jq -rn --arg q "$query" '$q | @uri')
 url="https://www.youtube.com/results?search_query=${encoded}"
 
 # Grab the first regular video (videoRenderer skips ads and Shorts; sp= filters
 # to type "Video"). Falls back to the results page if nothing is found.
-if $play_first; then
+if [[ "$mode" == first ]]; then
     id=$(curl -s --max-time 5 -H 'Accept-Language: en-US' "${url}&sp=EgIQAQ%253D%253D" |
         grep -o '"videoRenderer":{"videoId":"[A-Za-z0-9_-]\{11\}"' | head -1 | cut -d'"' -f6)
     [[ -n "$id" ]] && url="https://www.youtube.com/watch?v=${id}"

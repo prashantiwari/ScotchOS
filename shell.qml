@@ -11,6 +11,7 @@ import "widgets/hourlyQuote"
 import "widgets/claudeUsage"
 import "settings"
 import "tools/dailyTheoryClient"
+import "tools/launcher"
 
 ShellRoot {
     id: root
@@ -155,6 +156,12 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("dailytheory")
         DailyTheory { core: root }
+    }
+
+    // ---- Launcher: `scotchos launcher` (the keybind) opens its window ----
+    LazyLoader {
+        active: root.enabled("launcher")
+        Launcher { core: root }
     }
 
     // ---- Buttons in the settings window (type "action"): widgets react to their own section's actions ----
