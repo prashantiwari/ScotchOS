@@ -17,6 +17,7 @@ Usage: scotchos <command>
   toggle <name>              flip it
   enabled <name>             exit 0 if it's on (for scripts)
   get <section> <key> [def]  print a setting from scotchos.conf
+  doctor                     check every widget and tool is wired in (conf, shell.qml, settings, READMEs)
 EOF
 }
 
@@ -71,5 +72,6 @@ case "$1" in
     toggle)  [[ -n "$2" ]] || { usage; exit 1; }; is_on "$2" && set_enabled "$2" no || set_enabled "$2" yes ;;
     enabled) is_on "$2" ;;
     get)     get "$2" "$3" "$4" ;;
+    doctor)  exec "$root/bin/scotchos-doctor" ;;
     *)       usage; [[ -z "$1" || "$1" == -h || "$1" == --help ]] ;;
 esac

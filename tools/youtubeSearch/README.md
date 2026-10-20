@@ -76,6 +76,22 @@ Apply the changes with:
 hyprctl reload
 ```
 
+## Running it by hand
+
+The bind just runs the script, so the same works from a terminal:
+
+```bash
+~/Projects/ScotchOS/tools/youtubeSearch/yt-search.sh
+```
+
+This opens the real search bar (and Brave, if you search). To check only the on/off switch without opening anything:
+
+```bash
+scotchos disable yt_search
+~/Projects/ScotchOS/tools/youtubeSearch/yt-search.sh; echo "exit $?"   # exits at once with 0
+scotchos enable yt_search
+```
+
 ## Adapting to another system
 
 Check or change these values when using this on a different machine:

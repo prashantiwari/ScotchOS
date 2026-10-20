@@ -5,7 +5,7 @@ description: Scaffold a new ScotchOS desktop widget (a Quickshell card on the de
 
 # New ScotchOS widget
 
-Read `CLAUDE.md` first. Use an existing widget as the template: `widgets/hourlyQuote/` is the smallest, `widgets/nowPlaying/` shows a helper process, `widgets/systemDashboard/` shows layouts and a Python collector.
+Read `CLAUDE.md` first, and note the memory from `scotchos status` before changing anything (the baseline `check-shell` compares with). Use an existing widget as the template: `widgets/hourlyQuote/` is the smallest, `widgets/nowPlaying/` shows a helper process, `widgets/systemDashboard/` shows layouts and a Python collector.
 
 ## 1. Settle the design with the user
 
@@ -46,4 +46,4 @@ Ask only what you can't infer: what it shows, where the data comes from (API, D-
 
 ## 4. Verify
 
-Follow the `check-shell` skill: no new warnings in the log, the `scotchos-<key>` layer shows on an empty workspace, a screenshot looks right in the card style, `scotchos disable <key>` removes it (and stops its processes), memory is still reasonable. Then commit.
+`scotchos doctor` must pass (it checks everything in step 3 and the README sections). Then follow the `check-shell` skill: no new warnings in the log, the `scotchos-<key>` layer shows on an empty workspace, a screenshot looks right in the card style, `scotchos disable <key>` removes it (and stops its processes), memory is still reasonable. Then commit.

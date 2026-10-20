@@ -9,9 +9,17 @@ It starts automatically when Hyprland starts and updates once per second:
 - **GPU:** the NVIDIA card's name, temperature, power draw, load (with graphics clock) and VRAM used / total. The section hides itself on a system without the NVIDIA driver.
 - **Top processes:** the 3 busiest process names, as a share of the **whole** CPU (so on 8 threads one fully busy thread shows 12.5 %). Processes with the same name are added together, so all of Brave's processes count as one "brave".
 
-## Layout
+## Settings
 
-The `[dashboard]` section of [`scotchos.conf`](../../scotchos.conf) picks one of three layouts (`dashboard` under `[enabled]` switches it on and off). Save the file and the panels switch right away, with no restart:
+The `[dashboard]` section of [`scotchos.conf`](../../scotchos.conf); `dashboard` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
+
+| Key | Values | Default |
+|---|---|---|
+| `layout` | `vertical`, `horizontal`, `square` (see below) | `vertical` |
+| `position` | `auto`, `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `auto`: `left` for vertical and square, `bottom` for horizontal |
+| `margin_x`, `margin_y` | Gap in px from the edges the card touches (a side it doesn't touch is centered) | `20` / `20` |
+
+### Layouts
 
 ```ini
 layout = vertical     # a tall card on the left edge, vertically centered (default)
@@ -22,8 +30,6 @@ layout = square       # a squarish card on the left edge: rings on top, then two
 In the square layout a clock sits beside the rings: the time in 24-hour format, with the day and date below it, the same height as the rings. Below that, the left column has CPU usage, CPU temperature and top processes, and the right column has the network graph (stretched to the height of the two CPU graphs) and the GPU.
 
 All layouts show exactly the same things. The horizontal one is about 1220 px wide, so it fits a 1280 px (logical) screen. The square one is about 600 × 470 px. If the file is missing or the value isn't recognized, the vertical layout is used.
-
-The same file sets where the card sits: `position` takes one of nine spots (`top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right`) or `auto`. `margin_x` and `margin_y` set the gap in px from the edges the card touches. Any side the card doesn't touch is centered.
 
 Temperatures are **green** below 60 °C, **amber** below 80 °C and **red** above. All other colors come from HyDE's wallbash, so the panel follows your wallpaper and theme changes without a restart.
 

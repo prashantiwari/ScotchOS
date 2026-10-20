@@ -24,10 +24,11 @@ Desktop widgets (Quickshell/QML) and keybind tools (shell scripts) for Hyprland 
 - No continuous animations or easing on values that update every second: it keeps panels redrawing at 60 fps (~11 % of a core, measured on the ring gauges).
 - Reuse delegates (fixed `Repeater` models), don't rebuild lists on each update. Decode images at display size (`sourceSize`).
 - Prefer reading `/proc`, `/sys` or in-process libraries over spawning a command each tick.
-- Check after a change: `scotchos status` (memory) and `top -p <pid>`. Today the one shell uses ~205 MB.
+- Check after a change: `scotchos status` (memory) and `top -p <pid>`, compared with the same numbers taken before the change.
 
 ## Testing
 
+- `scotchos doctor` checks the wiring: every widget/tool folder has its `[enabled]` line, conf section, `shell.qml` import and `LazyLoader`, settings window entry, README row and README sections. Run it before committing.
 - `scotchos restart`, then `scotchos log 2>&1 | grep -E 'WARN|ERROR'`. QML edits hot-reload on save; `stats.py` / `cava.conf` changes need a restart.
 - Widgets only show on empty workspaces, and the user's screens usually have windows. To look at one: `hyprctl dispatch 'hl.dsp.focus({workspace = "9"})'`, `hyprctl layers -j` (look for `scotchos-*`), `grim -o <monitor> <scratchpad>/shot.png`, then focus the previous workspace again. Tell the user first; it moves their view.
 - Hyprland uses the **Lua** config: dispatchers look like `hyprctl dispatch 'hl.dsp.focus({workspace = "N"})'`; binds show up in `hyprctl binds` as `__lua` callbacks.

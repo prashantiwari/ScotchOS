@@ -5,9 +5,10 @@ description: Check that the ScotchOS widget shell is healthy after a change - re
 
 # Check the ScotchOS shell
 
+0. `scotchos doctor`: fix anything it lists first.
 1. `scotchos restart` (only needed for non-QML changes; QML hot-reloads), wait ~2 s.
 2. `scotchos log 2>&1 | grep -E 'WARN|ERROR'`. A missing `quote.json` right after a fresh start is expected; anything else needs fixing.
-3. `scotchos status`: running, memory (~205 MB is normal for all three widgets), and the on/off list.
+3. `scotchos status`: running, memory, and the on/off list. Compare the memory with the baseline taken before the change (the `new-widget` / `new-tool` skills note one); a small card adding more than ~30 MB needs explaining. With no baseline, report the number as is.
 4. Visual check (**tell the user first: it switches their workspace for a few seconds**):
 
    ```bash

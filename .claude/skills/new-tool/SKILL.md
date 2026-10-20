@@ -5,7 +5,7 @@ description: Scaffold a new ScotchOS tool, a script started by a Hyprland keybin
 
 # New ScotchOS tool
 
-Read `CLAUDE.md` first. The template is `tools/youtubeSearch/` (rofi prompt + script + rasi theme).
+Read `CLAUDE.md` first, and note the memory from `scotchos status` before changing anything. The template is `tools/youtubeSearch/` (rofi prompt + script + rasi theme).
 
 ## 1. Settle the design
 
@@ -37,4 +37,4 @@ Ask: the keybind (check it's free in `hyprctl binds` and HyDE's `~/.local/share/
 
 ## 4. Verify
 
-`bash -n` the script; with the tool switched off it must exit at once without opening anything. Only run the enabled path if the user agrees (it opens windows). Then commit.
+`scotchos doctor` must pass (wiring, README sections, executable bit, `bash -n`); with the tool switched off it must exit at once without opening anything. Only run the enabled path if the user agrees (it opens windows). Then commit.

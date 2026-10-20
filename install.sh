@@ -39,7 +39,7 @@ else
 fi
 
 echo "Command"
-chmod +x "$root/bin/scotchos" "$root"/tools/*/*.sh "$root"/widgets/*/*.py 2>/dev/null
+chmod +x "$root/bin/scotchos" "$root/bin/scotchos-doctor" "$root"/tools/*/*.sh "$root"/widgets/*/*.py 2>/dev/null
 mkdir -p ~/.local/bin
 ln -sfn "$root/bin/scotchos" ~/.local/bin/scotchos && ok "~/.local/bin/scotchos -> bin/scotchos"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || warn "~/.local/bin isn't in PATH"

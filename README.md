@@ -40,6 +40,7 @@ scotchos toggle nowplaying
 scotchos settings           # the settings window
 scotchos status             # running? memory use?
 scotchos restart | log
+scotchos doctor             # is every widget and tool wired in everywhere?
 ```
 
 `scotchos toggle <name>` also works as a Hyprland bind.
@@ -89,4 +90,4 @@ One Quickshell process for all three widgets uses about **205 MB** of RAM. When 
 
 ## Adding a widget or tool
 
-See [`CLAUDE.md`](CLAUDE.md) for the conventions. In Claude Code, the `/new-widget` and `/new-tool` skills scaffold one.
+See [`CLAUDE.md`](CLAUDE.md) for the conventions. In Claude Code, the `/new-widget` and `/new-tool` skills scaffold one. `scotchos doctor` checks that it's wired in everywhere it needs to be.
