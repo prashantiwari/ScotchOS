@@ -7,6 +7,7 @@ It starts automatically when Hyprland starts and updates once per second:
 - **Rings:** CPU usage (with average clock speed), RAM used / total, and CPU package temperature
 - **Graphs:** the last 60 seconds of CPU usage, CPU temperature and network traffic (download and upload; the scale grows to fit the busiest second). Each graph has axis labels (top and bottom) on the left (%, °C, or K/M bytes per second) and the current value(s) next to its title, with a colored dot as the legend.
 - **GPU:** the NVIDIA card's name, temperature, power draw, load (with graphics clock) and VRAM used / total. The section hides itself on a system without the NVIDIA driver.
+- **Disk and battery:** a bar for the root filesystem (used / total) and one for the battery level, with its state (charging, discharging, full) and power draw in watts beside the title. The battery row hides itself on a machine without one.
 - **Top processes:** the 3 busiest process names, as a share of the **whole** CPU (so on 8 threads one fully busy thread shows 12.5 %). Processes with the same name are added together, so all of Brave's processes count as one "brave".
 
 ## Settings
@@ -18,6 +19,7 @@ The `[dashboard]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`s
 | `layout` | `vertical`, `horizontal`, `square` (see below) | `vertical` |
 | `position` | `auto`, `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `auto`: `left` for vertical and square, `bottom` for horizontal |
 | `margin_x`, `margin_y` | Gap in px from the edges the card touches (a side it doesn't touch is centered) | `20` / `20` |
+| `show_disk`, `show_battery` | `yes` / `no`: the root-filesystem bar and the battery bar | `yes` / `yes` |
 
 ### Layouts
 
@@ -91,6 +93,7 @@ Changes to `stats.py` need `scotchos restart` (or a disable / enable).
 | Temperature colors | `DashboardWidget.qml`, `tempColor()` | < 60 green, < 80 amber, else red |
 | Temp ring range | `Dashboard.qml`, the TEMP `Ring` (`(t - 30) / 70`) and the temperature `Graph` (`min`/`max`) | 30–100 °C |
 | Which screens | `DashboardWidget.qml`, `Variants { model: Quickshell.screens }` | All screens. To show it on one screen only, use `Quickshell.screens.filter(s => s.name === "HDMI-A-1")` |
+| Disk path | `stats.py`, `disk()` (default argument) | `/` |
 | Layout | `scotchos.conf` `[dashboard]`, `layout` | `vertical` |
 | Position | `scotchos.conf` `[dashboard]`, `position` (`top-left` … `bottom-right`, `center`, or `auto`) | `auto`: left edge for vertical and square, bottom edge for horizontal |
 | Margins | `scotchos.conf` `[dashboard]`, `margin_x` / `margin_y` (px from the edges the card touches) | `20` / `20` |
@@ -106,6 +109,8 @@ Changes to `stats.py` need `scotchos restart` (or a disable / enable).
    - **Network** is the change in received / sent bytes in `/proc/net/dev`, summed over **physical** interfaces only (those with `/sys/class/net/<name>/device`, here `wlan0` and `enp7s0`), so Docker bridges and VPN tunnels aren't counted twice.
    - **Top processes** come from the change in `utime + stime` in each `/proc/<pid>/stat`, every 3 seconds.
    - **GPU** stats come from NVML (`libnvidia-ml.so.1`, the library `nvidia-smi` itself uses), called in-process through `ctypes`. That's much cheaper than starting `nvidia-smi` every second. Load, temperature and VRAM are read every 2 seconds, and power and clock every 10 seconds, because the power query alone costs about 10 ms. While the card is runtime-suspended (`/sys/bus/pci/devices/<gpu>/power/runtime_status` is `suspended`, on Optimus laptops), NVML isn't called at all and the section shows **asleep**: a query would wake the card. NVML is only opened once the card is awake.
+   - **Disk** is `os.statvfs("/")`, counted like `df` (used = total − free), read every 30 s because it changes slowly.
+   - **Battery** is read every second from the first `/sys/class/power_supply/BAT*`: `capacity`, `status`, and the draw in watts from `power_now`, or `current_now × voltage_now` when the battery has no `power_now` (this laptop's doesn't). With no battery the field is absent and the row is hidden.
    - **CPU temperature** comes from `/sys/class/hwmon`. The sensor is looked up **by name** each second, because the `hwmonN` numbers can change between boots.
 2. `DashboardWidget.qml` reads those lines with a `SplitParser`, keeps the last 60 CPU, temperature and network values, and restarts the collector if it exits while the card is shown: after 2 s, doubling up to 64 s while it keeps crashing (a run of over a minute resets the delay).
 3. The colors come from `~/.cache/hyde/wallbash/scotchos.dcol`, using `dcol_pry1` for the background, `dcol_txt1` for text and `dcol_1xa7`/`dcol_1xa3` for the accent and track. HyDE writes that file from the [`scotchos.dcol`](../../wallbash/scotchos.dcol) template on every wallpaper, theme or wallbash-mode change, so it always holds the colors HyDE actually applied. Quickshell watches it, so the panel recolors right away. (It does not use `~/.cache/hyde/wall.dcol`: that is a symlink HyDE re-points on each wallpaper change, which file watchers never see, and it holds the raw wallpaper colors whatever the wallbash mode.)

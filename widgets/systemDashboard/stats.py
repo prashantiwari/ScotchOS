@@ -16,6 +16,7 @@ SENSORS = {"cpu": ["coretemp", "k10temp", "zenpower", "cpu_thermal"]}
 PROC_EVERY = 3    # top processes: scanning /proc costs ~5-10 ms
 GPU_EVERY = 2     # GPU load, temperature and VRAM: ~3 ms of driver calls
 POWER_EVERY = 10  # GPU power and clock: ~10 ms, mostly nvmlDeviceGetPowerUsage
+DISK_EVERY = 30   # root filesystem use: it changes slowly
 
 
 def read(path):
@@ -43,6 +44,37 @@ def memory():
         "used": round(m["MemTotal"] - m["MemAvailable"], 2),
         "total": round(m["MemTotal"], 2),
     }
+
+
+def disk(path="/"):
+    """{used, total} GiB of the filesystem at path, counted like df (used = total - free)."""
+    st = os.statvfs(path)
+    return {
+        "used": round((st.f_blocks - st.f_bfree) * st.f_frsize / 1073741824, 1),
+        "total": round(st.f_blocks * st.f_frsize / 1073741824, 1),
+    }
+
+
+def battery_dir():
+    """The first battery's /sys directory, or None (a desktop)."""
+    found = sorted(glob.glob("/sys/class/power_supply/BAT*"))
+    return found[0] if found else None
+
+
+def battery(d):
+    """{pct, status, watts}: watts from power_now, or current_now x voltage_now (µA x µV) when a battery lacks it."""
+    try:
+        pct, status = int(read(d + "/capacity")), read(d + "/status").strip()
+    except (OSError, ValueError):
+        return None
+    try:
+        uw = int(read(d + "/power_now"))
+    except (OSError, ValueError):
+        try:
+            uw = int(read(d + "/current_now")) * int(read(d + "/voltage_now")) / 1e6
+        except (OSError, ValueError):
+            uw = None
+    return {"pct": pct, "status": status, "watts": round(abs(uw) / 1e6, 1) if uw is not None else None}
 
 
 def temps():
@@ -204,6 +236,7 @@ def main():
     prev, prev_net, prev_t = cpu_times(), net_bytes(), time.monotonic()
     prev_procs, procs_t = proc_times(), prev_t
     top, fast, slow = [], {}, {}
+    bat, disk_info = battery_dir(), None
     time.sleep(0.5)
     tick = 0
     while True:
@@ -216,6 +249,11 @@ def main():
             cur_procs = proc_times()
             top = top_procs(prev_procs, cur_procs, t - procs_t)
             prev_procs, procs_t = cur_procs, t
+        if tick % DISK_EVERY == 0:
+            try:
+                disk_info = disk()
+            except OSError:
+                disk_info = None
         sleeping = asleep(pm)
         if sleeping:
             fast, slow = {"name": nv[2] if nv else "", "asleep": True}, {}
@@ -234,6 +272,8 @@ def main():
             "temps": temps(),
             "gpu": {**fast, **slow} if nv or sleeping else None,
             "top": top,
+            "disk": disk_info,
+            "battery": battery(bat) if bat else None,  # None on a desktop
             "uptime": int(float(read("/proc/uptime").split()[0])),
         }), flush=True)
         tick += 1

@@ -11,12 +11,14 @@ FloatingWindow {
     // Each setting: key in the item's [section], label, type (choice / position / number / flag / text), default.
     readonly property var items: [
         { key: "dashboard", name: "Dashboard", kind: "widget", icon: "\u{F056E}",
-          about: "CPU, RAM and temperature rings, 60 s graphs, GPU and top processes.",
+          about: "CPU, RAM and temperature rings, 60 s graphs, GPU, disk, battery and top processes.",
           settings: [
               { key: "layout", label: "Layout", type: "choice", options: ["vertical", "horizontal", "square"], def: "vertical" },
               { key: "position", label: "Position", type: "position", auto: true, def: "auto" },
               { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "show_disk", label: "Show disk", type: "flag", def: "yes" },
+              { key: "show_battery", label: "Show battery", type: "flag", def: "yes" },
           ] },
         { key: "nowplaying", name: "Now playing", kind: "widget", icon: "\u{F075A}",
           about: "The current track from any MPRIS player, with album art and a cava visualizer.",

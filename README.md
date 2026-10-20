@@ -4,7 +4,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 
 | Name | Kind | What it is |
 |---|---|---|
-| [`dashboard`](widgets/systemDashboard/README.md) | Widget | System monitor card: CPU, RAM and temperature rings, 60 s graphs, GPU, top processes |
+| [`dashboard`](widgets/systemDashboard/README.md) | Widget | System monitor card: CPU, RAM and temperature rings, 60 s graphs, GPU, disk, battery, top processes |
 | [`nowplaying`](widgets/nowPlaying/README.md) | Widget | The current track (any MPRIS player) with album art, progress and a cava visualizer |
 | [`quote`](widgets/hourlyQuote/README.md) | Widget | A new quote from the web every hour |
 | [`claudeusage`](widgets/claudeUsage/README.md) | Widget | Claude plan usage: the 5-hour and 7-day limits with reset countdowns, fetched at login and every 30 min |

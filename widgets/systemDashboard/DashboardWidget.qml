@@ -18,6 +18,8 @@ DesktopWidget {
     readonly property bool horizontal: layout === "horizontal"
     // Where the card sits: one of the nine spots, or "auto" (left edge, or bottom edge for horizontal).
     readonly property string position: str("position", "auto", ["auto"].concat(core.positions))
+    readonly property bool showDisk: flag("show_disk", true)
+    readonly property bool showBattery: flag("show_battery", true)
     readonly property string place: position !== "auto" ? position : horizontal ? "bottom" : "left"
 
     // ---- Stats from stats.py (one JSON line per second) ----

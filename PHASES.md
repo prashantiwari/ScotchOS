@@ -55,7 +55,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 2: Dashboard disk and battery
 
-**Status:** todo
+**Status:** done
 
 **Model:** Sonnet 5.5, medium effort (`/sys` reads and a card layout; the care is in measuring CPU before and after).
 
@@ -64,16 +64,19 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** `widgets/systemDashboard/stats.py` (247), `widgets/systemDashboard/DashboardWidget.qml` (103), `widgets/systemDashboard/README.md`. `Dashboard.qml` (398) for the layout once you know what data you have.
 
 **Tasks:**
-- [ ] `stats.py`: disk from `os.statvfs("/")` (used / total, refreshed every 30 s, not every tick: it changes slowly). Battery from the first `/sys/class/power_supply/BAT*`: `capacity`, `status`, and watts from `power_now` or `current_now × voltage_now`. No battery (a desktop): the fields are absent and the card hides that row.
-- [ ] The card: a disk row and a battery row that fit the existing style (rings or bars like the others; check `Ring.qml`/`Graph.qml` before adding a component). No history graph for these, and no animation on values that change every second.
-- [ ] Settings: `show_disk` and `show_battery` (both `yes`) in `[dashboard]`, in `scotchos.default.conf`, the settings window and the live conf. `disk_path` (default `/`) only if it costs nothing.
-- [ ] README: Settings table, "How it works".
+- [x] `stats.py`: disk from `os.statvfs("/")` (used / total, refreshed every 30 s, not every tick: it changes slowly). Battery from the first `/sys/class/power_supply/BAT*`: `capacity`, `status`, and watts from `power_now` or `current_now × voltage_now`. No battery (a desktop): the fields are absent and the card hides that row.
+- [x] The card: a disk row and a battery row that fit the existing style (rings or bars like the others; check `Ring.qml`/`Graph.qml` before adding a component). No history graph for these, and no animation on values that change every second.
+- [x] Settings: `show_disk` and `show_battery` (both `yes`) in `[dashboard]`, in `scotchos.default.conf`, the settings window and the live conf. `disk_path` (default `/`) only if it costs nothing.
+- [x] README: Settings table, "How it works".
 
 **Done when:** the numbers match `df -h /` and `cat /sys/class/power_supply/BAT*/capacity`; unplugging the charger changes the state within a tick; CPU from `top -p <pid>` is no higher than before (write both numbers in the Handoff). `stats.py` changes need `scotchos restart`. Look at it on an empty workspace (tell the user first; it moves their view).
 
 **Not in this phase:** per-disk lists, battery health, notifications.
 
 **Handoff:**
+- `stats.py` now emits `disk` ({used,total} GiB, every 30 s) and `battery` ({pct,status,watts} every tick, null on a desktop); the card's one `power` section (DISK + BAT meters, status and watts in the header) sits in `cells` for all three layouts. `disk_path` skipped (would need an argument to `stats.py`).
+- `stats.py` CPU, before: ~0.7-1.0 %, after: ~0.7-1.7 % (top -d3, noise); stats.py RSS 39.7 MB before and after; Quickshell 253 MB after restart.
+- Not checked live: unplugging the charger (the status and watts paths are read each tick; `power_now` is absent here, so watts come from `current_now × voltage_now` and read 0.0 while full). The user should unplug and look.
 
 ---
 

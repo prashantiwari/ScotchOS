@@ -18,10 +18,10 @@ Rectangle {
 
     // Where each section sits in each layout: [row, column, rowSpan, columnSpan].
     readonly property var cells: ({
-        vertical:   { rings: [0, 0, 1, 1], cpu: [1, 0, 1, 1], temp: [2, 0, 1, 1], net: [3, 0, 1, 1], gpu: [4, 0, 1, 1], top: [5, 0, 1, 1] },
-        horizontal: { rings: [0, 0, 2, 1], cpu: [0, 1, 2, 1], temp: [0, 2, 2, 1], net: [0, 3, 2, 1], gpu: [0, 4, 1, 1], top: [1, 4, 1, 1] },
-        square:     { rings: [0, 0, 1, 1], clock: [0, 2, 1, 1], cpu: [1, 0, 1, 1], temp: [2, 0, 1, 1], top: [3, 0, 1, 1], divider: [1, 1, 3, 1],
-                      net: [1, 2, 2, 1], gpu: [3, 2, 1, 1] },
+        vertical:   { rings: [0, 0, 1, 1], cpu: [1, 0, 1, 1], temp: [2, 0, 1, 1], net: [3, 0, 1, 1], gpu: [4, 0, 1, 1], power: [5, 0, 1, 1], top: [6, 0, 1, 1] },
+        horizontal: { rings: [0, 0, 1, 1], power: [1, 0, 1, 1], cpu: [0, 1, 2, 1], temp: [0, 2, 2, 1], net: [0, 3, 2, 1], gpu: [0, 4, 1, 1], top: [1, 4, 1, 1] },
+        square:     { rings: [0, 0, 1, 1], clock: [0, 2, 1, 1], cpu: [1, 0, 1, 1], temp: [2, 0, 1, 1], top: [3, 0, 1, 1], divider: [1, 1, 4, 1],
+                      net: [1, 2, 2, 1], gpu: [3, 2, 1, 1], power: [4, 2, 1, 1] },
     })[shell.layout]
     function cell(name) { return cells[name] || [0, 0, 1, 1] }
 
@@ -373,6 +373,40 @@ Rectangle {
                     valueText: gpuSection.g && gpuSection.g.memUsed != null
                                ? gpuSection.g.memUsed.toFixed(1) + " / " + Math.round(gpuSection.g.memTotal) + " G"
                                : "--"
+                }
+            }
+
+            // Disk and battery bars; the battery hides on a desktop, and each row has its own switch.
+            Column {
+                id: power
+                readonly property var d: card.s ? card.s.disk : null
+                readonly property var b: card.s ? card.s.battery : null
+                readonly property bool showDisk: card.shell.showDisk && d !== null
+                readonly property bool showBattery: card.shell.showBattery && b !== null
+                visible: showDisk || showBattery
+                Layout.row: card.cell("power")[0]; Layout.column: card.cell("power")[1]
+                Layout.alignment: Qt.AlignTop
+                Layout.preferredWidth: card.sectionWidth
+                spacing: 6
+                GraphHeader {
+                    title: power.showBattery ? (power.showDisk ? "DISK · BATTERY" : "BATTERY") : "DISK"
+                    LegendItem {
+                        visible: power.showBattery
+                        value: power.b ? power.b.status.toLowerCase() + (power.b.watts ? " " + power.b.watts.toFixed(1) + " W" : "") : ""
+                        tint: card.shell.fg
+                    }
+                }
+                Meter {
+                    visible: power.showDisk
+                    name: "DISK"
+                    value: power.d ? power.d.used / power.d.total : 0
+                    valueText: power.d ? Math.round(power.d.used) + " / " + Math.round(power.d.total) + " G" : "--"
+                }
+                Meter {
+                    visible: power.showBattery
+                    name: "BAT"
+                    value: power.b ? power.b.pct / 100 : 0
+                    valueText: power.b ? power.b.pct + "%" : "--"
                 }
             }
 
