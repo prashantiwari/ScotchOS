@@ -1,4 +1,4 @@
-// The usage card: header with the time of the last fetch, then a bar and reset countdown per limit.
+// The usage card: header with the time the 5-hour window resets, then a bar and reset countdown per limit.
 import QtQuick
 
 Rectangle {
@@ -28,7 +28,7 @@ Rectangle {
         width: card.contentWidth
         spacing: 12
 
-        // Header: title on the left, when the numbers were fetched on the right
+        // Header: title on the left, when the 5-hour window resets on the right
         Item {
             width: parent.width
             height: 22
@@ -40,7 +40,7 @@ Rectangle {
             Text {
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                 text: card.shell.loading ? "  …" : card.shell.fetchedAt
-                      ? (card.shell.stale ? "stale " : "") + "  " + Qt.formatDateTime(new Date(card.shell.fetchedAt), "HH:mm") : ""
+                      ? (card.shell.stale ? "stale " : "") + "  " + card.shell.resetClock : ""
                 color: card.shell.stale ? "#f0b429" : card.shell.dim
                 font { family: card.shell.font; pixelSize: 11 }
             }

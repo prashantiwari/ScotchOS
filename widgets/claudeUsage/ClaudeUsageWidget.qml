@@ -26,6 +26,13 @@ DesktopWidget {
     readonly property int retryMs: 10 * 60 * 1000
     readonly property bool stale: fetchedAt > 0 && now - fetchedAt > 2 * intervalMin * 60000
 
+    // Clock time the 5-hour window resets, shown in the title. "-" while no window is running: the API gives no
+    // reset (or one a full 5 h away, within 10 min) until the first message of a window.
+    readonly property string resetClock: {
+        const t = usage?.fiveHour.resetsAt ?? 0;
+        return t > now && t - now < 290 * 60000 ? Qt.formatDateTime(new Date(t), "HH:mm") : "-";
+    }
+
     readonly property string endpoint: "https://api.anthropic.com/api/oauth/usage"
     property var creds: null        // claudeAiOauth from Claude Code's credentials file
     property bool startedUp: false

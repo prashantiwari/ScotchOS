@@ -4,13 +4,13 @@ A card drawn **on the desktop**, in the top-right corner of **every screen**, sh
 
 It shows:
 
-- **Header:** the title and the time of the last successful fetch (`stale` in amber if it's more than two intervals old).
+- **Header:** the title and the time the 5-hour window resets, or `-` while no window is running (`stale` in amber if the reading is more than two intervals old).
 - **5-hour** and **7-day** rows: the percentage used, a bar (red from `warn` %), and a countdown to the reset.
 - **A status line** when something is wrong: not logged in, the token expired, rate-limited, …
 
 With `size = compact` it's one small line instead: the icon, `5h 35%  7d 39%`, with a percentage turning red from `warn` and the icon turning amber while the reading is stale or the last fetch failed.
 
-`size = minimal` sits in between: the full card's title bar (title, fetch time, `stale`), then just the two percentages in large type with "5-hour" and "7-day" under them.
+`size = minimal` sits in between: the full card's title bar (title, reset time, `stale`), then just the two percentages in large type with "5-hour" and "7-day" under them.
 
 These are the plan-wide limits, so they include claude.ai chats as well as Claude Code.
 

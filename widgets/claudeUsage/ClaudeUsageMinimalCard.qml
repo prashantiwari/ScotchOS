@@ -20,7 +20,7 @@ Rectangle {
         width: card.contentWidth
         spacing: 14
 
-        // Title bar: title on the left, when the numbers were fetched on the right (amber when stale or failing)
+        // Title bar: title on the left, when the 5-hour window resets on the right (amber when stale or failing)
         Item {
             width: parent.width
             height: 22
@@ -32,7 +32,7 @@ Rectangle {
             Text {
                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                 text: card.shell.loading ? "  …" : card.shell.fetchedAt
-                      ? (card.shell.stale ? "stale " : "") + "  " + Qt.formatDateTime(new Date(card.shell.fetchedAt), "HH:mm") : ""
+                      ? (card.shell.stale ? "stale " : "") + "  " + card.shell.resetClock : ""
                 color: card.shell.stale || card.shell.error ? "#f0b429" : card.shell.dim
                 font { family: card.shell.font; pixelSize: 11 }
             }
