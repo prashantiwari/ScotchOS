@@ -74,13 +74,15 @@ Item {
         if (!reader.chapterHtml || te.text === "" || flick.height < 40) return;
         if (paged) paginate();
         const plain = te.getText(0, te.length);
+        v.plain = plain;
+        markHighlights();
         const marks = [];
         for (let at = plain.indexOf("\u2060"); at >= 0; at = plain.indexOf("\u2060", at + 1)) marks.push(at);
         reader.marks = marks;
         if (reader.find) {
             const m = match(plain, reader.find);
             reader.find = null;
-            show(m ? m.index : 0, true);
+            show(m ? m.index : reader.pos, true);
             if (m) {
                 te.select(m.index, m.index + m[0].length);
                 right.item?.text.select(m.index, m.index + m[0].length);
@@ -99,10 +101,13 @@ Item {
     }
     // The n-th match of a search in the chapter's text (or the last one, if book.py counted more). The words may
     // be split by any whitespace or anchor marker, like in book.py's copy of the text, which has no markers.
-    function match(plain, find) {
+    function pattern(query) {
         const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const words = find.query.split(/\s+/).filter(w => w);
-        const re = new RegExp(words.map(w => [...w].map(esc).join("\u2060?")).join("[\\s\u2060\ufffc]+"), "gi");
+        const words = query.split(/\s+/).filter(w => w);
+        return new RegExp(words.map(w => [...w].map(esc).join("\u2060?")).join("[\\s\u2060\ufffc]+"), "gi");
+    }
+    function match(plain, find) {
+        const re = pattern(find.query);
         let m, last = null;
         for (let i = 0; i <= find.n && (m = re.exec(plain)); i++) last = m;
         return last;
@@ -114,7 +119,7 @@ Item {
             let i = 0;
             while (i + 1 < starts.length && starts[i + 1] <= y + 1) i++;
             page = i - i % step;
-            flick.contentY = starts[i];
+            flick.contentY = starts[page];      // the left page (with two pages, `i` may be the right one)
             reader.probe = seen();
             if (report) reader.report(p, te.length ? p / te.length : 0, reader.probe);
         } else {
@@ -133,6 +138,105 @@ Item {
     function snippet() {
         const t = te.getText(reader.pos, Math.min(te.length, reader.pos + 200)).replace(/[\u2060\ufffc]/g, "").replace(/\s+/g, " ").trim();
         return t.length <= 100 ? t : t.slice(0, 100).replace(/\s+\S*$/, "") + "…";
+    }
+
+    // ---- Highlights ----
+    // Drawn as rectangles under the text (from positionToRectangle), not by wrapping the passage in a
+    // background-coloured <span>: changing the HTML re-parses and lays out the whole chapter for every new
+    // highlight, and a place in the plain text can't be found in the HTML without parsing it a second time.
+    // The rectangles are worked out on relayout and when a highlight changes, never on a page turn.
+    property string plain: ""           // the chapter's text, as of the last relayout
+    property var ranges: []             // { i, start, end }: the chapter's highlights found in the text
+    property var boxes: []              // { x, y, w, h, note }: one per line of each, in the text's coordinates
+    function markHighlights() {
+        const found = [], out = [];
+        reader.highlights.forEach((h, i) => {
+            if (h.chapter !== reader.chapter) return;
+            const m = match(plain, { query: h.text, n: h.n });
+            if (!m) return;
+            found.push({ i: i, start: m.index, end: m.index + m[0].length });
+            out.push(...lineBoxes(m.index, m.index + m[0].length, !!h.note));
+        });
+        ranges = found;
+        boxes = out;
+    }
+    // The cursor rectangles of every position from a to b, grouped by line: a line runs from its leftmost to its
+    // rightmost cursor (so a justified line is covered to its last word).
+    function lineBoxes(a, b, note) {
+        const out = [];
+        let line = null;
+        for (let p = a; p <= b; p++) {
+            const r = te.positionToRectangle(p);
+            if (!line || Math.abs(r.y - line.y) > 1) {
+                if (line && line.w > 1) out.push(line);
+                line = { x: r.x, y: r.y, w: 0, h: r.height, note: note };
+            }
+            const right = Math.max(line.x + line.w, r.x);
+            line.x = Math.min(line.x, r.x);
+            line.w = right - line.x;
+        }
+        if (line && line.w > 1) out.push(line);
+        return out;
+    }
+    Connections {
+        target: v.reader
+        function onHighlightsEdited() { v.markHighlights() }
+    }
+
+    // ---- Selection (dragging the mouse), the same on both pages ----
+    // The TextEdits don't select by themselves: the MouseArea on top takes every press for links and page turns,
+    // so it does the dragging too. The ends snap to whole words.
+    function select(a, b) {
+        let s = Math.min(a, b), e = Math.max(a, b);
+        const word = /[^\s\u2060\ufffc.,;:!?"“”‘()\[\]{}…—–-]/;
+        while (s > 0 && word.test(plain[s - 1])) s--;
+        while (e < plain.length && word.test(plain[e])) e++;
+        te.select(s, e);
+        right.item?.text.select(s, e);
+    }
+    function deselect() {
+        te.deselect();
+        right.item?.text.deselect();
+    }
+    readonly property bool hasSelection: te.selectionEnd > te.selectionStart
+    // { text, n, pos, start, end }: the selected text (whitespace made single spaces), and which of its matches in the
+    // chapter it is (the one starting nearest the selection), or null.
+    function selection() {
+        if (!hasSelection) return null;
+        const start = te.selectionStart, end = te.selectionEnd;
+        const text = te.selectedText.replace(/\u2060/g, "").replace(/[\s\ufffc]+/g, " ").trim();
+        if (!text) return null;
+        const re = pattern(text);
+        let m, n = 0, best = Infinity;
+        for (let i = 0; (m = re.exec(plain)); i++) {
+            if (Math.abs(m.index - start) < best) { best = Math.abs(m.index - start); n = i; }
+            if (m.index > end) break;
+        }
+        return { text: text, n: n, pos: start, start: start, end: end };
+    }
+    // The highlight overlapping [start, end), -1 if none.
+    function highlightAt(start, end) { return ranges.find(x => x.start < end && x.end > start)?.i ?? -1 }
+    // H: keeps the selection as a highlight. False when nothing is selected (then H turns the page back).
+    function highlight() {
+        const sel = selection();
+        if (!sel) return false;
+        if (sel.text.length > 2000) reader.say("That's too long for a highlight (2000 characters at most).");
+        else if (highlightAt(sel.start, sel.end) >= 0) reader.say("Already highlighted: N edits its note, Shift+H lists them.");
+        else { reader.addHighlight(sel); deselect(); }
+        return true;
+    }
+    // N: the note of the highlight under the selection (made first if there's none). False when nothing is selected.
+    function note() {
+        const sel = selection();
+        if (!sel) return false;
+        let i = highlightAt(sel.start, sel.end);
+        if (i < 0) {
+            if (sel.text.length > 2000) { reader.say("That's too long for a highlight (2000 characters at most)."); return true; }
+            i = reader.addHighlight(sel);
+        }
+        deselect();
+        reader.editNote(i, true);
+        return true;
     }
 
     // The next page starts at the top of the line the bottom edge cuts; a line (or image) taller than the page
@@ -164,6 +268,7 @@ Item {
     }
 
     function next() {
+        deselect();
         if (paged) {
             if (page + step < starts.length) setPage(page + step);
             else reader.nextChapter();
@@ -175,6 +280,7 @@ Item {
         }
     }
     function prev() {
+        deselect();
         if (paged) {
             if (page > 0) setPage(page - step);
             else reader.prevChapter();
@@ -200,6 +306,27 @@ Item {
     onPagedChanged: Qt.callLater(relayout)
     onSpreadChanged: Qt.callLater(relayout)     // the left page must be an even one
 
+    // The highlights, under the text; a line with a note is underlined.
+    component Boxes: Repeater {
+        model: v.boxes
+        Rectangle {
+            required property var modelData
+            z: -1
+            x: modelData.x - 1
+            y: modelData.y
+            width: modelData.w + 2
+            height: modelData.h
+            radius: 3
+            color: Qt.alpha(v.core.accent, 0.25)
+            Rectangle {
+                visible: parent.modelData.note
+                anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                height: 2
+                color: Qt.alpha(v.core.accent, 0.7)
+            }
+        }
+    }
+
     component PageText: TextEdit {
         readOnly: true
         selectByMouse: false
@@ -207,7 +334,7 @@ Item {
         textFormat: TextEdit.RichText
         wrapMode: TextEdit.Wrap
         color: v.core.fg
-        selectionColor: Qt.alpha(v.core.accent, 0.35)       // a search match
+        selectionColor: Qt.alpha(v.core.accent, 0.35)       // a search match, or text being selected
         selectedTextColor: v.core.fg
         font.family: v.reader.bookFont
         font.pixelSize: v.fs
@@ -228,6 +355,7 @@ Item {
         onHeightChanged: settle.restart()
         onMovementEnded: if (!v.paged) v.scrolled()
 
+        Boxes {}
         PageText {
             id: te
             width: flick.width
@@ -274,6 +402,7 @@ Item {
                 contentWidth: width
                 contentHeight: te2.height + height
                 contentY: v.hasRight ? v.starts[v.page + 1] : 0
+                Boxes {}
                 PageText {
                     id: te2
                     width: parent.width
@@ -289,11 +418,29 @@ Item {
         }
     }
 
-    // ---- Mouse: links, page turns (click a side third, or the wheel) ----
+    // ---- Mouse: links, page turns (click a side third, or the wheel), selecting (drag) ----
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
         property real wheelSum: 0
+        property point pressedAt
+        property int from: -1           // the character the drag started on
+        property bool dragging: false
+        // The character under the mouse: on the left page (or the scrolled column), else on the right one, kept
+        // inside the page's lines so a drag past its edge stops at its first or last line.
+        function charAt(x, y) {
+            const p = mapToItem(te, x, y);
+            const left = !v.hasRight || p.x < te.width + v.gap / 2;
+            const t = left ? te : right.item.text, i = left ? v.page : v.page + 1;
+            const q = left ? p : mapToItem(t, x, y);
+            const ty = v.paged ? Math.max(v.starts[i], Math.min(v.endOf(i) - 1, q.y)) : q.y;
+            return t.positionAt(Math.max(0, Math.min(t.width - 1, q.x)), ty);
+        }
+        onPressed: mouse => {
+            pressedAt = Qt.point(mouse.x, mouse.y);
+            dragging = false;
+            from = charAt(mouse.x, mouse.y);
+        }
         // The link under the mouse on the left page (or the scrolled column), else on the right page.
         function linkAt(x, y) {
             for (const [t, i] of [[te, v.page], [right.item?.text, v.page + 1]]) {
@@ -303,8 +450,18 @@ Item {
             }
             return "";
         }
-        onPositionChanged: mouse => cursorShape = linkAt(mouse.x, mouse.y) ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onPositionChanged: mouse => {
+            if (pressed) {
+                if (!dragging && Math.hypot(mouse.x - pressedAt.x, mouse.y - pressedAt.y) > 6) dragging = true;
+                if (dragging) v.select(from, charAt(mouse.x, mouse.y));
+                return;
+            }
+            cursorShape = linkAt(mouse.x, mouse.y) ? Qt.PointingHandCursor : Qt.ArrowCursor;
+        }
         onClicked: mouse => {
+            if (dragging) return;
+            // A click with text selected only lets go of it.
+            if (v.hasSelection) return v.deselect();
             const link = linkAt(mouse.x, mouse.y);
             if (link) return v.reader.follow(link);
             if (!v.paged) {

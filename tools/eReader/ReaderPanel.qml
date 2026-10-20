@@ -1,7 +1,8 @@
-// The side panel over the left of the book: the contents (T), the bookmarks (M), a search (/) or the text look (A),
-// Tab switches. Enter or a click jumps; in bookmarks, Delete (or the ×) removes one and E (or the export icon)
-// writes them all to a Markdown file; in search, typing edits the
-// query and Enter runs it; in text, typing filters the fonts and Enter picks one. Esc closes it.
+// The side panel over the left of the book: the contents (T), the bookmarks (M), the highlights (Shift+H), a search (/)
+// or the text look (A), Tab switches. Enter or a click jumps; in bookmarks and highlights, Delete (or the ×) removes
+// one and E (or the export icon) writes them all to a Markdown file, and in highlights N types the note (Enter keeps
+// it, Esc doesn't); in search, typing edits the query and Enter runs it; in text, typing filters the fonts and Enter
+// picks one. Esc closes it.
 import QtQuick
 
 Rectangle {
@@ -12,11 +13,13 @@ Rectangle {
     readonly property var tabs: [
         { mode: "contents", label: "\u{F0279}  CONTENTS" },
         { mode: "bookmarks", label: "\u{F00C0}  BOOKMARKS" },
+        { mode: "highlights", label: "\u{F0652}  HIGHLIGHTS" },
         { mode: "search", label: "\u{F0349}  SEARCH" },
         { mode: "text", label: "Aa" }
     ]
     readonly property bool searchMode: mode === "search"
     readonly property bool textMode: mode === "text"
+    readonly property bool marksMode: mode === "bookmarks" || mode === "highlights"     // removable, exported
 
     // ---- Text: fonts (typing filters them), size, spacing and layout ----
     // The generic serif and sans-serif, then the installed families, without icon, symbol, monospace and
@@ -26,8 +29,12 @@ Rectangle {
     property string filter: ""
     readonly property var shownFonts: fonts.filter(f => f.toLowerCase().includes(filter.toLowerCase()))
 
-    // Every mode is shown as rows of { title, sub, level, rich }; `here` is the row being read.
-    readonly property var entries: mode === "bookmarks"
+    // Every mode is shown as rows of { title, sub, level, rich, note }; `here` is the row being read.
+    readonly property var entries: mode === "highlights"
+        ? reader.highlights.map((h, i) => ({ title: h.text, level: 1, rich: false,
+                                             note: i === reader.noting ? reader.note + "\u258F" : h.note ?? "",
+                                             sub: (h.where || reader.book?.chapters[h.chapter]?.title || "Chapter " + (h.chapter + 1)) + "  ·  " + Math.round(h.percent) + "%" }))
+        : mode === "bookmarks"
         ? reader.bookmarks.map(b => ({ title: b.text || "(page without text)", level: 1, rich: false,
                                        sub: (b.where || "Chapter " + (b.chapter + 1)) + "  ·  " + Math.round(b.percent) + "%" }))
         : searchMode
@@ -36,9 +43,11 @@ Rectangle {
         : textMode
         ? shownFonts.map(f => ({ title: f, level: 1, rich: false, sub: "", family: f }))
         : (reader.book?.toc ?? []).map(e => ({ title: e.title, level: e.level, rich: false, sub: "" }))
-    readonly property int here: mode === "bookmarks" ? reader.markHere : searchMode ? reader.result
+    readonly property int here: mode === "bookmarks" ? reader.markHere : mode === "highlights" ? reader.highlightHere
+        : searchMode ? reader.result
         : textMode ? shownFonts.indexOf(reader.bookFont) : reader.tocIndex
     readonly property string empty: mode === "bookmarks" ? "No bookmarks yet. B marks the page you're on, and E exports them."
+        : mode === "highlights" ? "No highlights yet. Select text with the mouse, then H highlights it and N adds a note."
         : textMode ? "No font matches."
         : !searchMode ? "This book has no contents."
         : reader.searching ? "Searching…"
@@ -54,6 +63,7 @@ Rectangle {
 
     function key(event) {
         const k = event.key;
+        if (reader.noting >= 0) return noteKey(event);
         const i = tabs.findIndex(t => t.mode === mode);
         if (k === Qt.Key_Tab) reader.panel = tabs[(i + 1) % tabs.length].mode;
         else if (k === Qt.Key_Backtab) reader.panel = tabs[(i + tabs.length - 1) % tabs.length].mode;
@@ -62,8 +72,9 @@ Rectangle {
         else if (k === Qt.Key_Down || k === Qt.Key_J) list.incrementCurrentIndex();
         else if (k === Qt.Key_Up || k === Qt.Key_K) list.decrementCurrentIndex();
         else if (k === Qt.Key_Return || k === Qt.Key_Enter) jump(list.currentIndex);
-        else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_D) && mode === "bookmarks") remove(list.currentIndex);
-        else if (k === Qt.Key_E && mode === "bookmarks") reader.exportNotes();
+        else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_D) && marksMode) remove(list.currentIndex);
+        else if (k === Qt.Key_E && marksMode) reader.exportNotes();
+        else if (k === Qt.Key_N && mode === "highlights" && list.currentIndex >= 0) reader.editNote(list.currentIndex, false);
         else return false;
         return true;
     }
@@ -78,6 +89,16 @@ Rectangle {
         }
         else if (k === Qt.Key_Backspace) reader.query = reader.query.slice(0, -1);
         else if (event.text && event.text >= " " && !(event.modifiers & Qt.ControlModifier)) reader.query += event.text;
+        else return false;
+        return true;
+    }
+    // The note: typed like the search query; Enter keeps it, Esc leaves the old one.
+    function noteKey(event) {
+        const k = event.key;
+        if (k === Qt.Key_Escape) reader.endNote(false);
+        else if (k === Qt.Key_Return || k === Qt.Key_Enter) reader.endNote(true);
+        else if (k === Qt.Key_Backspace) reader.note = reader.note.slice(0, -1);
+        else if (event.text && event.text >= " " && !(event.modifiers & Qt.ControlModifier)) reader.note += event.text;
         else return false;
         return true;
     }
@@ -105,6 +126,9 @@ Rectangle {
             const b = reader.bookmarks[i];
             reader.panel = "";
             reader.jump(b.chapter, -1, b.pos);
+        } else if (mode === "highlights") {
+            reader.panel = "";
+            reader.showHighlight(i);
         } else if (searchMode) {
             reader.panel = "";
             reader.showResult(i);
@@ -115,11 +139,16 @@ Rectangle {
         }
     }
     function remove(i) {
-        if (i < 0 || i >= reader.bookmarks.length) return;
-        reader.removeBookmark(i);
+        if (i < 0 || i >= entries.length) return;
+        if (mode === "highlights") reader.removeHighlight(i);
+        else reader.removeBookmark(i);
         list.currentIndex = Math.min(i, entries.length - 1);
     }
-    function reset() { list.currentIndex = Math.max(0, here); list.positionViewAtIndex(list.currentIndex, ListView.Center); }
+    // The note being typed (N) starts on its own row.
+    function reset() {
+        list.currentIndex = reader.noting >= 0 ? reader.noting : Math.max(0, here);
+        list.positionViewAtIndex(list.currentIndex, ListView.Center);
+    }
     Component.onCompleted: reset()
     onModeChanged: { filter = ""; Qt.callLater(reset) }     // after the list has its new model
     onFilterChanged: list.currentIndex = Math.max(0, here)
@@ -156,7 +185,8 @@ Rectangle {
             model: panel.tabs
             Text {
                 required property var modelData
-                text: modelData.label
+                // Only the open tab shows its name, so all five fit.
+                text: modelData.mode === panel.mode || modelData.label.length < 4 ? modelData.label : modelData.label.split(" ")[0]
                 color: modelData.mode === panel.mode ? panel.core.accent : panel.core.dim
                 font.family: panel.core.font
                 font.pixelSize: 11
@@ -169,9 +199,9 @@ Rectangle {
             }
         }
     }
-    // Bookmarks: export (E).
+    // Bookmarks and highlights: export (E).
     Text {
-        visible: panel.mode === "bookmarks"
+        visible: panel.marksMode
         anchors { right: parent.right; verticalCenter: title.verticalCenter; rightMargin: 18 }
         text: "\u{F0207}"
         color: exportArea.containsMouse ? panel.core.accent : panel.core.dim
@@ -278,7 +308,7 @@ Rectangle {
             required property var modelData
             required property int index
             width: list.width
-            height: label.implicitHeight + (sub.visible ? sub.implicitHeight + 2 : 0) + 12
+            height: label.implicitHeight + (sub.visible ? sub.implicitHeight + 2 : 0) + (noteText.visible ? noteText.implicitHeight + 4 : 0) + 12
             radius: 8
             color: ListView.isCurrentItem || rowArea.containsMouse ? Qt.alpha(panel.core.accent, 0.14) : "transparent"
             MouseArea {
@@ -291,10 +321,10 @@ Rectangle {
             Text {
                 id: label
                 anchors { left: parent.left; right: parent.right; top: parent.top; topMargin: 6
-                          leftMargin: 10 + (row.modelData.level - 1) * 14; rightMargin: panel.mode === "bookmarks" ? 28 : 10 }
+                          leftMargin: 10 + (row.modelData.level - 1) * 14; rightMargin: panel.marksMode ? 28 : 10 }
                 text: row.modelData.title
                 wrapMode: Text.WordWrap
-                maximumLineCount: row.modelData.rich ? 3 : 2
+                maximumLineCount: row.modelData.rich || panel.mode === "highlights" ? 3 : 2
                 elide: Text.ElideRight
                 textFormat: row.modelData.rich ? Text.StyledText : Text.PlainText
                 color: row.index === panel.here ? panel.core.accent : panel.core.fg
@@ -313,9 +343,21 @@ Rectangle {
                 font.family: panel.core.font
                 font.pixelSize: 10
             }
-            // Bookmarks: remove.
+            // Highlights: the note, under the chapter.
             Text {
-                visible: panel.mode === "bookmarks" && (rowArea.containsMouse || removeArea.containsMouse || row.ListView.isCurrentItem)
+                id: noteText
+                visible: (row.modelData.note ?? "") !== ""
+                anchors { left: label.left; right: label.right; top: sub.bottom; topMargin: 4 }
+                text: "\u{F0182}  " + (row.modelData.note ?? "")
+                wrapMode: Text.WordWrap
+                textFormat: Text.PlainText
+                color: panel.core.accent
+                font.family: panel.core.font
+                font.pixelSize: 11
+            }
+            // Bookmarks and highlights: remove.
+            Text {
+                visible: panel.marksMode && (rowArea.containsMouse || removeArea.containsMouse || row.ListView.isCurrentItem)
                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
                 text: "\u{F0156}"
                 color: removeArea.containsMouse ? panel.core.accent : panel.core.dim

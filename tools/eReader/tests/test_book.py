@@ -374,13 +374,26 @@ class Export(Fixture):
             self.assertEqual(f.read(), "# Test EPUB Two\n\n*Bo Writer*\n\n## Bookmarks\n\n"
                                        "### The Middle · 12%\n\n> Unclosed paragraph one\n\n"
                                        "### Part Two · 80%\n\n> (page without text)\n\n"
-                                       "### Chapter 8 · 100%\n\n> Out of range\n")
+                                       "### Chapter 8 · 100%\n\n> Out of range\n\n"
+                                       "## Highlights\n\nNone.\n")
+
+    def test_highlights_with_their_notes(self):
+        outdir = book.open_book(self.epub2, self.cache)
+        entry = {"highlights": [
+            {"chapter": 0, "n": 0, "text": "a  passage\nkept", "note": "  why it matters ", "percent": 3.2, "where": "The Middle"},
+            {"chapter": 1, "n": 2, "text": "no note", "note": "", "percent": 81, "where": ""}]}
+        out = os.path.join(self.tmp, "h.md")
+        book.export(outdir, entry, out)
+        with open(out, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "# Test EPUB Two\n\n*Bo Writer*\n\n## Bookmarks\n\nNone.\n\n## Highlights\n\n"
+                                       "### The Middle · 3%\n\n> a passage kept\n\nwhy it matters\n\n"
+                                       "### Part Two · 81%\n\n> no note\n")
 
     def test_no_bookmarks(self):
         out = os.path.join(self.tmp, "x.md")
         book.export(book.open_book(self.md, self.cache), {}, out)
         with open(out, encoding="utf-8") as f:
-            self.assertEqual(f.read(), "# Markdown Notes\n\n## Bookmarks\n\nNone.\n")
+            self.assertEqual(f.read(), "# Markdown Notes\n\n## Bookmarks\n\nNone.\n\n## Highlights\n\nNone.\n")
 
 
 def book_cli(*args):

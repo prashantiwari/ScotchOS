@@ -48,7 +48,7 @@ Scope {
     property bool shown: false
     function setFullscreen(on) { screen = core.focusedScreen(); fullscreen = on; }
     property string view: "library"     // library / book
-    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, search, text
+    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, highlights, search, text
     property var books: []
     property bool scanning: false
     property string error: ""
@@ -64,7 +64,7 @@ Scope {
     property string chapterHtml: ""
     property var marks: []              // character offset of each anchor in the chapter (set by the book view)
     property int probe: 0               // character at the middle of the view: which contents entry is being read
-    property var progress: ({})         // id -> { path, title, chapter, pos, percent, opened }
+    property var progress: ({})         // id -> { path, title, chapter, pos, percent, opened, bookmarks, highlights }
     signal jumped()
 
     IpcHandler {
@@ -403,7 +403,58 @@ Scope {
         saveTimer.restart();
     }
 
-    // ---- Export: book.py writes the bookmarks to <Documents>/Reader notes/<title>.md ----
+    // ---- Highlights: kept with the position, { chapter, n, text, note, created, pos, percent, where }, in reading order ----
+    // `text` and `n` find the passage again (the n-th match of the text in its chapter, as search results do), so a
+    // highlight doesn't depend on the layout or on book.py's offsets; `pos` (where it started) only orders the list.
+    readonly property var highlights: progress[bookId]?.highlights ?? []
+    signal highlightsEdited()           // the book view draws them again (progressChanged fires on every page turn)
+    // The highlight on the page (or screen) being shown, -1 if none.
+    readonly property int highlightHere: highlights.findIndex(h => h.chapter === chapter && h.pos >= pos && h.pos <= posEnd)
+    // sel: { text, n, pos } from the book view's selection; returns the new highlight's index.
+    function addHighlight(sel) {
+        const h = { chapter: chapter, n: sel.n, text: sel.text, note: "", created: Date.now(), pos: sel.pos,
+                    percent: progress[bookId]?.percent ?? 0, where: book.toc[tocIndex]?.title ?? book.chapters[chapter].title ?? "" };
+        const list = highlights.concat([h]).sort((a, b) => a.chapter - b.chapter || a.pos - b.pos);
+        setHighlights(list);
+        return list.indexOf(h);
+    }
+    function removeHighlight(i) { const list = highlights.slice(); list.splice(i, 1); setHighlights(list); }
+    function setHighlights(list) {
+        progress[bookId] = Object.assign({}, progress[bookId] ?? { chapter: chapter, pos: pos, percent: 0 }, { highlights: list });
+        progressChanged();
+        highlightsEdited();
+        saveTimer.restart();
+    }
+    // Jumps like a search result: the view finds the n-th match again, or falls back to `pos`.
+    function showHighlight(i) {
+        const h = highlights[i];
+        if (!h) return;
+        jump(h.chapter, -1, h.pos);
+        find = { query: h.text, n: h.n };
+    }
+    // ---- Notes: typed in the highlights panel (N), Enter keeps it, Esc leaves it as it was ----
+    property int noting: -1             // the highlight whose note is being typed
+    property string note: ""
+    property bool notingFromBook: false // N was pressed in the book: the panel closes again after
+    onPanelChanged: if (panel !== "highlights") noting = -1      // closed some other way (a click outside): dropped
+    function editNote(i, fromBook) {
+        if (!highlights[i]) return;
+        noting = i;
+        note = highlights[i].note ?? "";
+        notingFromBook = fromBook;
+        panel = "highlights";
+    }
+    function endNote(keep) {
+        if (keep && highlights[noting]) {
+            const list = highlights.slice();
+            list[noting] = Object.assign({}, list[noting], { note: note.trim() });
+            setHighlights(list);
+        }
+        noting = -1;
+        if (notingFromBook) panel = "";
+    }
+
+    // ---- Export: book.py writes the bookmarks and highlights to <Documents>/Reader notes/<title>.md ----
     property string notice: ""          // shown on the status line for a few seconds
     function exportNotes() {
         if (!book || exportProc.running) return;
@@ -421,9 +472,9 @@ Scope {
             onRead: line => {
                 try {
                     const d = JSON.parse(line);
-                    r.say(d.error ? d.error : "Bookmarks saved to " + String(d.path).replace(r.home + "/", "~/"));
+                    r.say(d.error ? d.error : "Notes saved to " + String(d.path).replace(r.home + "/", "~/"));
                 } catch (e) {
-                    r.say("Couldn't export the bookmarks.");
+                    r.say("Couldn't export the notes.");
                 }
             }
         }

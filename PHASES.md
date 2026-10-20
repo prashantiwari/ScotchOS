@@ -139,7 +139,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 5: E-reader highlights and notes
 
-**Status:** todo
+**Status:** done
 
 **Model:** Opus 5.5, high effort (the spike decides the design; selection, pagination and storage have to fit together).
 
@@ -148,17 +148,21 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** phase 4's Handoff, `tools/eReader/ReaderBook.qml` (330: the read-only `TextEdit`, `selectByMouse: false`, pagination, how a search match is found again), `tools/eReader/Reader.qml` around the bookmarks (lines ~360–380). `ReaderPanel.qml` when adding the list.
 
 **Tasks:**
-- [ ] **Spike first (stop and report if it doesn't work):** how to show a highlight in Qt rich text without breaking pagination: wrapping the matched text in a `<span style="background-color:…">` when the chapter is loaded (located like search's n-th match), or drawing rectangles from `positionToRectangle`. Pick one, write why in a comment. If it needs more than this phase can hold, split into 5a (store, list, jump) and 5b (show in the text) here in PHASES.md and ask the user.
-- [ ] Selection: mouse selection in the book (it's off today, check why first), `H` highlights the selection, `N` adds or edits the note of the highlight under the selection.
-- [ ] Storage: `progress[bookId].highlights = [{ chapter, n, text, note, created }]`, where `n` locates the text in the chapter like search results do, so it survives re-layout and font changes.
-- [ ] Side panel: a "Highlights" list (text, note, chapter title), Enter jumps, Delete removes. Export (phase 4) adds a Highlights section.
-- [ ] README: keys, "How it works"; tests for any `book.py` change.
+- [x] **Spike first (stop and report if it doesn't work):** how to show a highlight in Qt rich text without breaking pagination: wrapping the matched text in a `<span style="background-color:…">` when the chapter is loaded (located like search's n-th match), or drawing rectangles from `positionToRectangle`. Pick one, write why in a comment. If it needs more than this phase can hold, split into 5a (store, list, jump) and 5b (show in the text) here in PHASES.md and ask the user.
+- [x] Selection: mouse selection in the book (it's off today, check why first), `H` highlights the selection, `N` adds or edits the note of the highlight under the selection.
+- [x] Storage: `progress[bookId].highlights = [{ chapter, n, text, note, created }]`, where `n` locates the text in the chapter like search results do, so it survives re-layout and font changes.
+- [x] Side panel: a "Highlights" list (text, note, chapter title), Enter jumps, Delete removes. Export (phase 4) adds a Highlights section.
+- [x] README: keys, "How it works"; tests for any `book.py` change.
 
 **Done when:** a highlight survives closing and reopening the book and a font size change; it shows in the text and in the list; export includes it; page turns are as fast as before (no rebuild of the library or the chapter's text on every page turn).
 
 **Not in this phase:** highlight colours, sharing.
 
 **Handoff:**
+- Design: rectangles under the text from `positionToRectangle` (`lineBoxes`/`Boxes` in `ReaderBook.qml`), recomputed on relayout and on `reader.highlightsEdited`, never on a page turn; no `<span>` rewriting. Selection is done by the overlay `MouseArea` (drag > 6 px, snaps to words), `TextEdit`s still `selectByMouse: false`.
+- Keys clash resolved by selection: `H`/`N` act on highlights only while text is selected, else previous page / search matches as before; `Shift+H` opens the list. Entries also store `pos`, `percent`, `where` (sorting and display); `n` + `text` locate it.
+- Fixed phase 4's "same text on both pages": `show()` set `contentY` to the odd page while `page` was the even one.
+- Checked live with injected highlights on Empire of Silence: drawn on both pages, survive close/reopen and font 24→18, list + note typing render, export has `## Highlights`. State file and the real export restored after. Not tried by hand: mouse drag selection, `H`/`N` keys, Delete in the list. Quickshell 258 MB before and after.
 
 ---
 

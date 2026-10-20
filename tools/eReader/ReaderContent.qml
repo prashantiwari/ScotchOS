@@ -22,9 +22,12 @@ Item {
             return true;
         }
         if (r.panel) {
-            // T, M and A open their tab, or close the panel when it's already showing (in search and text they're typed).
+            // A note being typed takes every key, Esc too.
+            if (r.noting >= 0) return panelLoader.item?.key(event) ?? false;
+            // T, M, Shift+H and A open their tab, or close the panel when it's already showing (in search and text they're typed).
             const typing = r.panel === "search" || r.panel === "text";
-            const tab = typing ? "" : k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : k === Qt.Key_A ? "text" : "";
+            const tab = typing ? "" : k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : k === Qt.Key_A ? "text"
+                : k === Qt.Key_H && (event.modifiers & Qt.ShiftModifier) ? "highlights" : "";
             if (k === Qt.Key_Escape || tab === r.panel) r.panel = "";
             else if (tab) r.panel = tab;
             else if (!panelLoader.item?.key(event)) return false;
@@ -32,10 +35,15 @@ Item {
         }
         const shift = event.modifiers & Qt.ShiftModifier;
         if (k === Qt.Key_Escape) {
-            if (r.fullscreen) r.setFullscreen(false);
+            if (bookView.hasSelection) bookView.deselect();
+            else if (r.fullscreen) r.setFullscreen(false);
             else r.view = "library";
         }
         else if (k === Qt.Key_Right || k === Qt.Key_PageDown || k === Qt.Key_L || (k === Qt.Key_Space && !shift)) bookView.next();
+        // H and N act on the selection while there is one; otherwise H turns back and N goes to search matches.
+        else if (k === Qt.Key_H && shift) r.panel = "highlights";
+        else if (k === Qt.Key_H && bookView.highlight()) {}
+        else if (k === Qt.Key_N && bookView.note()) {}
         else if (k === Qt.Key_Left || k === Qt.Key_PageUp || k === Qt.Key_H || (k === Qt.Key_Space && shift)) bookView.prev();
         else if (k === Qt.Key_J && shift) r.set("justify", r.justify ? "no" : "yes");
         else if (k === Qt.Key_Down || k === Qt.Key_J) bookView.scrollBy(bookView.lineStep());

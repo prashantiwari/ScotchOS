@@ -1204,7 +1204,8 @@ def search(bookdir, query):
 # ---- Export (bookmarks to Markdown) ----
 
 def export(bookdir, entry, out):
-    """One `## ` section per kind of note (only bookmarks so far), each note a `### ` heading and a quote."""
+    """One `## ` section per kind of note (bookmarks, highlights), each note a `### ` heading and a quote;
+    a highlight's note follows its quote as a paragraph."""
     with open(os.path.join(bookdir, "book.json"), encoding="utf-8") as f:
         meta = json.load(f)
     chapters = meta.get("chapters", [])
@@ -1218,6 +1219,15 @@ def export(bookdir, entry, out):
         where = b.get("where") or (chapters[c].get("title") if 0 <= c < len(chapters) else "") or f"Chapter {c + 1}"
         text = " ".join(str(b.get("text") or "").split()) or "(page without text)"
         lines += [f"### {where} · {round(b.get('percent', 0))}%", "", "> " + text, ""]
+    highlights = entry.get("highlights") or []
+    lines += ["## Highlights", ""] + ([] if highlights else ["None.", ""])
+    for h in highlights:
+        c = h.get("chapter", 0)
+        where = h.get("where") or (chapters[c].get("title") if 0 <= c < len(chapters) else "") or f"Chapter {c + 1}"
+        lines += [f"### {where} · {round(h.get('percent', 0))}%", "", "> " + " ".join(str(h.get("text") or "").split()), ""]
+        note = str(h.get("note") or "").strip()
+        if note:
+            lines += [note, ""]
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     write_text(out, "\n".join(lines))
     return out
