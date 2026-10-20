@@ -20,10 +20,10 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 10
 
-        // The icon turns amber while the reading is stale or the last fetch failed, as the full card's status line would.
+        // The icon dims while fetching, and turns amber while the reading is stale or the last fetch failed.
         Text {
             text: "󰚩"
-            color: card.shell.error || card.shell.stale ? "#f0b429" : card.shell.accent
+            color: card.shell.loading ? card.shell.dim : card.shell.error || card.shell.stale ? "#f0b429" : card.shell.accent
             font { family: card.shell.font; pixelSize: 14; bold: true }
         }
         Repeater {

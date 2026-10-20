@@ -78,6 +78,25 @@ DesktopWidget {
             fetchUsage();
     }
 
+    // ---- Refresh on demand: `scotchos claude refresh` and the settings window's button ----
+    // The cooldown keeps repeated presses from getting the (undocumented) endpoint to rate-limit us.
+    readonly property int cooldownMs: 30000
+    function refresh() {
+        if (loading) return "already fetching";
+        const ago = Date.now() - lastTry;
+        if (ago < cooldownMs) return "skipped: last fetch " + Math.round(ago / 1000) + " s ago (30 s cooldown)";
+        fetchUsage();
+        return error && !loading ? error : "fetching";
+    }
+    IpcHandler {
+        target: "claudeusage"
+        function refresh(): string { return w.refresh() }
+    }
+    Connections {
+        target: w.core
+        function onAction(section, name) { if (section === w.section && name === "refresh") w.refresh() }
+    }
+
     // The first read of the credentials is the shell starting, i.e. a login: always fetch then.
     FileView {
         path: Quickshell.env("HOME") + "/.claude/.credentials.json"

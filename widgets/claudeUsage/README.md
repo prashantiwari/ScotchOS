@@ -28,6 +28,7 @@ These are the plan-wide limits, so they include claude.ai chats as well as Claud
 - **Every `interval` minutes** (30 by default) after that.
 - **Once a limit's reset time passes**, so the card doesn't keep showing the old percentage (at most once every 10 minutes).
 - **After a failure**, it waits 10 minutes before trying again.
+- **Whenever you ask:** `scotchos claude refresh`, or **Refresh now** on the Claude usage page of the settings window. Either one skips the waits above, but not a 30-second cooldown, so repeated presses can't get the endpoint to rate-limit you. The command prints `fetching`, or why it skipped. While a fetch runs, the clock in the title shows `…` (the icon dims on the compact card).
 
 The minute timer only runs while some screen shows an empty workspace. If your windows cover every screen for longer than `interval`, it fetches as soon as one is empty again.
 
@@ -78,6 +79,7 @@ Part of the single ScotchOS shell (see the [main README](../../README.md)); it i
 scotchos disable claudeusage   # unload it (applies right away)
 scotchos enable claudeusage    # load it again, and fetch
 scotchos restart               # restart the whole shell, which also fetches right away
+scotchos claude refresh        # fetch now (qs ipc call claudeusage refresh)
 ```
 
 QML changes show up as soon as you save. Logs: `scotchos log 2>&1 | grep claudeUsage`
@@ -96,6 +98,7 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 |---|---|---|
 | Card width | `contentWidth` in `ClaudeUsageCard.qml` / `ClaudeUsageMinimalCard.qml` | 340 px / 240 px |
 | Retry delay after a failure | `retryMs` in `ClaudeUsageWidget.qml` | 10 minutes |
+| Cooldown between manual refreshes | `cooldownMs` in `ClaudeUsageWidget.qml` | 30 s |
 | Which limits are shown | `Repeater` model in `ClaudeUsageCard.qml`, `fetchUsage()` in `ClaudeUsageWidget.qml` | `five_hour`, `seven_day` |
 | Warning / stale colors | `#ff6b6b` / `#f0b429` in `ClaudeUsageCard.qml` | Same as the dashboard's |
 | Transparency | `Qt.alpha(shell.bg, 0.78)` in `ClaudeUsageCard.qml` | 78 % opaque |
@@ -105,9 +108,10 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 
 1. **Credentials:** a `FileView` watches `~/.claude/.credentials.json`. Its first load triggers the login fetch, and later changes (Claude Code refreshing the token) update the token in memory. If `expiresAt` has passed, it doesn't send the request.
 2. **Timing:** a timer ticks once a minute (only while a screen shows an empty workspace), moving the countdowns and checking whether a fetch is due. Short ticks instead of one 30-minute timer mean it catches up right after a suspend.
-3. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs, ever.
-4. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
-5. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
+3. **Manual refresh:** an `IpcHandler` (`claudeusage` → `refresh()`) for the command, and the shell root's `action` signal for the settings button. Both call the same `refresh()`, which applies the cooldown.
+4. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs, ever.
+5. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
+6. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
 
 On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (minimal about 120 px, compact about 36 px) and sits above the now playing card on the right.
 

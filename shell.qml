@@ -157,6 +157,9 @@ ShellRoot {
         DailyTheory { core: root }
     }
 
+    // ---- Buttons in the settings window (type "action"): widgets react to their own section's actions ----
+    signal action(string section, string name)
+
     // ---- Settings window: `scotchos settings` (qs ipc call settings toggle); exists only while open ----
     property bool settingsOpen: false
     IpcHandler {

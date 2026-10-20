@@ -62,7 +62,7 @@ QML changes hot-reload on save. Logs: `scotchos log`
 | What | Where | Current value |
 |---|---|---|
 | Add a widget or tool, or a setting | `items` in `SettingsWindow.qml` | dashboard, nowplaying, quote, yt_search, dailytheory |
-| Setting types | `type` in an item's `settings`: `choice` (with `options`), `position` (with `auto: true` to offer auto), `number` (`min`, `max`, `step`, `unit`), `flag`, `text` (`placeholder`, `secret: true` to hide it) | — |
+| Setting types | `type` in an item's `settings`: `choice` (with `options`), `position` (with `auto: true` to offer auto), `number` (`min`, `max`, `step`, `unit`), `flag`, `text` (`placeholder`, `secret: true` to hide it), `action` (a button with `text`; clicking it emits `action(<widget key>, <action>)` on the shell root, nothing is saved) | — |
 | Window size | `implicitWidth` / `implicitHeight` in `SettingsWindow.qml` | 720 × 460 |
 
 ## How it works

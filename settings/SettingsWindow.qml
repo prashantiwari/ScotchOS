@@ -43,6 +43,7 @@ FloatingWindow {
               { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "interval", label: "Fetch every", type: "number", def: 30, min: 5, max: 1440, step: 5, unit: "min" },
               { key: "warn", label: "Warn at", type: "number", def: 80, min: 1, max: 100, step: 5, unit: "%" },
+              { key: "refresh", label: "Usage", type: "action", text: "Refresh now", action: "refresh" },
           ] },
         { key: "yt_search", name: "YouTube search", kind: "tool", icon: "\u{F05C3}",
           about: "Super + Y opens a search box; Enter opens the results in a private Brave window.",
@@ -239,7 +240,7 @@ FloatingWindow {
                             font.letterSpacing: 1
                         }
                         Loader {
-                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag, text: textField })[setting.modelData.type]
+                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag, text: textField, action: action })[setting.modelData.type]
 
                             Component {
                                 id: choice
@@ -280,6 +281,15 @@ FloatingWindow {
                                     placeholder: setting.modelData.placeholder ?? ""
                                     secret: setting.modelData.secret ?? false
                                     onEdited: v => setting.save(v)
+                                }
+                            }
+                            // A button: no conf value, just tells the widget (root's `action` signal).
+                            Component {
+                                id: action
+                                Choice {
+                                    shell: win.core
+                                    options: [setting.modelData.text]
+                                    onPicked: win.core.action(win.item.key, setting.modelData.action)
                                 }
                             }
                             Component {

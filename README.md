@@ -43,6 +43,7 @@ scotchos enable quote
 scotchos toggle nowplaying
 scotchos settings           # the settings window
 scotchos theory             # the dailyTheory window
+scotchos claude refresh     # fetch the Claude usage now
 scotchos status             # running? memory use?
 scotchos restart | log
 scotchos doctor             # is every widget and tool wired in everywhere?
