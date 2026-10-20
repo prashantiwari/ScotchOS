@@ -39,8 +39,8 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] Launcher and reader windows: pick the screen once when they open
 - [x] dailyTheory: warn about `http://` to a non-local server; limit the refresh after the quota reset; update `now` when the quota runs out
 
-### Phase 4: structure (needs a decision first: where the live conf lives, see 5.1)
-- [ ] Live `scotchos.conf` out of git (default file + gitignore, or `~/.config/scotchos/`), and check the symlink / atomic-write question
+### Phase 4: structure (decided 2026-10-21: the live conf moves to `~/.config/scotchos/`, see 5.1)
+- [ ] Live conf at `${XDG_CONFIG_HOME:-~/.config}/scotchos/scotchos.conf`. The repo keeps the defaults as `scotchos.default.conf` (reset to the settings window's `def:` values; today's tracked file holds personal values such as font 24 / two pages). `scotchos start` and `install.sh` copy the default when the live file is missing; move this machine's current conf there once (record it under "Changes made to the system"). `bin/scotchos start` passes the resolved path to the shell as `SCOTCHOS_CONF`, and `shell.qml` reads and writes that path, so a symlinked conf (dotfiles) is written through instead of being replaced by the atomic write. `doctor` checks the default file; docs, skills and `CLAUDE.md` name the new path
 - [ ] `doctor`: include `tools/` in the duplicate-name check, run shellcheck and `py_compile`, compare settings `def:` with the widgets' fallbacks
 - [ ] Portability (section 4): CPU sensor list, skip NVML while the GPU is suspended, `install.sh` dependencies and the workspace rule
 - [ ] `common/Http.qml` shared by the quote, Claude usage and dailyTheory (5.4)
@@ -144,6 +144,8 @@ These are fine for this laptop, but `install.sh` and the README present ScotchOS
 ## 5. Structure and tooling suggestions
 
 ### 5.1 Keep your personal settings out of git
+**Decision (2026-10-21):** the second option, `~/.config/scotchos/scotchos.conf`, with the repo's copy renamed to `scotchos.default.conf`. It survives a re-clone or a moved repo, fits XDG, and leaves `git status` clean; the details are in the Phase 4 item above.
+
 `scotchos.conf` is tracked, and the settings window rewrites it all the time, so `git status` almost always shows it changed (as it does now). Options:
 - Track `scotchos.conf.default` and gitignore `scotchos.conf`; `install.sh` copies the default when the conf is missing. `scotchos doctor` would then check the default file.
 - Or move the live conf to `~/.config/scotchos/scotchos.conf`. It survives a re-clone and fits XDG. `bin/scotchos` and `shell.qml` each need one path change (`bin/scotchos` already supports a symlink).
