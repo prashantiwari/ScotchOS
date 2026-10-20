@@ -60,7 +60,7 @@ Item {
             if (paged) setPage(starts.length - 1);
             else { flick.contentY = Math.max(0, te.height - flick.height); scrolled(); }
         } else {
-            show(reader.pos, false);
+            show(reader.pos, true);
         }
     }
     // Shows the page (or scroll offset) holding character `p`; `report` saves it as the new position.
@@ -71,13 +71,24 @@ Item {
             while (i + 1 < starts.length && starts[i + 1] <= y + 1) i++;
             page = i;
             flick.contentY = starts[i];
-            reader.probe = te.positionAt(1, starts[i] + flick.height / 2);
-            if (report) reader.report(p, te.length ? p / te.length : 0, te.positionAt(1, starts[i] + flick.height / 2));
+            reader.probe = seen();
+            if (report) reader.report(p, te.length ? p / te.length : 0, reader.probe);
         } else {
             flick.contentY = Math.max(0, Math.min(y, te.height - flick.height));
-            reader.probe = te.positionAt(1, flick.contentY + flick.height / 2);
+            reader.probe = seen();
             if (report) scrolled();
         }
+    }
+    // After every move: the last character on screen (which bookmark is on this page), and the one in the middle.
+    function seen() {
+        const top = flick.contentY, bottom = paged ? pageEnd : top + flick.height;
+        reader.posEnd = te.positionAt(te.width - 1, Math.min(te.height, bottom) - 1);
+        return te.positionAt(1, top + Math.min(bottom - top, flick.height) / 2);
+    }
+    // The start of the first line shown, cut at a word, for a bookmark's label.
+    function snippet() {
+        const t = te.getText(reader.pos, Math.min(te.length, reader.pos + 200)).replace(/[\u2060\ufffc]/g, "").replace(/\s+/g, " ").trim();
+        return t.length <= 100 ? t : t.slice(0, 100).replace(/\s+\S*$/, "") + "…";
     }
 
     // The next page starts at the top of the line the bottom edge cuts; a line (or image) taller than the page
@@ -100,12 +111,11 @@ Item {
         page = Math.max(0, Math.min(starts.length - 1, i));
         flick.contentY = starts[page];
         const p = te.positionAt(1, starts[page] + 1);
-        reader.report(p, te.length ? p / te.length : 0, te.positionAt(1, starts[page] + flick.height / 2));
+        reader.report(p, te.length ? p / te.length : 0, seen());
     }
     function scrolled() {
         const p = te.positionAt(1, flick.contentY + 1);
-        reader.report(p, te.height > flick.height ? Math.min(1, flick.contentY / (te.height - flick.height)) : 1,
-                      te.positionAt(1, flick.contentY + flick.height / 2));
+        reader.report(p, te.height > flick.height ? Math.min(1, flick.contentY / (te.height - flick.height)) : 1, seen());
     }
 
     function next() {

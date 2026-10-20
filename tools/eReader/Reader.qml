@@ -37,7 +37,7 @@ Scope {
     property bool open: false
     property bool fullscreen: false
     property string view: "library"     // library / book
-    property bool tocOpen: false
+    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks
     property var books: []
     property bool scanning: false
     property string error: ""
@@ -45,6 +45,7 @@ Scope {
     property var book: null             // book.json, plus `dir`
     property int chapter: 0
     property int pos: 0                 // character offset of the first visible line in the chapter
+    property int posEnd: 0              // and of the last visible character
     property int anchor: -1             // jump to this anchor (the n-th U+2060) once the chapter is laid out
     property bool atEnd: false          // open the chapter on its last page (paging backwards)
     property bool loading: false
@@ -109,7 +110,7 @@ Scope {
     function openBook(b) {
         if (loading) return;
         error = "";
-        tocOpen = false;
+        panel = "";
         if (b.id === bookId && book) { view = "book"; return; }
         saveProgress();
         loading = true;
@@ -219,8 +220,8 @@ Scope {
         pos = p;
         probe = mid ?? p;
         const old = progress[bookId] ?? {};
-        progress[bookId] = { path: openProc.path || old.path, title: book.title, chapter: chapter, pos: p,
-                             percent: percentAt(chapter, frac), opened: old.opened ?? Date.now() };
+        progress[bookId] = Object.assign({}, old, { path: openProc.path || old.path, title: book.title, chapter: chapter, pos: p,
+                                                    percent: percentAt(chapter, frac), opened: old.opened ?? Date.now() });
         progressChanged();
         saveTimer.restart();
     }
@@ -230,6 +231,26 @@ Scope {
         progressChanged();
         saveTimer.restart();
     }
+    // ---- Bookmarks: kept with the position, { chapter, pos, percent, text, where, at }, in reading order ----
+    readonly property var bookmarks: progress[bookId]?.bookmarks ?? []
+    // The bookmark on the page (or screen) being shown, -1 if none.
+    readonly property int markHere: bookmarks.findIndex(b => b.chapter === chapter && b.pos >= pos && b.pos <= posEnd)
+    // B: removes the bookmark on this page, or adds one at its first line (text: the start of that line).
+    function toggleBookmark(text) {
+        if (!book) return;
+        const list = bookmarks.slice();
+        if (markHere >= 0) list.splice(markHere, 1);
+        else list.push({ chapter: chapter, pos: pos, percent: progress[bookId]?.percent ?? 0, text: text,
+                         where: book.toc[tocIndex]?.title ?? book.chapters[chapter].title ?? "", at: Date.now() });
+        setBookmarks(list.sort((a, b) => a.chapter - b.chapter || a.pos - b.pos));
+    }
+    function removeBookmark(i) { const list = bookmarks.slice(); list.splice(i, 1); setBookmarks(list); }
+    function setBookmarks(list) {
+        progress[bookId] = Object.assign({}, progress[bookId] ?? { chapter: chapter, pos: pos, percent: 0 }, { bookmarks: list });
+        progressChanged();
+        saveTimer.restart();
+    }
+
     // A moment after the last page turn, so holding → doesn't write the file on every page.
     Timer {
         id: saveTimer

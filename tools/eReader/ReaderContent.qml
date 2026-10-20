@@ -14,16 +14,19 @@ Item {
     function handle(event) {
         const r = reader;
         const k = event.key;
-        if (k === Qt.Key_Q && r.view === "book" && !r.tocOpen) { r.open = false; return true; }
+        if (k === Qt.Key_Q && r.view === "book" && !r.panel) { r.open = false; return true; }
         if (r.view === "library") {
             if (k === Qt.Key_Escape && !library.filter) r.open = false;
             else if (k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
             else if (!library.key(event)) return false;
             return true;
         }
-        if (r.tocOpen) {
-            if (k === Qt.Key_Escape || k === Qt.Key_T) r.tocOpen = false;
-            else if (!tocLoader.item?.key(event)) return false;
+        if (r.panel) {
+            // T and M open their tab, or close the panel when it's already showing.
+            const tab = k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : "";
+            if (k === Qt.Key_Escape || tab === r.panel) r.panel = "";
+            else if (tab) r.panel = tab;
+            else if (!panelLoader.item?.key(event)) return false;
             return true;
         }
         const shift = event.modifiers & Qt.ShiftModifier;
@@ -37,7 +40,9 @@ Item {
         else if (k === Qt.Key_Down || k === Qt.Key_J) bookView.scrollBy(bookView.lineStep());
         else if (k === Qt.Key_Up || k === Qt.Key_K) bookView.scrollBy(-bookView.lineStep());
         else if (k === Qt.Key_Home) r.goTo(r.chapter, -1, 0);
-        else if (k === Qt.Key_T) r.tocOpen = true;
+        else if (k === Qt.Key_T) r.panel = "contents";
+        else if (k === Qt.Key_M) r.panel = "bookmarks";
+        else if (k === Qt.Key_B) r.toggleBookmark(bookView.snippet());
         else if (k === Qt.Key_F || k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
         else if (k === Qt.Key_S) r.set("layout", r.layout === "pages" ? "scroll" : "pages");
         else if (k === Qt.Key_Plus || k === Qt.Key_Equal) r.step("font_size", 16, 10, 32, 1);
@@ -66,7 +71,7 @@ Item {
         // Book · the contents entry being read.
         Text {
             id: top
-            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 18; topMargin: 12 }
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 48; topMargin: 12 }
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideMiddle
             textFormat: Text.PlainText
@@ -76,6 +81,21 @@ Item {
             color: c.core.dim
             font.family: c.core.font
             font.pixelSize: 11
+        }
+
+        // A ribbon in the corner while the page has a bookmark (a click removes it).
+        Text {
+            visible: c.reader.markHere >= 0 && !c.reader.loading
+            anchors { right: parent.right; top: parent.top; rightMargin: 22 }
+            text: "\u{F00C0}"
+            color: c.core.accent
+            font.family: c.core.font
+            font.pixelSize: 22
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: c.reader.toggleBookmark("")
+            }
         }
 
         ReaderBook {
@@ -110,16 +130,16 @@ Item {
         // Click outside closes it; the panel itself sits over the left of the text.
         MouseArea {
             anchors.fill: parent
-            visible: c.reader.tocOpen
-            onClicked: c.reader.tocOpen = false
+            visible: c.reader.panel !== ""
+            onClicked: c.reader.panel = ""
             onWheel: wheel => wheel.accepted = true
         }
         Loader {
-            id: tocLoader
-            active: c.reader.tocOpen
+            id: panelLoader
+            active: c.reader.panel !== ""
             anchors { left: parent.left; top: parent.top; bottom: parent.bottom; margins: 12 }
             width: Math.min(360, parent.width - 24)
-            sourceComponent: ReaderToc { reader: c.reader }
+            sourceComponent: ReaderPanel { reader: c.reader }
         }
     }
 }

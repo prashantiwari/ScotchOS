@@ -8,10 +8,13 @@ Open it from the **app launcher**: type `reader` (or `book`, `epub`) and pick **
 - **Reading**: a centred column, with the book and the contents entry you're in on top, and the page, chapter and % of the book at the bottom. It reopens where you left off.
 - **Pages** (default): page breaks fall between lines. → ← Space PgDn PgUp h l, the mouse wheel, or a click on the left or right third turn pages, and they carry into the next or previous chapter. **Scroll**: each chapter is one column. ↓ ↑ j k scroll, Space and PgDn scroll a screen, and at the end of a chapter Space (or the **Next chapter** link) moves on.
 - **Links** in the book (footnotes, its own contents page) jump inside the reader. Web links open in the browser.
+- **Bookmarks**: `B` marks the page you're on (a ribbon shows in the top-right corner; `B` again or a click on it removes it). `M` lists them with the start of the marked page, the chapter and the %, and Enter or a click jumps there.
 
 | Key (in a book) | Does |
 |---|---|
-| `T` | Contents (Enter or a click jumps; T or Esc closes) |
+| `T` | Contents (Enter or a click jumps; T or Esc closes; Tab switches to bookmarks) |
+| `B` | Bookmark this page, or remove its bookmark |
+| `M` | Bookmarks (Enter or a click jumps; Delete or the × removes one; Tab switches to contents) |
 | `F` / `F11` | Fullscreen ↔ floating window |
 | `S` | Pages ↔ scroll |
 | `+` / `-` | Font size |
@@ -50,7 +53,7 @@ In `[reader]` of [`scotchos.conf`](../../scotchos.conf), or in the settings wind
 | `ReaderContent.qml` | What both windows show: library or book, the title and status lines, and every key. |
 | `ReaderLibrary.qml` | The cover grid and the filter. |
 | `ReaderBook.qml` | The chapter: rich text with a stylesheet made from the theme, pagination, scrolling, links. |
-| `ReaderToc.qml` | The contents panel. |
+| `ReaderPanel.qml` | The side panel: contents and bookmarks. |
 | `book.py` | Lists the library (metadata and covers, cached), and converts a book once into theme-free HTML chapters. |
 | `reader.sh` | What the launcher entry runs: exits if `reader` is off, else `scotchos reader open`. |
 | `scotchos-reader.desktop` | The app launcher entry; `install.sh` copies it to `~/.local/share/applications/` with the real path in `Exec`. |
@@ -76,7 +79,7 @@ yay -S python-mobi        # MOBI / AZW3 (or: pipx install mobi)
 ## Changes made to the system
 
 - `~/.local/share/applications/scotchos-reader.desktop`: a copy of `scotchos-reader.desktop` with `@DIR@` replaced by this folder's full path. Made by `install.sh`. Until then, the reader opens with `scotchos reader` or the `> reader` command in the launcher.
-- `~/.local/state/scotchos/reader-progress.json`: where you are in each book (created on the first open).
+- `~/.local/state/scotchos/reader-progress.json`: where you are in each book, and its bookmarks (created on the first open).
 - `~/.cache/scotchos/reader/`: converted books, covers and the library index. Safe to delete: it's rebuilt as needed.
 
 No Hyprland config change and no keybind.
@@ -118,6 +121,7 @@ After changing `book.py`'s output, bump `VERSION` there, so that cached books ar
 4. **Showing a chapter:** one chapter is in memory at a time, in a read-only `TextEdit` (rich text). Its `<style>` is built from the wallbash colors and the settings, so a wallpaper change or a `+` restyles it at once. Images are scaled to fit the column and page height.
 5. **Pages:** the next page starts at the top of the line that the page's bottom edge cuts (`positionAt` → `positionToRectangle`). A line or image taller than the page is cut. Turning a page only moves the `Flickable`'s `contentY`, and a background-colored curtain hides the cut line below the page. There's no animation, so a page turn draws once.
 6. **Position:** the character offset of the first visible line, and of the middle line (which contents entry is shown). After any relayout (size, font, width, mode), the page holding that character is shown again. Anchors are found as the n-th U+2060 in `getText()`. The positions file is written 2 s after the last move and when the window closes, atomically. The % of the book comes from the chapter text sizes in `book.json`.
+7. **Bookmarks:** stored with the book's position as (chapter, character offset), so like the position they survive font and width changes. A page "has" a bookmark when its offset falls between the page's first and last character (`positionAt` at the bottom-right corner of the page). The label is the first ~100 characters of the page, and the contents entry being read when it was made.
 
 ## Uninstall
 
