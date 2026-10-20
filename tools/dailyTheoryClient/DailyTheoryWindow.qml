@@ -38,6 +38,15 @@ FloatingWindow {
         return m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min";
     }
 
+    // ---- Links ----
+    // The site a search link goes to, from its host ("scholar.google.com" → "Google Scholar"); "" without a link.
+    function site(url) {
+        const m = String(url ?? "").match(/^https?:\/\/(?:www\.)?([^\/?#:]+)/i);
+        const host = m ? m[1].toLowerCase() : "";
+        return ({ "scholar.google.com": "Google Scholar", "openlibrary.org": "Open Library" })[host]
+               ?? (host.endsWith("wikipedia.org") ? "Wikipedia" : host);
+    }
+
     // ---- Small parts ----
     component Label: Text {
         color: win.core.accent
@@ -45,9 +54,11 @@ FloatingWindow {
         font.pixelSize: 11
         font.letterSpacing: 1
     }
+    // Plain text, so server or model text with a "<" can't be read as rich text; "\n\n" still breaks paragraphs.
     component Body: Text {
         width: parent.width
         wrapMode: Text.WordWrap
+        textFormat: Text.PlainText
         color: win.core.fg
         font.family: win.core.font
         font.pixelSize: 12
@@ -106,6 +117,45 @@ FloatingWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: c.clicked()
+        }
+    }
+    // A source or reading item. Its url is a search link the server built from the citation: it always opens, but
+    // may land on search results, so the right side names the site it searches rather than claiming a match.
+    component LinkRow: Item {
+        id: lr
+        property string text
+        property string url
+        property string hint: win.site(url)
+        width: parent.width
+        height: linkText.implicitHeight
+        Text {
+            id: linkText
+            anchors.left: parent.left
+            anchors.right: hintText.left
+            anchors.rightMargin: 12
+            wrapMode: Text.WordWrap
+            textFormat: Text.PlainText
+            text: lr.text
+            color: linkArea.containsMouse ? win.core.accent : win.core.fg
+            font.family: win.core.font
+            font.pixelSize: 12
+        }
+        Text {
+            id: hintText
+            anchors.right: parent.right
+            anchors.baseline: linkText.baseline
+            text: lr.hint ? "\u{F0349} " + lr.hint : ""
+            color: linkArea.containsMouse ? win.core.accent : win.core.dim
+            font.family: win.core.font
+            font.pixelSize: 10
+        }
+        MouseArea {
+            id: linkArea
+            anchors.fill: parent
+            enabled: lr.url !== ""
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: win.client.openLink(lr.url)
         }
     }
     // Multi-line text box for the interests (3-1000 characters).
@@ -408,7 +458,7 @@ FloatingWindow {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: win.client.busy === "next" ? "usually 3–10 s"
+                    text: win.client.busy === "next" ? "usually 4–12 s"
                         : win.client.outOfQuota && !win.client.error ? "All done for today, next in " + win.until(win.client.quota.resets_at)
                         : theoryRoot.th && theoryRoot.th.id !== win.client.history[0]?.id ? "From history · " + win.day(theoryRoot.th.generated_at)
                         : ""
@@ -501,11 +551,12 @@ FloatingWindow {
                     Label { text: "SOURCES"; topPadding: 4 }
                     Repeater {
                         model: card.th.sources ?? []
-                        Body {
+                        LinkRow {
                             required property var modelData
                             text: "•  " + modelData.title + (modelData.author ? ", " + modelData.author : "")
                                   + (modelData.year ? " (" + modelData.year + ")" : "")
                                   + (modelData.type ? "  · " + modelData.type : "")
+                            url: modelData.url ?? ""
                         }
                     }
 
@@ -523,9 +574,14 @@ FloatingWindow {
                     Label { visible: (card.th.further_reading ?? []).length > 0; text: "FURTHER READING"; topPadding: 4 }
                     Repeater {
                         model: card.th.further_reading ?? []
-                        Body {
+                        LinkRow {
                             required property var modelData
-                            text: "•  " + modelData.title + (modelData.author ? ", " + modelData.author : "")
+                            // The server always ends the list with the theory's Wikipedia entry (author "Wikipedia").
+                            readonly property bool wiki: modelData.author === "Wikipedia"
+                            text: wiki ? "\u{F05AC}  Read more on Wikipedia"
+                                       : "•  " + modelData.title + (modelData.author ? ", " + modelData.author : "")
+                            url: modelData.url ?? ""
+                            hint: wiki ? "" : win.site(url)
                         }
                     }
 

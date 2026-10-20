@@ -10,7 +10,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 | [`claudeusage`](widgets/claudeUsage/README.md) | Widget | Claude plan usage: the 5-hour and 7-day limits with reset countdowns, fetched at login and every 30 min |
 | [`settings`](settings/README.md) | Window | `scotchos settings`: a floating window to switch everything on and off and change positions, margins and the rest |
 | [`launcher`](tools/launcher/README.md) | Tool | A Spotlight-style box: apps, YouTube search and ScotchOS commands in one input; Tab locks a keyword (`yt`, `>`) in as a chip |
-| [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their sources matched to your interests, a daily quota and history |
+| [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their linked sources matched to your interests, a daily quota and history |
 
 Widgets are cards drawn on the desktop (above the wallpaper, below windows) on every screen. They only appear on screens showing a workspace with no tiled windows, and are not drawn at all otherwise. They take their colors from HyDE's wallbash, so they follow your wallpaper and theme.
 

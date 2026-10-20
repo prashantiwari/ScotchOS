@@ -4,7 +4,7 @@ This is a handoff for anyone (or any AI chat) building a client app against the 
 Give it this file **and `docs/API.md`**. API.md is the authoritative contract: if this guide and API.md ever disagree, API.md wins.
 
 ## 1. What the server does
-dailyTheory serves short theories (≤500 words), each with sources and matched to the user's free-text interests. A user signs up with
+dailyTheory serves short theories (350–500 words, at most 600), each with linked sources and matched to the user's free-text interests. A user signs up with
 interests plus a daily limit (1–10), gets a bearer token, and then asks for theories one at a time until the limit resets
 at 00:00 UTC. Theories never repeat, and the user can view their history.
 
@@ -14,9 +14,10 @@ at 00:00 UTC. Theories never repeat, and the user can view their history.
 | `GET /healthz` | ✅ now (Phase 1) |
 | `GET /v1/topics`, `POST /v1/users`, `GET/PUT /v1/me`, `POST /v1/theories/next`, `GET /v1/theories` | ✅ Phase 3 |
 | `429 rate_limited` on signup (5 per hour per IP, `Retry-After` header) | ✅ Phase 5 |
+| `url` on every source and further-reading item, a Wikipedia entry at the end of `further_reading`, theories of 350–500 words in paragraphs | ✅ 2026-10-20 |
 
-The mock (§7) is still handy for offline UI work. The shapes in API.md are frozen for v1. Any change will be recorded
-under "Contract changes" in `docs/PROGRESS.md`, so check that file when you sync.
+The mock (§7) is still handy for offline UI work. Changes to API.md are additive within v1 and are listed in its
+**Changelog** section (newest first), so check it when you sync. `docs/PROGRESS.md` has the server-side detail.
 
 ## 3. Basics
 - Base URL is configurable; the default is `http://localhost:8080`. Don't hard-code it.
@@ -35,27 +36,28 @@ under "Contract changes" in `docs/PROGRESS.md`, so check that file when you sync
 | `POST /v1/users` | reg. key (optional) | Sign up `{interests, daily_limit?}` → token + profile | **3–10 s** (LLM) |
 | `GET /v1/me` | ✅ | User, profile and `quota` | <100 ms |
 | `PUT /v1/me` | ✅ | Partial update `{interests?, daily_limit?}` (at least one field) | 3–10 s if interests changed |
-| `POST /v1/theories/next` | ✅ | Next theory + `quota` (no body) | **3–10 s, p95 <15 s** |
+| `POST /v1/theories/next` | ✅ | Next theory + `quota` (no body) | **4–12 s**; up to ~25 s when the server retries |
 | `GET /v1/theories?limit=N` | ✅ | History, newest first (N is 1–100, default 20) | <100 ms |
 
 See API.md for the full request and response JSON.
 
 ## 5. Data types (TypeScript notation; port them to your language)
 ```ts
-type Source = { title: string; author: string; year: string; type: string }; // year is free text, e.g. "c. 125 CE"
-type Reading = { title: string; author: string };
+type Source = { title: string; author: string; year: string; type: string; url: string }; // year is free text, e.g. "c. 125 CE"
+type Reading = { title: string; author: string; url: string }; // author "Wikipedia" = the theory's article
+// url: a search link (Google Scholar / Open Library / Wikipedia) built by the server from the citation; open it in a browser.
 type Theory = {
   id: string; title: string; originator: string; topic: string; subtopic: string;
-  theory: string;            // ≤500 words, plain text
+  theory: string;            // 350–500 words (max 600), plain text; paragraphs split by "\n\n"
   key_takeaway: string;
   sources: Source[];         // ≥1
   related: string[];
-  further_reading: Reading[];
+  further_reading: Reading[]; // 1–3; the last is always the Wikipedia entry
   disclaimer: string;        // always show it
   model: string; generated_at: string;
 };
 type Quota = { used: number; limit: number; resets_at: string };
-type Subtopic = { name: string; seeds: string[] };
+type Subtopic = { name: string; seeds?: string[] }; // seeds is omitted when empty
 type ProfileTopic = { name: string; catalog_id?: string; weight: number; subtopics: Subtopic[] }; // catalog_id may be absent/empty for free-form topics
 type Profile = { topics: ProfileTopic[] };
 type User = { user_id: string; interests: string; daily_limit: number; profile: Profile;
@@ -82,6 +84,7 @@ Every non-2xx response has the `ApiError` shape. Branch on `error.code`, not on 
 | `quota_exceeded` | "You've had all N for today." Show a countdown to `resets_at` (converted to local time) |
 | `rate_limited` | "Too many signups, try again in N minutes", with N from the `Retry-After` header (seconds) |
 | `generation_failed` / `upstream_unavailable` | "Couldn't generate right now," with a Retry button. **These don't use up quota** |
+| `not_found` / `method_not_allowed` / `payload_too_large` | A client bug (wrong path, method, or a body over 16 KiB): log it and show a generic error |
 | `internal`, network error, timeout | Generic error + Retry |
 
 ## 7. Building before the server exists: the mock server
@@ -102,6 +105,8 @@ Restarting the mock wipes all users, so the app will then get `401` and should g
 returns that documented error with its proper status. Use it to build every error screen.
 
 Differences from the real server: CORS is **on** by default (the real one sends none), the content is canned, and no state is kept after exit.
+The canned theories are short (~70 words, one paragraph); real ones are 350–500 words in about five paragraphs, so test
+your layout with long text too. Links follow the real server's rules (§8).
 
 In the app, put a single `ApiClient` interface behind which both the mock and the real server sit; only the base URL changes.
 
@@ -109,13 +114,19 @@ To check against the real server once Phase 3 lands: from the server repo, `scri
 throwaway server and exports `$SERVER`. You can also run `go run ./cmd/server`, which needs a Gemini API key in its env.
 
 ## 8. Client requirements and tips
-- **Timeouts:** set ≥30 s for the three LLM-backed calls (the server's own LLM timeout is 60 s), 10 s for everything else.
-  Show a loading state; there's no streaming in v1.
+- **Timeouts:** set ≥80 s for the three LLM-backed calls (the server gives up on them at 75 s and answers 503
+  `upstream_unavailable`), 10 s for everything else. Show a loading state; there's no streaming in v1.
 - **Don't auto-retry `/next` in a loop.** Every attempt can cost shared free-tier LLM quota on the server (about 50 requests/day per server).
   Retry only when the user taps.
 - Prevent double taps on "Next": disable the button while a request is in flight.
 - Show quota as `used / limit` and `resets_at` in local time. Refresh it from the `quota` in each `/next` response or from `GET /v1/me`.
-- Always display `disclaimer` and the `sources`. The sources are AI-claimed and unverified, and there are no URLs in v1.
+- Always display `disclaimer` and the `sources`. The sources are AI-claimed and unverified.
+- **Links:** every source and further-reading item has a `url`; make the item tappable and open it in the browser.
+  They are search links built from the citation (Google Scholar for sources, Open Library for books, Wikipedia for the
+  last further-reading entry), so they always open but can land on a results page rather than the work itself; label
+  them as "find" or "search" links, not as verified ones. Render the Wikipedia entry as "Read more on Wikipedia".
+- **Body text:** `theory` is 350–500 words split into paragraphs by a blank line (`\n\n`). Keep the breaks; don't
+  truncate it in the detail view (a short preview in lists is fine).
 - For an interest picker, offer `/v1/topics` subtopics as chips that append to the free-text interests string. The server only takes the text.
 - If the user lowers `daily_limit` below today's usage, that's allowed: `/next` just returns 429 until the reset.
 

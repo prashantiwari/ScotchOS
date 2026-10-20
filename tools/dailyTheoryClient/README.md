@@ -1,11 +1,12 @@
 # Daily Theory
 
-A window for a **dailyTheory** server, which serves short theories (≤ 500 words) with their sources, matched to interests you describe in your own words, up to a daily limit that resets at 00:00 UTC.
+A window for a **dailyTheory** server, which serves short theories (350–500 words, in paragraphs) with linked sources, matched to interests you describe in your own words, up to a daily limit that resets at 00:00 UTC.
 
 Open it from **rofi** (or any app launcher): type `theory` and pick **Daily Theory**. Or from a terminal: `scotchos theory` (toggles it). Esc closes it.
 
 - **Sign up** (first run): describe your interests, or click suggestions from the server's catalog to add them, and pick how many theories per day you want (1–10). This takes 3–10 s while the server reads your interests.
-- **Theory**: **Next theory** fetches a new one (3–10 s). It shows the topic, title, originator, the theory, its key takeaway, sources, related ideas, further reading and the disclaimer. The sources are AI-claimed and unverified, so the disclaimer is always shown.
+- **Theory**: **Next theory** fetches a new one (4–12 s, up to ~25 s when the server has to retry). It shows the topic, title, originator, the theory, its key takeaway, sources, related ideas, further reading and the disclaimer. The sources are AI-claimed and unverified, so the disclaimer is always shown.
+- **Links**: click a source or a book to search for it in your browser; the site it searches (Google Scholar for sources, Open Library for books) is shown on its right. The server builds these links from the citation, so they always open but can land on search results rather than the work itself. The last further-reading line, **Read more on Wikipedia**, opens the theory's Wikipedia article (or Wikipedia's search, when no article has that title).
 - **History**: every theory you've had, newest first. Click one to read it again.
 - **Interests**: change your interests or daily limit (changing interests keeps your history), see the profile the server derived from them, and **Forget token**, which is the "log out".
 - The sidebar shows today's quota (`used / limit`) and when it resets, in local time. Once it's used up, Next is disabled and a countdown shows instead.
@@ -44,6 +45,7 @@ It also uses `Stepper.qml` from [`settings/`](../../settings/README.md) for the 
 | Quickshell | `quickshell` | 0.3.2 | The window, `qs ipc` to open it, HTTP with QML's built-in `XMLHttpRequest` (no curl) |
 | Qt 6 | `qt6-base` | 6.12.0 | `XMLHttpRequest.timeout` |
 | Hyprland | `hyprland` | 0.56.2 | Floats the window because it has a fixed size (min = max), no window rule needed |
+| xdg-utils | `xdg-utils` | 1.2.1 | Opening source and reading links in the default browser (`Qt.openUrlExternally` runs `xdg-open`) |
 | coreutils, sh | `coreutils` | 9.12 | Writing the token file (`umask 077`, `mkdir`, `cat`, `mv`) and deleting it (`rm`) |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and icons |
 | A dailyTheory server | — | API v1 (real server from the dailyTheory repo, 2026-10-20) | Everything shown |
@@ -92,7 +94,9 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 |---|---|---|
 | Server URL, registration key | `[dailytheory]` in `scotchos.conf` | `http://localhost:8080`, none |
 | Token location | `tokenPath` in `DailyTheory.qml` | `~/.local/state/scotchos/dailytheory-token` |
-| Timeouts | `call()` in `DailyTheory.qml` | 65 s for signup, interest changes and Next (the server's own LLM timeout is 60 s); 10 s for the rest |
+| Timeouts | `call()` in `DailyTheory.qml` | 85 s for signup, interest changes and Next (the server gives up at 75 s with `upstream_unavailable`); 10 s for the rest |
+| Which links open | `openLink()` in `DailyTheory.qml` | `http://` and `https://` only |
+| Site names next to links | `site()` in `DailyTheoryWindow.qml` | Google Scholar, Open Library, Wikipedia; any other site shows its host |
 | History length | `refresh()` in `DailyTheory.qml` (`/v1/theories?limit=`) | 50 (the API allows 1–100) |
 | Error wording | `fail()` in `DailyTheory.qml` | One line per API error code (`rate_limited` adds the wait from `Retry-After`) |
 | Window size | `implicitWidth` / `implicitHeight` in `DailyTheoryWindow.qml` | 860 × 580 (fits the laptop's 1280 × 720) |
@@ -101,11 +105,12 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 ## How it works
 
 1. **Loading:** `shell.qml` loads `DailyTheory` while `dailytheory` is on. When idle it holds a few properties, a `FileView` with the token and an `IpcHandler`. It has no timers, and no processes run until a token is saved or deleted. The window is a `LazyLoader` inside it, created by `qs ipc call dailytheory open` and destroyed when closed. The state lives outside the window, so closing it during a signup doesn't lose the token, and the theory you were reading is still there when you reopen it.
-2. **Opening:** the window calls `refresh()`. Signed in, that's `GET /v1/me` (profile and quota) and `GET /v1/theories?limit=50` (history; the newest becomes the current theory). Signed out, it's `GET /v1/topics` for the suggestion chips.
+2. **Opening:** the window calls `refresh()`. Signed in, that's `GET /v1/me` (profile and quota) and `GET /v1/theories?limit=50` (history; the newest becomes the current theory, or the one you were reading is replaced by the server's fresh copy, which picks up fields added since, such as links). Signed out, it's `GET /v1/topics` for the suggestion chips.
 3. **Requests:** `call()` sends JSON with `XMLHttpRequest` in the shell process, so nothing is spawned. It sends only the documented fields, because the server rejects unknown ones. `Authorization: Bearer` goes on every call except signup, and `X-Registration-Key` only on signup. `PUT /v1/me` sends only the fields that changed. Next and Save are disabled while a request is in flight, so a double click can't send two.
-4. **Errors:** every non-2xx answer is `{"error": {"code", "message"}}`, and `fail()` picks the message by `code` (never by HTTP status). `unauthorized` deletes the token and returns to signup. `quota_exceeded` marks the quota as used up until `resets_at`. A failed Next says it didn't use up quota, because the server doesn't count it.
+4. **Errors:** every non-2xx answer is `{"error": {"code", "message"}}`, and `fail()` picks the message by `code` (never by HTTP status). `not_found`, `method_not_allowed` and `payload_too_large` mean the client sent something wrong, so they also go to the log as a warning. `unauthorized` deletes the token and returns to signup. `quota_exceeded` marks the quota as used up until `resets_at`. A failed Next says it didn't use up quota, because the server doesn't count it.
 5. **Quota:** it's updated from every Next response and from `/v1/me`. While it's used up, a 30 s timer refreshes the countdown, and after `resets_at` it calls `refresh()` once. The timer runs only while the window is open and the quota is used up.
-6. **Token:** a `Process` runs `sh -c 'umask 077 && mkdir -p … && cat > tmp && mv tmp token'` and writes the token to its **stdin**, so it never appears in a command line that `ps` could show. The file is created `0600` and replaced atomically.
+6. **Text and links:** server text is shown as plain text, so a `<` in it can't turn into rich text; the theory's blank lines (`\n\n`) are its paragraph breaks. A source or reading line is clickable when it has a `url`; `openLink()` passes it to `Qt.openUrlExternally` only if it starts with `http://` or `https://`.
+7. **Token:** a `Process` runs `sh -c 'umask 077 && mkdir -p … && cat > tmp && mv tmp token'` and writes the token to its **stdin**, so it never appears in a command line that `ps` could show. The file is created `0600` and replaced atomically.
 
 ## Uninstall
 

@@ -77,10 +77,11 @@ Scope {
     }
 
     // ---- HTTP ----
-    // slow: the LLM-backed calls (signup, interest change, next) take 3-10 s, p95 15 s; the server gives up at 60 s.
+    // slow: the LLM-backed calls (signup, interest change, next) take 3-12 s, ~25 s when the server retries; it gives
+    // up at 75 s with 503 upstream_unavailable, so wait past that to get its answer instead of a timeout.
     function call(method, path, body, slow, done) {
         const xhr = new XMLHttpRequest();
-        xhr.timeout = slow ? 65000 : 10000;
+        xhr.timeout = slow ? 85000 : 10000;
         xhr.onreadystatechange = () => {
             if (xhr.readyState !== XMLHttpRequest.DONE) return;
             let data = null;
@@ -120,6 +121,9 @@ Scope {
             generation_failed: "The server couldn't generate that right now.",
             upstream_unavailable: "The server's AI provider is busy or down.",
         })[err.code] ?? (err.code === "network" ? err.message : "Something went wrong (" + err.code + ").");
+        // These mean this client sent a wrong path, method or a body over 16 KiB: a bug to find in `scotchos log`.
+        if (["not_found", "method_not_allowed", "payload_too_large"].includes(err.code))
+            console.warn("dailytheory:", err.code, err.message);
         // Only offer Retry where trying again can help; it's always a click, never automatic (each try costs LLM quota).
         const retryable = ["generation_failed", "upstream_unavailable", "internal", "network"].includes(err.code);
         // A failed /next isn't counted, so say so: otherwise Retry looks like it spends one of today's.
@@ -148,8 +152,17 @@ Scope {
         call("GET", "/v1/theories?limit=50", null, false, (data, err) => {
             if (err) return fail(err, refresh);
             history = data.theories ?? [];
-            if (!current && history.length) current = history[0];
+            // Swap in the server's copy of the theory being read: it may have gained fields since (links, 2026-10-20).
+            const fresh = current && history.find(h => h.id === current.id);
+            if (fresh) current = fresh;
+            else if (!current && history.length) current = history[0];
         });
+    }
+
+    // Source and reading links come from the server: open web links only, never file: or other schemes.
+    function openLink(url) {
+        if (/^https?:\/\//i.test(url ?? "")) Qt.openUrlExternally(url);
+        else console.warn("dailytheory: not opening", url);
     }
 
     function loadTopics() {
