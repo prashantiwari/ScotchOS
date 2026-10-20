@@ -41,7 +41,11 @@ PanelWindow {
     function compute(raw) {
         const { provider, query } = parse(raw, false);
         if (provider) return provider.search(query).slice(0, maxRows);
-        if (!query.trim()) return [];
+        if (!query.trim()) {
+            const recent = [];
+            for (const p of launcher.providers) recent.push(...p.recents());
+            return recent.slice(0, maxRows);
+        }
         const rows = [];
         for (const p of launcher.providers) if (p.inDefault) rows.push(...p.search(query).slice(0, 5));
         const tail = [];

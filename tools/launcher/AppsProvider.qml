@@ -30,17 +30,24 @@ Provider {
         store.setText(JSON.stringify(next));
     }
 
-    search: q => {
+    function installed() {
         const apps = [];
         for (const e of DesktopEntries.applications.values) {
             if (e.noDisplay) continue;
             apps.push({ id: e.id, name: e.name, exec: e.execString, genericName: e.genericName, keywords: e.keywords, entry: e });
         }
-        return Score.rank(q, apps, p.counts, 8).map(a => ({
+        return apps;
+    }
+
+    function rows(apps) {
+        return apps.map(a => ({
             title: a.name,
             subtitle: a.genericName || a.entry.comment,
             iconName: a.entry.icon,
             run: () => { p.record(a.entry); a.entry.execute(); },
         }));
     }
+
+    recents: () => rows(Score.rank("", installed(), p.counts, 5).filter(a => p.counts[a.id]))
+    search: q => rows(Score.rank(q, installed(), p.counts, 8))
 }

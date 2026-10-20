@@ -15,6 +15,8 @@ Keywords aim the box at one source (a *provider*):
 
 Apps are found by name, by initials (`vsc` → Visual Studio Code, `lo` → LibreOffice), by the command they run (`code`) and by generic name or keywords. Apps you launch often rise: with nothing typed the most launched come first, and among apps that match equally well the more launched wins.
 
+With nothing typed it lists the apps you have launched, most launched first (up to five).
+
 Commands: open settings, restart ScotchOS, open Daily Theory and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
 
 Switch it off with `scotchos disable launcher`: the keybind stays but does nothing.
