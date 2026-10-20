@@ -23,6 +23,7 @@ Scope {
     readonly property int lineHeight: clamped("line_height", 150, 100, 220)
     readonly property int columnWidth: clamped("width", 720, 400, 1600)
     readonly property bool justify: core.isYes(setting("justify", "no"))
+    readonly property bool timeLeft: core.isYes(setting("time_left", "yes"))
     // Live adjustments (keys in the book view) go to the conf, so they apply to every book and survive restarts.
     function set(key, value) { core.setConf("reader", key, String(value)) }
     function step(key, fallback, min, max, by) { set(key, Math.max(min, Math.min(max, clamped(key, fallback, min, max) + by))) }
@@ -172,6 +173,7 @@ Scope {
         c = Math.max(0, Math.min(book.chapters.length - 1, c));
         atEnd = false;
         find = null;
+        lastTurn = null;            // a jump isn't reading
         anchor = a ?? -1;
         pos = p ?? 0;
         if (c !== chapter || !chapterHtml) {
@@ -278,6 +280,7 @@ Scope {
     }
     // Called by the book view after every page turn or scroll (frac: 0..1 within the chapter).
     function report(p, frac, mid) {
+        learn(p);
         pos = p;
         probe = mid ?? p;
         const old = progress[bookId] ?? {};
@@ -292,6 +295,38 @@ Scope {
         progressChanged();
         saveTimer.restart();
     }
+    // ---- Reading speed (characters per minute) and the time left ----
+    // Learned from moving forward in a chapter: the characters passed over the time it took. Moves under 3 s
+    // (skimming) or over 10 min (away) are left out, and each one counts for a tenth of the average.
+    readonly property real speed: progress._reading?.cpm ?? 1200      // ~250 words a minute until it's learned
+    property var lastTurn: null         // { chapter, pos, at } of the last report
+    function learn(p) {
+        const now = Date.now(), last = lastTurn;
+        lastTurn = { chapter: chapter, pos: p, at: now };
+        if (!last || last.chapter !== chapter || p <= last.pos || p - last.pos > 8000) return;
+        const dt = now - last.at;
+        if (dt < 3000 || dt > 600000) return;
+        const cpm = (p - last.pos) / dt * 60000;
+        if (cpm < 150 || cpm > 6000) return;
+        const old = progress._reading ?? { cpm: 1200, samples: 0 };
+        // The first moves replace the guess faster than later ones change the average.
+        const w = Math.max(0.1, 1 / (old.samples + 2));
+        progress._reading = { cpm: Math.round(old.cpm * (1 - w) + cpm * w), samples: old.samples + 1 };
+    }
+    // Minutes to read the rest of the chapter (frac: how far into it), and of the book.
+    function minutesLeft(frac, wholeBook) {
+        if (!book) return 0;
+        let chars = book.chapters[chapter].size * (1 - frac);
+        if (wholeBook) book.chapters.forEach((ch, i) => { if (i > chapter) chars += ch.size; });
+        return chars / speed;
+    }
+    function duration(min) {
+        if (min < 1) return "<1 min";
+        if (min < 60) return Math.round(min) + " min";
+        const h = Math.floor(min / 60), m = Math.round(min % 60);
+        return h + " h " + (m < 10 ? "0" : "") + m;
+    }
+
     // ---- Bookmarks: kept with the position, { chapter, pos, percent, text, where, at }, in reading order ----
     readonly property var bookmarks: progress[bookId]?.bookmarks ?? []
     // The bookmark on the page (or screen) being shown, -1 if none.

@@ -116,7 +116,7 @@ Item {
             font.pixelSize: 12
         }
 
-        // Page (or place in the chapter) · chapter · whole book.
+        // Page (or place in the chapter) · chapter · whole book · time left in the chapter and the book.
         Text {
             id: status
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 18; bottomMargin: 10 }
@@ -125,6 +125,8 @@ Item {
             text: !b ? "" : (bookView.paged ? bookView.page + 1 + " / " + bookView.pageCount : Math.round(bookView.frac * 100) + "%")
                   + "   ·   chapter " + (c.reader.chapter + 1) + " / " + b.chapters.length
                   + "   ·   " + Math.round(c.reader.percentAt(c.reader.chapter, bookView.frac)) + "% of the book"
+                  + (c.reader.timeLeft ? "   ·   " + c.reader.duration(c.reader.minutesLeft(bookView.frac, false)) + " left in chapter, "
+                                         + c.reader.duration(c.reader.minutesLeft(bookView.frac, true)) + " in book" : "")
             color: c.core.dim
             font.family: c.core.font
             font.pixelSize: 10

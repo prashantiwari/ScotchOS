@@ -48,7 +48,8 @@ There's no keybind of its own (no change to `hyprland.lua`).
 
 ### Reading
 
-- A centred text column (max `width` px), a title line on top (book · chapter, dim) and a status line at the bottom (page *n / m* of the chapter, or the scroll position, chapter *i / N*, % of the book).
+- A centred text column (max `width` px), a title line on top (book · chapter, dim) and a status line at the bottom (page *n / m* of the chapter, or the scroll position, chapter *i / N*, % of the book, and the time left in the chapter and the book).
+- **Time left** uses a reading speed learned from forward moves within a chapter (3 s – 10 min each, 150–6000 characters a minute, so skimming and pauses are left out), ~250 words a minute until then. It's one speed for every book, saved with the positions.
 - **Pages mode**: page breaks fall between lines, never through one. → / ← / Space / Shift+Space / PgDn / PgUp / l / h / mouse wheel / click on the right or left third of the window turn pages. They carry over into the next or previous chapter.
 - **Scroll mode**: the chapter is one scrolling column. ↓ / ↑ / j / k scroll, Space / PgDn / PgUp scroll a screen, and at the end of a chapter Space (or a **Next chapter** link) moves on.
 - **Links**: links inside the book (footnotes, the book's own contents page) jump in the reader. Web links open in the browser. Other schemes are ignored.
@@ -88,6 +89,7 @@ The position in the book survives all of these: it's stored as a character offse
 | `line_height` | `150` | % of the font height |
 | `width` | `720` | Max column width, px |
 | `justify` | `no` | Justify paragraphs |
+| `time_left` | `yes` | Time left in the chapter and the book on the status line |
 
 ## Technical design
 
@@ -122,7 +124,7 @@ The position in the book survives all of these: it's stored as a character offse
 
 ### State
 
-- Positions: `~/.local/state/scotchos/reader-progress.json`, `{ id: { path, chapter, pos, percent, opened, bookmarks: [{ chapter, pos, percent, text, where, at }] } }`, written atomically a moment after the last page turn and when the window closes. It's outside the Quickshell cache dir, so that moving the repo doesn't reset it.
+- Positions: `~/.local/state/scotchos/reader-progress.json`, `{ id: { path, chapter, pos, percent, opened, bookmarks: [{ chapter, pos, percent, text, where, at }] }, _reading: { cpm, samples } }`, written atomically a moment after the last page turn and when the window closes. It's outside the Quickshell cache dir, so that moving the repo doesn't reset it.
 - Converted books and covers: `~/.cache/scotchos/reader/` (safe to delete).
 
 ### Resource rules
@@ -153,3 +155,4 @@ The position in the book survives all of these: it's stored as a character offse
 9. Shell memory with the window closed is unchanged (`scotchos status`) compared with before the reader existed.
 10. A bookmark stays on the same text after a font size or width change, and after a restart.
 11. A search result opens on the page holding that match, highlighted, and Backspace returns to the page before.
+12. After some reading, the time left follows the measured speed, and it survives a restart.
