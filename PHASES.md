@@ -109,7 +109,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 4: E-reader continue reading, bookmark export, converter leftovers
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Opus 5.5, medium effort (`book.py`'s sanitizer is easy to break in ways the fixtures only partly catch).
 
