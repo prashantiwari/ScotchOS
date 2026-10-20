@@ -49,5 +49,5 @@ Provider {
     }
 
     recents: () => rows(Score.rank("", installed(), p.counts, 18).filter(a => p.counts[a.id]))
-    search: q => rows(Score.rank(q, installed(), p.counts, 8))
+    search: q => rows(Score.rank(q, installed(), p.counts, 300))
 }

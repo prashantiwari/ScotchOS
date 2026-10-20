@@ -22,7 +22,9 @@ PanelWindow {
     // ---- State ----
     property var mode: null         // the provider locked in as a chip, or null
     property int sel: 0
-    readonly property int maxRows: 9
+    readonly property int maxRows: 9            // rows on screen; a longer list scrolls through them
+    readonly property int maxResults: 300
+    property int top: 0                         // index of the first row on screen
     // Nothing typed: the recent apps as square icons, wrapping onto new rows (tile 56 + gap 8 = 9 per row in the card).
     readonly property bool grid: !mode && !input.text.trim()
     readonly property int maxTiles: 18
@@ -44,7 +46,7 @@ PanelWindow {
     // Plain text searches every inDefault provider, then the fallbacks (never cut off); a keyword or chip searches one.
     function compute(raw) {
         const { provider, query } = parse(raw, false);
-        if (provider) return provider.search(query).slice(0, maxRows);
+        if (provider) return provider.search(query).slice(0, maxResults);
         if (!query.trim()) {
             const recent = [];
             for (const p of launcher.providers) recent.push(...p.recents());
@@ -58,7 +60,8 @@ PanelWindow {
     }
     readonly property var results: compute(input.text)
     readonly property var picked: results[sel] ?? null
-    onResultsChanged: sel = 0
+    onResultsChanged: { sel = 0; top = 0; }
+    onSelChanged: top = Math.max(Math.min(top, sel), sel - maxRows + 1)
 
     // Tab: a typed keyword becomes the chip; otherwise it steps through the providers (and back to none).
     function tab(step) {
@@ -254,13 +257,21 @@ PanelWindow {
                 visible: !win.grid
                 width: parent.width
                 topPadding: win.results.length ? 6 : 0
+                // The wheel scrolls a list longer than the rows on screen.
+                WheelHandler {
+                    onWheel: e => {
+                        const max = Math.max(win.results.length - win.maxRows, 0);
+                        win.top = Math.max(0, Math.min(max, win.top + (e.angleDelta.y < 0 ? 1 : -1)));
+                        win.sel = Math.max(win.top, Math.min(win.sel, win.top + win.maxRows - 1));
+                    }
+                }
                 Repeater {
                     model: win.maxRows
                     delegate: Rectangle {
                         id: rowItem
                         required property int index
-                        readonly property var r: win.results[index] ?? null
-                        readonly property bool current: index === win.sel
+                        readonly property var r: win.results[win.top + index] ?? null
+                        readonly property bool current: win.top + index === win.sel
                         visible: !!r
                         x: 8
                         width: parent.width - 16
@@ -319,7 +330,7 @@ PanelWindow {
                             id: rowArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            onEntered: win.sel = rowItem.index
+                            onEntered: win.sel = win.top + rowItem.index
                             onClicked: win.run(false)
                         }
                     }

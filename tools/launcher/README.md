@@ -11,6 +11,8 @@ Keywords aim the box at one source (a *provider*):
 | `> restart` or `sos restart` | ScotchOS commands only | runs it | — |
 | `app firefox` | applications only | starts it | — |
 
+A keyword or chip lists every match (up to 300), nine rows at a time: ↑ / ↓ and the mouse wheel scroll the rest into view. (`app` + Tab with nothing typed lists every installed app.)
+
 **Tab** turns a typed keyword into a chip (`yt` + Tab → a *YouTube* chip, the rest of the line is the query). With no keyword typed, Tab steps through the chips (Commands, YouTube, Apps, none); **Shift + Tab** goes back. **Backspace** on an empty line removes the chip. **Esc**, a click outside the box, or the keybind again closes it. **↑ / ↓** or **Ctrl + J / K** move the highlight.
 
 Apps are found by name, by initials (`vsc` → Visual Studio Code, `lo` → LibreOffice), by the command they run (`code`) and by generic name or keywords. Apps you launch often rise: with nothing typed the most launched come first, and among apps that match equally well the more launched wins.
