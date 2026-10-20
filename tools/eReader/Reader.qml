@@ -22,11 +22,15 @@ Scope {
     readonly property int fontSize: clamped("font_size", 16, 10, 32)
     readonly property int lineHeight: clamped("line_height", 150, 100, 220)
     readonly property int columnWidth: clamped("width", 720, 400, 1600)
+    // column: one column at most `width` wide / full: the whole width / two: two pages side by side (pages only)
+    readonly property var pageLayouts: ["column", "full", "two"]
+    readonly property string pageLayout: pageLayouts.includes(setting("page_layout", "column")) ? setting("page_layout", "column") : "column"
     readonly property bool justify: core.isYes(setting("justify", "no"))
     readonly property bool timeLeft: core.isYes(setting("time_left", "yes"))
     // Live adjustments (keys in the book view) go to the conf, so they apply to every book and survive restarts.
     function set(key, value) { core.setConf("reader", key, String(value)) }
     function step(key, fallback, min, max, by) { set(key, Math.max(min, Math.min(max, clamped(key, fallback, min, max) + by))) }
+    function cyclePageLayout(by) { set("page_layout", pageLayouts[(pageLayouts.indexOf(pageLayout) + by + 3) % 3]) }
 
     // ---- Paths ----
     readonly property string helper: Quickshell.shellDir + "/tools/eReader/book.py"
@@ -38,7 +42,7 @@ Scope {
     property bool open: false
     property bool fullscreen: false
     property string view: "library"     // library / book
-    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, search
+    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, search, text
     property var books: []
     property bool scanning: false
     property string error: ""

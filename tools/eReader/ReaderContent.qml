@@ -22,8 +22,9 @@ Item {
             return true;
         }
         if (r.panel) {
-            // T and M open their tab, or close the panel when it's already showing (in search they're typed).
-            const tab = r.panel === "search" ? "" : k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : "";
+            // T, M and A open their tab, or close the panel when it's already showing (in search and text they're typed).
+            const typing = r.panel === "search" || r.panel === "text";
+            const tab = typing ? "" : k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : k === Qt.Key_A ? "text" : "";
             if (k === Qt.Key_Escape || tab === r.panel) r.panel = "";
             else if (tab) r.panel = tab;
             else if (!panelLoader.item?.key(event)) return false;
@@ -44,6 +45,8 @@ Item {
         else if (k === Qt.Key_M) r.panel = "bookmarks";
         else if (k === Qt.Key_B) r.toggleBookmark(bookView.snippet());
         else if (k === Qt.Key_Slash) r.panel = "search";
+        else if (k === Qt.Key_A) r.panel = "text";
+        else if (k === Qt.Key_W) r.cyclePageLayout(shift ? -1 : 1);
         else if (k === Qt.Key_N) r.nextResult(shift ? -1 : 1);
         else if (k === Qt.Key_Backspace) r.back();
         else if (k === Qt.Key_F || k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
@@ -122,7 +125,7 @@ Item {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 18; bottomMargin: 10 }
             horizontalAlignment: Text.AlignHCenter
             readonly property var b: c.reader.book
-            text: !b ? "" : (bookView.paged ? bookView.page + 1 + " / " + bookView.pageCount : Math.round(bookView.frac * 100) + "%")
+            text: !b ? "" : (bookView.paged ? bookView.page + 1 + (bookView.hasRight ? "–" + (bookView.page + 2) : "") + " / " + bookView.pageCount : Math.round(bookView.frac * 100) + "%")
                   + "   ·   chapter " + (c.reader.chapter + 1) + " / " + b.chapters.length
                   + "   ·   " + Math.round(c.reader.percentAt(c.reader.chapter, bookView.frac)) + "% of the book"
                   + (c.reader.timeLeft ? "   ·   " + c.reader.duration(c.reader.minutesLeft(bookView.frac, false)) + " left in chapter, "

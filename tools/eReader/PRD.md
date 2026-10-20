@@ -68,6 +68,8 @@ There's no keybind of its own (no change to `hyprland.lua`).
 | `]` / `[` | Column width (400–1600 px, 40 px steps) |
 | `.` / `,` | Line spacing (100–220 %, 10 % steps) |
 | `S` | Pages ↔ scroll |
+| `W` | Page layout: one column → full width → two pages side by side (pages mode only) |
+| `A` | Fonts and text panel: the installed fonts, each shown in its own face, plus size, spacing and layout |
 | `J` | Justified ↔ ragged-right text |
 | `F` | Floating ↔ fullscreen |
 
@@ -88,6 +90,7 @@ The position in the book survives all of these: it's stored as a character offse
 | `font_size` | `16` | px |
 | `line_height` | `150` | % of the font height |
 | `width` | `720` | Max column width, px |
+| `page_layout` | `column` | `column`, `full` (whole width) or `two` (two pages side by side) |
 | `justify` | `no` | Justify paragraphs |
 | `time_left` | `yes` | Time left in the chapter and the book on the status line |
 

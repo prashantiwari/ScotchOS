@@ -1,5 +1,6 @@
 // The open chapter: one read-only TextEdit in a Flickable. In pages mode the Flickable doesn't move by itself:
 // contentY jumps to the top of the page and a curtain hides the line the page's bottom edge would cut.
+// Two pages side by side add a second TextEdit with the same text and width, showing the next page.
 import QtQuick
 
 Item {
@@ -9,11 +10,20 @@ Item {
     readonly property bool paged: reader.layout === "pages"
     readonly property int fs: reader.fontSize
 
+    // ---- Page layout: one column (at most `width`), the whole width, or two pages (pages mode only) ----
+    readonly property bool spread: paged && reader.pageLayout === "two"
+    readonly property int gap: 56
+    readonly property real colWidth: reader.pageLayout === "full" ? width
+        : spread ? Math.min(reader.columnWidth, (width - gap) / 2) : Math.min(reader.columnWidth, width)
+
     // ---- Pagination ----
     property var starts: [0]            // y of each page's first line
-    property int page: 0
+    property int page: 0                // the page shown (with two pages: the left one, always even)
     readonly property int pageCount: starts.length
-    readonly property real pageEnd: page + 1 < starts.length ? starts[page + 1] : te.height
+    readonly property int step: spread ? 2 : 1
+    readonly property bool hasRight: spread && page + 1 < starts.length
+    function endOf(i) { return i + 1 < starts.length ? starts[i + 1] : te.height }
+    readonly property real pageEnd: endOf(page)
     readonly property real frac: te.length ? reader.pos / te.length : 0
 
     // ---- Rich text: the chapter with a stylesheet made from the theme and the reader settings ----
@@ -55,7 +65,10 @@ Item {
             const m = match(plain, reader.find);
             reader.find = null;
             show(m ? m.index : 0, true);
-            if (m) te.select(m.index, m.index + m[0].length);
+            if (m) {
+                te.select(m.index, m.index + m[0].length);
+                right.item?.text.select(m.index, m.index + m[0].length);
+            }
         } else if (reader.anchor >= 0) {
             const at = marks[reader.anchor] ?? 0;
             reader.anchor = -1;
@@ -84,7 +97,7 @@ Item {
         if (paged) {
             let i = 0;
             while (i + 1 < starts.length && starts[i + 1] <= y + 1) i++;
-            page = i;
+            page = i - i % step;
             flick.contentY = starts[i];
             reader.probe = seen();
             if (report) reader.report(p, te.length ? p / te.length : 0, reader.probe);
@@ -96,7 +109,7 @@ Item {
     }
     // After every move: the last character on screen (which bookmark is on this page), and the one in the middle.
     function seen() {
-        const top = flick.contentY, bottom = paged ? pageEnd : top + flick.height;
+        const top = flick.contentY, bottom = paged ? endOf(hasRight ? page + 1 : page) : top + flick.height;
         reader.posEnd = te.positionAt(te.width - 1, Math.min(te.height, bottom) - 1);
         return te.positionAt(1, top + Math.min(bottom - top, flick.height) / 2);
     }
@@ -124,6 +137,7 @@ Item {
     }
     function setPage(i) {
         page = Math.max(0, Math.min(starts.length - 1, i));
+        page -= page % step;
         flick.contentY = starts[page];
         const p = te.positionAt(1, starts[page] + 1);
         reader.report(p, te.length ? p / te.length : 0, seen());
@@ -135,7 +149,7 @@ Item {
 
     function next() {
         if (paged) {
-            if (page + 1 < starts.length) setPage(page + 1);
+            if (page + step < starts.length) setPage(page + step);
             else reader.nextChapter();
         } else if (flick.contentY + flick.height >= te.height - 2) {
             reader.nextChapter();
@@ -146,7 +160,7 @@ Item {
     }
     function prev() {
         if (paged) {
-            if (page > 0) setPage(page - 1);
+            if (page > 0) setPage(page - step);
             else reader.prevChapter();
         } else if (flick.contentY <= 0) {
             reader.prevChapter();
@@ -168,11 +182,28 @@ Item {
         function onJumped() { Qt.callLater(v.relayout) }
     }
     onPagedChanged: Qt.callLater(relayout)
+    onSpreadChanged: Qt.callLater(relayout)     // the left page must be an even one
+
+    component PageText: TextEdit {
+        readOnly: true
+        selectByMouse: false
+        activeFocusOnPress: false
+        textFormat: TextEdit.RichText
+        wrapMode: TextEdit.Wrap
+        color: v.core.fg
+        selectionColor: Qt.alpha(v.core.accent, 0.35)       // a search match
+        selectedTextColor: v.core.fg
+        font.family: v.reader.bookFont
+        font.pixelSize: v.fs
+        text: v.html
+    }
 
     // ---- The text ----
     Flickable {
         id: flick
-        anchors.fill: parent
+        x: Math.max(0, (v.width - (v.spread ? 2 * width + v.gap : width)) / 2)
+        width: v.colWidth
+        height: parent.height
         clip: true
         interactive: !v.paged
         boundsBehavior: Flickable.StopAtBounds
@@ -181,21 +212,9 @@ Item {
         onHeightChanged: Qt.callLater(v.relayout)
         onMovementEnded: if (!v.paged) v.scrolled()
 
-        TextEdit {
+        PageText {
             id: te
-            x: Math.max(0, (flick.width - width) / 2)
-            width: Math.min(v.reader.columnWidth, flick.width)
-            readOnly: true
-            selectByMouse: false
-            activeFocusOnPress: false
-            textFormat: TextEdit.RichText
-            wrapMode: TextEdit.Wrap
-            color: v.core.fg
-            selectionColor: Qt.alpha(v.core.accent, 0.35)       // a search match
-            selectedTextColor: v.core.fg
-            font.family: v.reader.bookFont
-            font.pixelSize: v.fs
-            text: v.html
+            width: flick.width
             onTextChanged: Qt.callLater(v.relayout)
             onHeightChanged: Qt.callLater(v.relayout)
             onWidthChanged: Qt.callLater(v.relayout)
@@ -215,10 +234,43 @@ Item {
     // Hides what's below the page's last whole line.
     Rectangle {
         visible: v.paged
+        x: flick.x
         y: v.pageEnd - v.starts[v.page]
-        width: parent.width
+        width: flick.width
         height: Math.max(0, parent.height - y)
         color: v.core.bg
+    }
+
+    // The right page: laid out like the left one (same text, width and font), so `starts` fits it too.
+    Loader {
+        id: right
+        active: v.spread
+        x: flick.x + flick.width + v.gap
+        width: flick.width
+        height: parent.height
+        sourceComponent: Item {
+            readonly property alias text: te2
+            Flickable {
+                anchors.fill: parent
+                visible: v.hasRight
+                clip: true
+                interactive: false
+                contentWidth: width
+                contentHeight: te2.height + height
+                contentY: v.hasRight ? v.starts[v.page + 1] : 0
+                PageText {
+                    id: te2
+                    width: parent.width
+                }
+            }
+            Rectangle {
+                visible: v.hasRight
+                y: v.hasRight ? v.endOf(v.page + 1) - v.starts[v.page + 1] : 0
+                width: parent.width
+                height: Math.max(0, parent.height - y)
+                color: v.core.bg
+            }
+        }
     }
 
     // ---- Mouse: links, page turns (click a side third, or the wheel) ----
@@ -226,9 +278,14 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         property real wheelSum: 0
+        // The link under the mouse on the left page (or the scrolled column), else on the right page.
         function linkAt(x, y) {
-            const p = mapToItem(te, x, y);
-            return p.y >= 0 && (!v.paged || p.y < v.pageEnd) ? te.linkAt(p.x, p.y) : "";
+            for (const [t, i] of [[te, v.page], [right.item?.text, v.page + 1]]) {
+                if (!t || (t !== te && !v.hasRight)) continue;
+                const p = mapToItem(t, x, y);
+                if (p.x >= 0 && p.x < t.width && (!v.paged || (p.y >= v.starts[i] && p.y < v.endOf(i)))) return t.linkAt(p.x, p.y);
+            }
+            return "";
         }
         onPositionChanged: mouse => cursorShape = linkAt(mouse.x, mouse.y) ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: mouse => {
