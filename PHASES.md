@@ -76,13 +76,13 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Handoff:**
 - `stats.py` now emits `disk` ({used,total} GiB, every 30 s) and `battery` ({pct,status,watts} every tick, null on a desktop); the card's one `power` section (DISK + BAT meters, status and watts in the header) sits in `cells` for all three layouts. `disk_path` skipped (would need an argument to `stats.py`).
 - `stats.py` CPU, before: ~0.7-1.0 %, after: ~0.7-1.7 % (top -d3, noise); stats.py RSS 39.7 MB before and after; Quickshell 253 MB after restart.
-- Not checked live: unplugging the charger (the status and watts paths are read each tick; `power_now` is absent here, so watts come from `current_now × voltage_now` and read 0.0 while full). The user should unplug and look.
+- Unplugging the charger: checked by the user 2026-10-21 (status and watts update; `power_now` is absent here, so watts come from `current_now × voltage_now` and read 0.0 while full).
 
 ---
 
 ## Phase 3: Claude usage notification; settings window buttons
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Sonnet 5.5, medium effort (two small features following existing patterns (`setConf`, `Process`)).
 
