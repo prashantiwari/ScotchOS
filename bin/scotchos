@@ -8,6 +8,7 @@ usage() {
 Usage: scotchos <command>
 
   start | stop | restart     the widget shell (one Quickshell process for every widget)
+  settings [open|close]      the settings window (toggles it by default)
   status                     is it running, its memory use, and what's switched on
   log                        the shell's log (qs log)
   list                       every widget and tool with its on/off state
@@ -53,6 +54,7 @@ case "$1" in
     stop)    qs kill -p "$root" ;;
     restart) qs kill -p "$root" >/dev/null 2>&1; sleep 0.5; qs -n -d -p "$root" ;;
     log)     qs log -p "$root" ;;
+    settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     status)
         pid=$(pgrep -f "qs -n -d -p $root\$" | head -1)
         if [[ -n "$pid" ]]; then

@@ -1,0 +1,273 @@
+// ScotchOS settings: switch widgets and tools on and off and change their settings. Every change is
+// written to scotchos.conf right away, so the widgets on the desktop update while you click.
+import QtQuick
+import Quickshell
+
+FloatingWindow {
+    id: win
+    required property var core
+
+    // ---- What can be set, per widget / tool ----
+    // Each setting: key in the item's [section], label, type (choice / position / number / flag), default.
+    readonly property var items: [
+        { key: "dashboard", name: "Dashboard", kind: "widget", icon: "\u{F056E}",
+          about: "CPU, RAM and temperature rings, 60 s graphs, GPU and top processes.",
+          settings: [
+              { key: "layout", label: "Layout", type: "choice", options: ["vertical", "horizontal", "square"], def: "vertical" },
+              { key: "position", label: "Position", type: "position", auto: true, def: "auto" },
+              { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+          ] },
+        { key: "nowplaying", name: "Now playing", kind: "widget", icon: "\u{F075A}",
+          about: "The current track from any MPRIS player, with album art and a cava visualizer.",
+          settings: [
+              { key: "position", label: "Position", type: "position", def: "right" },
+              { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "show_paused", label: "Show while paused", type: "flag", def: "yes" },
+          ] },
+        { key: "quote", name: "Hourly quote", kind: "widget", icon: "\u{F027E}",
+          about: "A new quote from the web at a set interval.",
+          settings: [
+              { key: "position", label: "Position", type: "position", def: "bottom-right" },
+              { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "interval", label: "New quote every", type: "number", def: 60, min: 1, max: 1440, step: 5, unit: "min" },
+          ] },
+        { key: "yt_search", name: "YouTube search", kind: "tool", icon: "\u{F05C3}",
+          about: "Super + Y opens a search box; Enter opens the results in a private Brave window.",
+          settings: [] },
+    ]
+    property string selected: items[0].key
+    readonly property var item: items.find(i => i.key === selected)
+
+    function value(section, s) { return core.conf[section]?.[s.key] ?? String(s.def) }
+
+    // A fixed size makes Hyprland float the window, so the desktop widgets stay visible behind it.
+    implicitWidth: 720
+    implicitHeight: 460
+    minimumSize: Qt.size(implicitWidth, implicitHeight)
+    maximumSize: Qt.size(implicitWidth, implicitHeight)
+    title: "ScotchOS settings"
+    color: core.bg
+    onClosed: core.settingsOpen = false
+
+    Item {
+        anchors.fill: parent
+        focus: true
+        Keys.onEscapePressed: win.core.settingsOpen = false
+
+        // ---- Sidebar: every widget and tool with its switch ----
+        Rectangle {
+            id: sidebar
+            width: 270
+            height: parent.height
+            color: Qt.alpha(win.core.fg, 0.04)
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 6
+
+                Text {
+                    text: "\u{F0493}  SCOTCHOS"
+                    color: win.core.accent
+                    font.family: win.core.font
+                    font.pixelSize: 14
+                    font.bold: true
+                    bottomPadding: 10
+                }
+
+                Repeater {
+                    model: win.items
+
+                    Rectangle {
+                        id: row
+                        required property var modelData
+                        readonly property bool current: modelData.key === win.selected
+                        readonly property bool on: win.core.enabled(modelData.key)
+                        width: parent.width
+                        height: 48
+                        radius: 12
+                        color: current ? Qt.alpha(win.core.accent, 0.18) : (area.containsMouse ? Qt.alpha(win.core.fg, 0.06) : "transparent")
+                        border.width: current ? 1 : 0
+                        border.color: Qt.alpha(win.core.accent, 0.35)
+
+                        MouseArea {
+                            id: area
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: win.selected = row.modelData.key
+                        }
+
+                        Text {
+                            id: icon
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 22
+                            text: row.modelData.icon
+                            color: row.on ? win.core.accent : win.core.dim
+                            font.family: win.core.font
+                            font.pixelSize: 18
+                        }
+                        Column {
+                            anchors.left: icon.right
+                            anchors.leftMargin: 8
+                            anchors.right: toggle.left
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            Text {
+                                width: parent.width
+                                text: row.modelData.name
+                                elide: Text.ElideRight
+                                color: win.core.fg
+                                font.family: win.core.font
+                                font.pixelSize: 13
+                            }
+                            Text {
+                                text: row.modelData.kind + " · " + (row.on ? "on" : "off")
+                                color: win.core.dim
+                                font.family: win.core.font
+                                font.pixelSize: 10
+                            }
+                        }
+                        Toggle {
+                            id: toggle
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            shell: win.core
+                            on: row.on
+                            onToggled: win.core.setConf("enabled", row.modelData.key, row.on ? "no" : "yes")
+                        }
+                    }
+                }
+            }
+
+            Text {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: 16
+                text: "Saved to scotchos.conf as you click.\nEsc closes."
+                wrapMode: Text.WordWrap
+                color: win.core.dim
+                font.family: win.core.font
+                font.pixelSize: 10
+            }
+        }
+
+        // ---- The selected item's settings ----
+        Flickable {
+            anchors.left: sidebar.right
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.margins: 24
+            contentHeight: detail.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            Column {
+                id: detail
+                width: parent.width
+                spacing: 18
+
+                Column {
+                    width: parent.width
+                    spacing: 4
+                    Text {
+                        text: win.item.icon + "  " + win.item.name
+                        color: win.core.fg
+                        font.family: win.core.font
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+                    Text {
+                        width: parent.width
+                        text: win.item.about
+                        wrapMode: Text.WordWrap
+                        color: win.core.dim
+                        font.family: win.core.font
+                        font.pixelSize: 12
+                    }
+                }
+
+                Text {
+                    visible: win.item.settings.length === 0
+                    width: parent.width
+                    text: "Nothing to set here besides the switch."
+                    wrapMode: Text.WordWrap
+                    color: win.core.dim
+                    font.family: win.core.font
+                    font.pixelSize: 12
+                }
+
+                Repeater {
+                    model: win.item.settings
+
+                    Column {
+                        id: setting
+                        required property var modelData
+                        readonly property string current: win.value(win.item.key, modelData)
+                        function save(v) { win.core.setConf(win.item.key, modelData.key, v) }
+                        spacing: 8
+
+                        Text {
+                            text: setting.modelData.label.toUpperCase()
+                            color: win.core.accent
+                            font.family: win.core.font
+                            font.pixelSize: 11
+                            font.letterSpacing: 1
+                        }
+                        Loader {
+                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag })[setting.modelData.type]
+
+                            Component {
+                                id: choice
+                                Choice {
+                                    shell: win.core
+                                    options: setting.modelData.options
+                                    value: setting.current
+                                    onPicked: v => setting.save(v)
+                                }
+                            }
+                            Component {
+                                id: position
+                                PositionGrid {
+                                    shell: win.core
+                                    positions: win.core.positions
+                                    allowAuto: setting.modelData.auto ?? false
+                                    value: setting.current
+                                    onPicked: v => setting.save(v)
+                                }
+                            }
+                            Component {
+                                id: number
+                                Stepper {
+                                    shell: win.core
+                                    value: parseInt(setting.current) || 0
+                                    min: setting.modelData.min
+                                    max: setting.modelData.max
+                                    step: setting.modelData.step
+                                    unit: setting.modelData.unit
+                                    onEdited: v => setting.save(v)
+                                }
+                            }
+                            Component {
+                                id: flag
+                                Toggle {
+                                    shell: win.core
+                                    on: win.core.isYes(setting.current)
+                                    onToggled: setting.save(on ? "no" : "yes")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

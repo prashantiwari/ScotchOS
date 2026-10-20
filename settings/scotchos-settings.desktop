@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ScotchOS Settings
+GenericName=Desktop widget settings
+Comment=Switch ScotchOS widgets and tools on and off, change their position and settings
+Keywords=scotchos;widgets;desktop;dashboard;quote;settings;
+# install.sh replaces @SCOTCHOS@ with bin/scotchos's full path (rofi may not have ~/.local/bin in PATH).
+Exec=@SCOTCHOS@ settings open
+Icon=preferences-desktop
+Terminal=false
+Categories=Settings;DesktopSettings;

@@ -41,6 +41,7 @@ Ask only what you can't infer: what it shows, where the data comes from (API, D-
 
 - `shell.qml`: `import "widgets/<folder>"` and a `LazyLoader { active: root.enabled("<key>"); <Name>Widget { core: root } }`.
 - `scotchos.conf`: `<key> = yes   # one-line description` under `[enabled]`, and a `[<key>]` section with commented settings.
+- `settings/SettingsWindow.qml`: an entry in `items` with its settings, so it shows in the settings window.
 - Root `README.md`: a row in the table.
 
 ## 4. Verify

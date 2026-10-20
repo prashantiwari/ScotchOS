@@ -44,6 +44,11 @@ mkdir -p ~/.local/bin
 ln -sfn "$root/bin/scotchos" ~/.local/bin/scotchos && ok "~/.local/bin/scotchos -> bin/scotchos"
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || warn "~/.local/bin isn't in PATH"
 
+echo "App launcher entry"
+mkdir -p ~/.local/share/applications
+sed "s|@SCOTCHOS@|$root/bin/scotchos|" "$root/settings/scotchos-settings.desktop" \
+    > ~/.local/share/applications/scotchos-settings.desktop && ok "ScotchOS Settings in rofi / app launchers"
+
 cat <<EOF
 
 Add to Hyprland

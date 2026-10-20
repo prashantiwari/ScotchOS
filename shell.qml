@@ -8,6 +8,7 @@ import Quickshell.Io
 import "widgets/systemDashboard"
 import "widgets/nowPlaying"
 import "widgets/hourlyQuote"
+import "settings"
 
 ShellRoot {
     id: root
@@ -46,27 +47,70 @@ ShellRoot {
     // A widget missing from [enabled] stays off.
     function enabled(name) { return isYes(conf.enabled?.[name] ?? "no") }
 
+    // Parsed into { section: { key: value } }, or null when there's no [enabled] section.
+    function parseConf(text) {
+        const out = {};
+        let section = out[""] = {};
+        for (const line of text.split("\n")) {
+            const l = line.replace(/#.*/, "").trim();
+            const s = l.match(/^\[([\w-]+)\]$/);
+            if (s) { section = out[s[1]] = out[s[1]] ?? {}; continue; }
+            const m = l.match(/^(\w+)\s*=\s*(.*)$/);
+            if (m) section[m[1]] = m[2];
+        }
+        return out.enabled ? out : null;
+    }
+
+    property string confText: ""
+    function applyConf(text) {
+        const out = parseConf(text);
+        // A read caught mid-save (or a broken file) would unload every widget and lose its state.
+        if (!out) {
+            console.warn("scotchos.conf: no [enabled] section - keeping the previous settings");
+            return;
+        }
+        root.confText = text;
+        root.conf = out;
+    }
+
+    // Sets `key = value` under [section] (used by the settings window). Only the value changes, so the
+    // line's alignment and comment stay; a missing key goes after the section's last setting.
+    function setConf(section, key, value) {
+        const lines = confText.split("\n");
+        let cur = "", at = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i].replace(/#.*/, "").trim();
+            const s = l.match(/^\[([\w-]+)\]$/);
+            if (s) { cur = s[1]; if (cur === section) at = i; continue; }
+            if (cur !== section || !l) continue;
+            const m = lines[i].match(/^(\s*(\w+)\s*=\s*)(.*?)(\s*#.*)?$/);
+            if (m && m[2] === key) {
+                if (m[3] === String(value)) return;
+                // Pad or trim the gap before a comment so it stays in its column.
+                const gap = String(value).length - m[3].length;
+                let rest = m[4] ?? "";
+                if (rest && gap < 0) rest = " ".repeat(-gap) + rest;
+                else if (rest && gap > 0) rest = rest.replace(new RegExp("^ {0," + gap + "}( )"), "$1");
+                lines[i] = m[1] + value + rest;
+                at = -2;
+                break;
+            }
+            at = i;
+        }
+        if (at === -1) lines.push("", "[" + section + "]", key + " = " + value);
+        else if (at >= 0) lines.splice(at + 1, 0, key + " = " + value);
+        const text = lines.join("\n");
+        confFile.setText(text);     // atomic (temp file + rename), like bin/scotchos
+        applyConf(text);
+    }
+
     FileView {
+        id: confFile
         path: Quickshell.shellDir + "/scotchos.conf"
+        atomicWrites: true
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: {
-            const out = {};
-            let section = out[""] = {};
-            for (const line of text().split("\n")) {
-                const l = line.replace(/#.*/, "").trim();
-                const s = l.match(/^\[([\w-]+)\]$/);
-                if (s) { section = out[s[1]] = out[s[1]] ?? {}; continue; }
-                const m = l.match(/^(\w+)\s*=\s*(.*)$/);
-                if (m) section[m[1]] = m[2];
-            }
-            // A read caught mid-save (or a broken file) would unload every widget and lose its state.
-            if (!out.enabled) {
-                console.warn("scotchos.conf: no [enabled] section - keeping the previous settings");
-                return;
-            }
-            root.conf = out;
-        }
+        onLoaded: root.applyConf(text())
     }
 
     // ---- Which screens show a workspace with no tiled windows (widgets are only drawn there) ----
@@ -98,5 +142,18 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("quote")
         QuoteWidget { core: root }
+    }
+
+    // ---- Settings window: `scotchos settings` (qs ipc call settings toggle); exists only while open ----
+    property bool settingsOpen: false
+    IpcHandler {
+        target: "settings"
+        function open(): void { root.settingsOpen = true }
+        function close(): void { root.settingsOpen = false }
+        function toggle(): void { root.settingsOpen = !root.settingsOpen }
+    }
+    LazyLoader {
+        active: root.settingsOpen
+        SettingsWindow { core: root }
     }
 }
