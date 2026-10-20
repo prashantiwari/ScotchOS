@@ -37,6 +37,7 @@ FloatingWindow {
         { key: "claudeusage", name: "Claude usage", kind: "widget", icon: "\u{F06A9}",
           about: "Claude plan usage: the 5-hour and 7-day limits and when they reset. Fetched at login, then every interval.",
           settings: [
+              { key: "size", label: "Size", type: "choice", options: ["full", "compact"], def: "full" },
               { key: "position", label: "Position", type: "position", def: "top-right" },
               { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },

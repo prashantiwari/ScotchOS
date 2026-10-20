@@ -8,6 +8,8 @@ It shows:
 - **5-hour** and **7-day** rows: the percentage used, a bar (red from `warn` %), and a countdown to the reset.
 - **A status line** when something is wrong: not logged in, the token expired, rate-limited, …
 
+With `size = compact` it's one small line instead: the icon, `5h 35%  7d 39%`, with a percentage turning red from `warn` and the icon turning amber while the reading is stale or the last fetch failed.
+
 These are the plan-wide limits, so they include claude.ai chats as well as Claude Code.
 
 ## Where the numbers come from
@@ -35,6 +37,7 @@ The `[claudeusage]` section of [`scotchos.conf`](../../scotchos.conf); `claudeus
 
 | Key | Values | Default |
 |---|---|---|
+| `size` | `full` (bars and countdowns), `compact` (one line with the two percentages) | `full` |
 | `position` | `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `top-right` |
 | `margin_x`, `margin_y` | Gap in px from the edges the card touches | `20` / `20` |
 | `interval` | Minutes between fetches (at least 5) | `30` |
@@ -45,7 +48,8 @@ The `[claudeusage]` section of [`scotchos.conf`](../../scotchos.conf); `claudeus
 | File | What it does |
 |---|---|
 | `ClaudeUsageWidget.qml` | Reads `[claudeusage]` and the credentials, fetches and caches the usage, and creates one desktop-layer panel per screen. |
-| `ClaudeUsageCard.qml` | The card: header, a bar and countdown per limit, the status line. |
+| `ClaudeUsageCard.qml` | The full card: header, a bar and countdown per limit, the status line. |
+| `ClaudeUsageCompactCard.qml` | The compact card: one line with the two percentages. |
 | `README.md` | This file. |
 
 ## Requirements
@@ -99,10 +103,10 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 1. **Credentials:** a `FileView` watches `~/.claude/.credentials.json`. Its first load triggers the login fetch, and later changes (Claude Code refreshing the token) update the token in memory. If `expiresAt` has passed, it doesn't send the request.
 2. **Timing:** a timer ticks once a minute (only while a screen shows an empty workspace), moving the countdowns and checking whether a fetch is due. Short ticks instead of one 30-minute timer mean it catches up right after a suspend.
 3. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs, ever.
-4. **Drawing:** two fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
+4. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
 5. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
 
-On the laptop screen (1280 × 720 logical) the card is about 170 px tall and sits above the now playing card on the right.
+On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (the compact one about 36 px) and sits above the now playing card on the right.
 
 ## Uninstall
 

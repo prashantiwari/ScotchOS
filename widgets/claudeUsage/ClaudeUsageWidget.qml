@@ -10,6 +10,7 @@ DesktopWidget {
 
     // ---- Settings ----
     readonly property string place: placeSetting("top-right")
+    readonly property string size: str("size", "full", ["full", "compact"])
     readonly property int intervalMin: Math.max(5, num("interval", 30))
     readonly property int warn: Math.min(100, Math.max(1, num("warn", 80)))
 
@@ -126,9 +127,12 @@ DesktopWidget {
             implicitWidth: card.width
             implicitHeight: card.height
 
-            ClaudeUsageCard {
+            // The card for the current `size`; the other one isn't created.
+            Loader {
                 id: card
-                shell: w
+                sourceComponent: w.size === "compact" ? compactCard : fullCard
+                Component { id: fullCard; ClaudeUsageCard { shell: w } }
+                Component { id: compactCard; ClaudeUsageCompactCard { shell: w } }
             }
         }
     }
