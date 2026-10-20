@@ -11,9 +11,10 @@ Item {
     readonly property int fs: reader.fontSize
 
     // ---- Page layout: one column (at most `width`), the whole width, or two pages (pages mode only) ----
+    // Full width keeps a margin as wide as the gap between two pages, so the lines don't run to the window's edge.
     readonly property bool spread: paged && reader.pageLayout === "two"
     readonly property int gap: 56
-    readonly property real colWidth: reader.pageLayout === "full" ? width
+    readonly property real colWidth: reader.pageLayout === "full" ? width - 2 * gap
         : spread ? Math.min(reader.columnWidth, (width - gap) / 2) : Math.min(reader.columnWidth, width)
 
     // ---- Pagination ----

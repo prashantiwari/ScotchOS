@@ -11,7 +11,7 @@ Open it from the **app launcher**: type `reader` (or `book`, `epub`) and pick **
 - **Bookmarks**: `B` marks the page you're on (a ribbon shows in the top-right corner; `B` again or a click on it removes it). `M` lists them with the start of the marked page, the chapter and the %, and Enter or a click jumps there.
 - **Search**: `/` opens a search box. Type words (any case; line breaks between them don't matter), Enter lists every match with its context and chapter, and Enter or a click on one jumps there with the match highlighted. Afterwards `n` and `N` go to the next and previous match.
 - **Time left**: the status line ends with the time left in the chapter and in the book, at your reading speed. The speed is learned from your page turns (or scrolling): skims under 3 s and pauses over 10 min don't count, and until it has learned it assumes ~250 words a minute. Switch it off with `time_left = no`.
-- **Text and layout**: `A` opens the **Aa** tab of the side panel. It lists the installed fonts, each in its own face (type to filter, Enter or a click switches the book to it, and the panel stays open to try another), with the size, spacing, justify, pages / scroll and page layout above. **Page layout** (`W` cycles): **Column**, a centred column at most `width` wide; **Full width**, the text across the whole window; **Two pages**, side by side like an open book (pages mode only; scroll mode uses a column).
+- **Text and layout**: `A` opens the **Aa** tab of the side panel. It lists the installed fonts, each in its own face (type to filter, Enter or a click switches the book to it, and the panel stays open to try another), with the size, spacing, justify, pages / scroll and page layout above. **Page layout** (`W` cycles): **Column**, a centred column at most `width` wide; **Full width**, the text across the whole window, less a margin on each side as wide as the gap between two pages; **Two pages**, side by side like an open book (pages mode only; scroll mode uses a column).
 - **Back**: `Backspace` returns to where you were before a jump (a link, the contents, a bookmark or a search match), several jumps deep.
 
 | Key (in a book) | Does |
@@ -49,7 +49,7 @@ In `[reader]` of [`scotchos.conf`](../../scotchos.conf), or in the settings wind
 | `font` | `serif` | Font family of the book text (`serif` lets fontconfig pick, e.g. DejaVu Serif). `A` lists the installed ones |
 | `font_size` | `16` | px, 10–32 (`+` / `-`) |
 | `width` | `720` | Max column width, px, 400–1600 (`]` / `[`) |
-| `page_layout` | `column` | `column` (at most `width`), `full` (whole width) or `two` (two pages side by side, each at most `width`; pages mode only) (`W`) |
+| `page_layout` | `column` | `column` (at most `width`), `full` (whole width, less a 56 px margin each side) or `two` (two pages side by side, each at most `width`; pages mode only) (`W`) |
 | `line_height` | `150` | % of the font height, 100–220 (`.` / `,`) |
 | `justify` | `no` | Justify paragraphs (`Shift+J`) |
 | `time_left` | `yes` | Show the time left in the chapter and the book on the status line |
@@ -122,7 +122,7 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 | TXT chapter headings | `HEADING_TXT` in `book.py` | `Chapter …`, `Part …`, `I. TITLE` … |
 | Text look (heading sizes, paragraph gap, link color) | `style` in `ReaderBook.qml` | Accent headings and links, 0.7 em paragraph gap |
 | Fonts left out of the font list | `fonts` in `ReaderPanel.qml` | Nerd Fonts, icon, emoji, symbol, monospace and math fonts, Noto's per-script families |
-| Gap between two pages | `gap` in `ReaderBook.qml` | 56 px |
+| Gap between two pages (and the side margins in full width) | `gap` in `ReaderBook.qml` | 56 px |
 | Window size | `ReaderWindow.qml` | 70 % × 85 % of the focused screen (at least 760 × 540) |
 | Ranges of the adjustment keys | `ReaderContent.qml` and `Reader.qml` | size 10–32, width 400–1600, spacing 100–220 |
 | Positions file | `stateDir` in `Reader.qml` | `~/.local/state/scotchos/reader-progress.json` |
