@@ -139,7 +139,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 5: E-reader highlights and notes
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Opus 5.5, high effort (the spike decides the design; selection, pagination and storage have to fit together).
 
