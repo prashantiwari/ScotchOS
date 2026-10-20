@@ -9,6 +9,7 @@ import "widgets/systemDashboard"
 import "widgets/nowPlaying"
 import "widgets/hourlyQuote"
 import "settings"
+import "tools/dailyTheoryClient"
 
 ShellRoot {
     id: root
@@ -91,7 +92,8 @@ ShellRoot {
                 let rest = m[4] ?? "";
                 if (rest && gap < 0) rest = " ".repeat(-gap) + rest;
                 else if (rest && gap > 0) rest = rest.replace(new RegExp("^ {0," + gap + "}( )"), "$1");
-                lines[i] = m[1] + value + rest;
+                // An empty `key =` has no space after the "=" to keep.
+                lines[i] = m[1] + (/\s$/.test(m[1]) || value === "" ? "" : " ") + value + rest;
                 at = -2;
                 break;
             }
@@ -142,6 +144,12 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("quote")
         QuoteWidget { core: root }
+    }
+
+    // ---- dailyTheory client: `scotchos theory` / the "Daily Theory" launcher entry opens its window ----
+    LazyLoader {
+        active: root.enabled("dailytheory")
+        DailyTheory { core: root }
     }
 
     // ---- Settings window: `scotchos settings` (qs ipc call settings toggle); exists only while open ----

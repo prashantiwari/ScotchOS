@@ -8,7 +8,7 @@ FloatingWindow {
     required property var core
 
     // ---- What can be set, per widget / tool ----
-    // Each setting: key in the item's [section], label, type (choice / position / number / flag), default.
+    // Each setting: key in the item's [section], label, type (choice / position / number / flag / text), default.
     readonly property var items: [
         { key: "dashboard", name: "Dashboard", kind: "widget", icon: "\u{F056E}",
           about: "CPU, RAM and temperature rings, 60 s graphs, GPU and top processes.",
@@ -37,6 +37,12 @@ FloatingWindow {
         { key: "yt_search", name: "YouTube search", kind: "tool", icon: "\u{F05C3}",
           about: "Super + Y opens a search box; Enter opens the results in a private Brave window.",
           settings: [] },
+        { key: "dailytheory", name: "Daily theory", kind: "tool", icon: "\u{F0335}",
+          about: "Short theories with sources, matched to your interests, from a dailyTheory server. Open it from the app launcher (Daily Theory) or `scotchos theory`.",
+          settings: [
+              { key: "server", label: "Server", type: "text", def: "http://localhost:8080", placeholder: "http://localhost:8080" },
+              { key: "registration_key", label: "Registration key", type: "text", def: "", secret: true, placeholder: "only if the server needs one" },
+          ] },
     ]
     property string selected: items[0].key
     readonly property var item: items.find(i => i.key === selected)
@@ -223,7 +229,7 @@ FloatingWindow {
                             font.letterSpacing: 1
                         }
                         Loader {
-                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag })[setting.modelData.type]
+                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag, text: textField })[setting.modelData.type]
 
                             Component {
                                 id: choice
@@ -253,6 +259,16 @@ FloatingWindow {
                                     max: setting.modelData.max
                                     step: setting.modelData.step
                                     unit: setting.modelData.unit
+                                    onEdited: v => setting.save(v)
+                                }
+                            }
+                            Component {
+                                id: textField
+                                Field {
+                                    shell: win.core
+                                    value: setting.current
+                                    placeholder: setting.modelData.placeholder ?? ""
+                                    secret: setting.modelData.secret ?? false
                                     onEdited: v => setting.save(v)
                                 }
                             }

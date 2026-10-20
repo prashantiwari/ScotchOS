@@ -9,6 +9,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 | [`quote`](widgets/hourlyQuote/README.md) | Widget | A new quote from the web every hour |
 | [`settings`](settings/README.md) | Window | `scotchos settings`: a floating window to switch everything on and off and change positions, margins and the rest |
 | [`yt_search`](tools/youtubeSearch/README.md) | Tool | **Super + Y**: a search bar that opens YouTube in a private Brave window |
+| [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their sources matched to your interests, a daily quota and history |
 
 Widgets are cards drawn on the desktop (above the wallpaper, below windows) on every screen. They only appear on screens showing a workspace with no tiled windows, and are not drawn at all otherwise. They take their colors from HyDE's wallbash, so they follow your wallpaper and theme.
 
@@ -22,6 +23,7 @@ dashboard  = yes
 nowplaying = yes
 quote      = no
 yt_search  = yes
+dailytheory = yes
 
 [dashboard]
 layout   = square
@@ -38,6 +40,7 @@ scotchos disable quote      # applies right away
 scotchos enable quote
 scotchos toggle nowplaying
 scotchos settings           # the settings window
+scotchos theory             # the dailyTheory window
 scotchos status             # running? memory use?
 scotchos restart | log
 scotchos doctor             # is every widget and tool wired in everywhere?
@@ -54,7 +57,7 @@ ScotchOS/
 ├── settings/         The settings window (scotchos settings)
 ├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window)
 ├── widgets/<name>/     One folder per widget: <Name>Widget.qml (state + panels), the card, helpers, README
-├── tools/<name>/       Scripts started by keybinds; each checks its switch with `scotchos enabled <name>`
+├── tools/<name>/       Scripts started by keybinds or the app launcher; each checks its switch with `scotchos enabled <name>`
 ├── wallbash/           HyDE template that exports the colors the widgets use
 ├── bin/scotchos        The control command
 └── install.sh          Setup on a new machine

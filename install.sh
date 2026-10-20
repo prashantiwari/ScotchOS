@@ -48,6 +48,8 @@ echo "App launcher entry"
 mkdir -p ~/.local/share/applications
 sed "s|@SCOTCHOS@|$root/bin/scotchos|" "$root/settings/scotchos-settings.desktop" \
     > ~/.local/share/applications/scotchos-settings.desktop && ok "ScotchOS Settings in rofi / app launchers"
+sed "s|@DIR@|$root/tools/dailyTheoryClient|" "$root/tools/dailyTheoryClient/scotchos-dailytheory.desktop" \
+    > ~/.local/share/applications/scotchos-dailytheory.desktop && ok "Daily Theory in rofi / app launchers"
 
 cat <<EOF
 

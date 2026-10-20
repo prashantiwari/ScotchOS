@@ -23,6 +23,7 @@ It has none of its own and no switch in `[enabled]`: it's always available, and 
 | `Choice.qml` | A row of buttons, one per option. |
 | `PositionGrid.qml` | The 3 × 3 position picker (plus `auto` for the dashboard). |
 | `Stepper.qml` | A number with − / + buttons; you can also type it and press Enter. |
+| `Field.qml` | A line of text (a URL, a key), saved on Enter or when it loses focus; `secret` hides it while not being edited. |
 | `scotchos-settings.desktop` | The app launcher entry; `install.sh` copies it to `~/.local/share/applications/` with the real path in `Exec`. |
 | `README.md` | This file. |
 
@@ -60,8 +61,8 @@ QML changes hot-reload on save. Logs: `scotchos log`
 
 | What | Where | Current value |
 |---|---|---|
-| Add a widget or tool, or a setting | `items` in `SettingsWindow.qml` | dashboard, nowplaying, quote, yt_search |
-| Setting types | `type` in an item's `settings`: `choice` (with `options`), `position` (with `auto: true` to offer auto), `number` (`min`, `max`, `step`, `unit`), `flag` | — |
+| Add a widget or tool, or a setting | `items` in `SettingsWindow.qml` | dashboard, nowplaying, quote, yt_search, dailytheory |
+| Setting types | `type` in an item's `settings`: `choice` (with `options`), `position` (with `auto: true` to offer auto), `number` (`min`, `max`, `step`, `unit`), `flag`, `text` (`placeholder`, `secret: true` to hide it) | — |
 | Window size | `implicitWidth` / `implicitHeight` in `SettingsWindow.qml` | 720 × 460 |
 
 ## How it works

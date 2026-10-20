@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Daily Theory
+GenericName=Theory of the day
+Comment=Short theories with sources, matched to your interests (dailyTheory client)
+Keywords=scotchos;theory;daily;learn;philosophy;
+# install.sh replaces @DIR@ with this folder's full path (rofi may not have ~/.local/bin in PATH).
+Exec=@DIR@/daily-theory.sh
+Icon=accessories-dictionary
+Terminal=false
+Categories=Education;
