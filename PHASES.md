@@ -168,7 +168,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 6: `scotchos doctor --fix`; enable/disable keep the comment column
 
-**Status:** todo
+**Status:** done
 
 **Model:** Sonnet 5.5, medium effort (shell and awk, with tests to check against).
 
@@ -177,12 +177,15 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** `bin/scotchos-doctor` (175), `bin/scotchos` (`set_enabled`), `common/tests/conf.test.mjs` (the `enable/disable` test).
 
 **Tasks:**
-- [ ] `doctor --fix`: adds a missing `[enabled]` line (`key = no` with a comment from the widget README's first line) and a missing conf section (keys and values from the settings window's `def:`) to `scotchos.default.conf`, and the same lines to the live conf when they're missing there. Only conf files, never code or READMEs; atomic writes; prints each change; without `--fix` the output is as today, plus "run `scotchos doctor --fix`" when there's something it could fix.
-- [ ] `set_enabled` keeps the comment's column (the same rule as `conf.js`'s `set`: pad or trim the gap, at least one space). Update the expected text in the `enable/disable` test.
-- [ ] Root README: `doctor --fix`; CLAUDE.md's Testing line about doctor.
+- [x] `doctor --fix`: adds a missing `[enabled]` line (`key = no` with a comment from the widget README's first line) and a missing conf section (keys and values from the settings window's `def:`) to `scotchos.default.conf`, and the same lines to the live conf when they're missing there. Only conf files, never code or READMEs; atomic writes; prints each change; without `--fix` the output is as today, plus "run `scotchos doctor --fix`" when there's something it could fix.
+- [x] `set_enabled` keeps the comment's column (the same rule as `conf.js`'s `set`: pad or trim the gap, at least one space). Update the expected text in the `enable/disable` test.
+- [x] Root README: `doctor --fix`; CLAUDE.md's Testing line about doctor.
 
 **Done when:** deleting a widget's `[enabled]` line and its section from a copy of the conf (`XDG_CONFIG_HOME` pointing at a temp dir) and running `doctor --fix` puts back what `scotchos.default.conf` has; `scotchos test` passes.
 
 **Not in this phase:** fixing code wiring (imports, LazyLoaders, settings items).
 
 **Handoff:**
+- `bin/scotchos-doctor-fix.py` does the conf edits (`--check` lists, `--fix` writes atomically); doctor passes it `key=folder` lines. A new `[enabled]` line gets `= no` and the first sentence of the README intro as its comment.
+- `set_enabled` pads/trims the gap before the comment like `conf.js`'s `set`. `scotchos test`: 31 + 9 pass. shellcheck isn't installed, so the lint wasn't run on the new script.
+- Tried on a temp `XDG_CONFIG_HOME` with `quote` removed: both confs got the line and section back.

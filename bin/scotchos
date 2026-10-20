@@ -29,7 +29,7 @@ Usage: scotchos <command>
   toggle <name>              flip it
   enabled <name>             exit 0 if it's on (for scripts)
   get <section> <key> [def]  print a setting from ~/.config/scotchos/scotchos.conf
-  doctor                     check every widget and tool is wired in (default conf, shell.qml, settings, READMEs)
+  doctor [--fix]             check every widget and tool is wired in (default conf, shell.qml, settings, READMEs); --fix adds the conf lines it lacks
   test                       run the tests: book.py on its fixtures, the conf parser, the launcher's scoring (the last two need node)
 EOF
 }
@@ -61,7 +61,14 @@ set_enabled() {
         /^\[/ { s = $0 }
         s == "[enabled]" && $0 ~ "^[ \t]*" k "[ \t]*=" {
             match($0, /^[ \t]*[^=]*=[ \t]*/); head = substr($0, 1, RLENGTH)
-            rest = substr($0, RLENGTH + 1); sub(/^[^ \t#]*/, "", rest)
+            rest = substr($0, RLENGTH + 1)
+            match(rest, /^[^ \t#]*/); gap = length(v) - RLENGTH; sub(/^[^ \t#]*/, "", rest)
+            # Pad or trim the gap before a comment so it stays in its column (at least one space).
+            if (rest ~ /^[ \t]*#/) {
+                match(rest, /^[ \t]*/); sp = RLENGTH
+                n = sp - gap; if (n < 1) n = 1
+                rest = sprintf("%" n "s", "") substr(rest, sp + 1)
+            }
             $0 = head v rest
         }
         { print }
@@ -101,7 +108,7 @@ case "$1" in
     toggle)  [[ -n "$2" ]] || { usage; exit 1; }; is_on "$2" && set_enabled "$2" no || set_enabled "$2" yes ;;
     enabled) is_on "$2" ;;
     get)     get "$2" "$3" "$4" ;;
-    doctor)  exec "$root/bin/scotchos-doctor" ;;
+    doctor)  shift; exec "$root/bin/scotchos-doctor" "$@" ;;
     test)
         # Every suite runs even when an earlier one fails; the exit code says whether any did.
         ok=0

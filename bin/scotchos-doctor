@@ -4,6 +4,7 @@
 root="$(dirname "$(dirname "$(readlink -f "$0")")")"
 cd "$root" || exit 1
 
+fix=0; [[ "$1" == --fix ]] && fix=1
 problems=0
 bad() { printf '    \e[31m✗\e[0m %s\n' "$*"; problems=$((problems + 1)); }
 
@@ -163,13 +164,27 @@ else
     printf '    - shellcheck not installed, skipped (pacman -S shellcheck)\n'
 fi
 # Parsed, not compiled, so nothing writes __pycache__ into the repo.
-for py in widgets/*/*.py tools/*/*.py; do
+for py in bin/*.py widgets/*/*.py tools/*/*.py; do
     [[ -f "$py" ]] || continue
     err=$(python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$py" 2>&1) ||
         bad "$py: $(tail -1 <<<"$err")"
 done
 ((problems == p)) && printf '    \e[32m✓\e[0m clean\n'
 
+# ---- Fix: only the conf files; code wiring (imports, LazyLoaders, settings items) is for a person ----
+live="${XDG_CONFIG_HOME:-$HOME/.config}/scotchos/scotchos.conf"
+fixer=bin/scotchos-doctor-fix.py
+fixable=$(for k in "${!folder_of[@]}"; do echo "$k=${folder_of[$k]}"; done | python3 -I "$fixer" --check "$root" "$live")
+if ((fix)) && [[ -n "$fixable" ]]; then
+    echo "Fixing"
+    for k in "${!folder_of[@]}"; do echo "$k=${folder_of[$k]}"; done | python3 -I "$fixer" --fix "$root" "$live"
+    echo; echo "Checking again"
+    exec "$root/bin/scotchos-doctor"
+fi
+
 echo
+if [[ -n "$fixable" ]]; then
+    echo "The conf files could be fixed:"; echo "$fixable"; echo "Run \`scotchos doctor --fix\` to do it."; echo
+fi
 if ((problems)); then echo "$problems problem(s)"; exit 1; fi
 echo "Everything is wired in."

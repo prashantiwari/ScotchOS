@@ -50,6 +50,7 @@ scotchos claude refresh     # fetch the Claude usage now
 scotchos status             # running? memory use?
 scotchos restart | log
 scotchos doctor             # is every widget and tool wired in everywhere?
+scotchos doctor --fix       # also add the [enabled] lines and conf sections it finds missing (conf files only)
 scotchos test               # book.py on its fixtures, the conf parser (node)
 ```
 

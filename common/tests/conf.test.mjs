@@ -246,12 +246,14 @@ test("scotchos get handles comments like parse", () => {
     });
 });
 
-test("scotchos enable/disable change one value and keep the comment", () => {
+test("scotchos enable/disable change one value and keep the comment and its column", () => {
     const text = lines("[enabled]", "quote = yes   # hourly quote", "clock = no", "[quote]", "quote = keep", "");
     withConf(text, (run, read) => {
         run("disable", "quote");
-        assert.equal(read(), lines("[enabled]", "quote = no   # hourly quote", "clock = no", "[quote]", "quote = keep", ""));
+        assert.equal(read(), lines("[enabled]", "quote = no    # hourly quote", "clock = no", "[quote]", "quote = keep", ""));
         assert.equal(Conf.parse(read()).enabled.quote, "no");
+        run("enable", "quote");
+        assert.equal(read(), lines("[enabled]", "quote = yes   # hourly quote", "clock = no", "[quote]", "quote = keep", ""));
         run("enable", "clock");
         assert.equal(Conf.parse(read()).enabled.clock, "yes");
         assert.throws(() => run("enable", "nosuch"), "an unknown name fails");
