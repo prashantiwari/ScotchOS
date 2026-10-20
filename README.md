@@ -57,7 +57,7 @@ ScotchOS/
 ## Install on a new machine
 
 ```bash
-git clone <this repo> ~/Projects/ScotchOS
+git clone https://github.com/prashantiwari/ScotchOS.git ~/Projects/ScotchOS
 ~/Projects/ScotchOS/install.sh
 ```
 
