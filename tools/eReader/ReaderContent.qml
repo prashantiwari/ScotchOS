@@ -22,8 +22,8 @@ Item {
             return true;
         }
         if (r.panel) {
-            // T and M open their tab, or close the panel when it's already showing.
-            const tab = k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : "";
+            // T and M open their tab, or close the panel when it's already showing (in search they're typed).
+            const tab = r.panel === "search" ? "" : k === Qt.Key_T ? "contents" : k === Qt.Key_M ? "bookmarks" : "";
             if (k === Qt.Key_Escape || tab === r.panel) r.panel = "";
             else if (tab) r.panel = tab;
             else if (!panelLoader.item?.key(event)) return false;
@@ -43,6 +43,9 @@ Item {
         else if (k === Qt.Key_T) r.panel = "contents";
         else if (k === Qt.Key_M) r.panel = "bookmarks";
         else if (k === Qt.Key_B) r.toggleBookmark(bookView.snippet());
+        else if (k === Qt.Key_Slash) r.panel = "search";
+        else if (k === Qt.Key_N) r.nextResult(shift ? -1 : 1);
+        else if (k === Qt.Key_Backspace) r.back();
         else if (k === Qt.Key_F || k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
         else if (k === Qt.Key_S) r.set("layout", r.layout === "pages" ? "scroll" : "pages");
         else if (k === Qt.Key_Plus || k === Qt.Key_Equal) r.step("font_size", 16, 10, 32, 1);

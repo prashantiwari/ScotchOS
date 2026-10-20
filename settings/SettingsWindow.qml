@@ -55,7 +55,7 @@ FloatingWindow {
               { key: "registration_key", label: "Registration key", type: "text", def: "", secret: true, placeholder: "only if the server needs one" },
           ] },
         { key: "reader", name: "E-reader", kind: "tool", icon: "\u{F00BA}",
-          about: "A minimalist e-book reader in the theme's colors: EPUB, MOBI, AZW3, FB2, TXT and Markdown from one folder. Open it from the app launcher (E-reader) or `scotchos reader`. In a book: T contents, B bookmark, M bookmarks, F fullscreen, S pages/scroll, + - [ ] , . adjust.",
+          about: "A minimalist e-book reader in the theme's colors: EPUB, MOBI, AZW3, FB2, TXT and Markdown from one folder. Open it from the app launcher (E-reader) or `scotchos reader`. In a book: T contents, B bookmark, M bookmarks, / search, F fullscreen, S pages/scroll, + - [ ] , . adjust.",
           settings: [
               { key: "library_dir", label: "Library folder", type: "text", def: "~/Books", placeholder: "~/Books" },
               { key: "layout", label: "Layout", type: "choice", options: ["pages", "scroll"], def: "pages" },

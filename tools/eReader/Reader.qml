@@ -37,7 +37,7 @@ Scope {
     property bool open: false
     property bool fullscreen: false
     property string view: "library"     // library / book
-    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks
+    property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, search
     property var books: []
     property bool scanning: false
     property string error: ""
@@ -47,6 +47,7 @@ Scope {
     property int pos: 0                 // character offset of the first visible line in the chapter
     property int posEnd: 0              // and of the last visible character
     property int anchor: -1             // jump to this anchor (the n-th U+2060) once the chapter is laid out
+    property var find: null             // or to this search match, { query, n }: the n-th match in the chapter
     property bool atEnd: false          // open the chapter on its last page (paging backwards)
     property bool loading: false
     property string chapterHtml: ""
@@ -116,6 +117,8 @@ Scope {
         loading = true;
         view = "book";
         book = null;
+        history = [];
+        clearSearch();
         chapterHtml = "";
         bookId = b.id;
         openProc.path = b.path;
@@ -168,6 +171,7 @@ Scope {
         if (!book) return;
         c = Math.max(0, Math.min(book.chapters.length - 1, c));
         atEnd = false;
+        find = null;
         anchor = a ?? -1;
         pos = p ?? 0;
         if (c !== chapter || !chapterHtml) {
@@ -185,10 +189,22 @@ Scope {
         goTo(chapter - 1, -1, 0);
         atEnd = true;
     }
+    // Jumps (links, contents, bookmarks, search) remember where they left from: Backspace goes back.
+    property var history: []
+    function jump(c, a, p) {
+        history = history.concat([{ chapter: chapter, pos: pos }]).slice(-50);
+        goTo(c, a, p);
+    }
+    function back() {
+        const h = history[history.length - 1];
+        if (!h) return;
+        history = history.slice(0, -1);
+        goTo(h.chapter, -1, h.pos);
+    }
     // Links in the text: scotchos:<chapter>:<anchor> inside the book, web links in the browser, nothing else.
     function follow(link) {
         const m = String(link).match(/^scotchos:(-?\d+):(-?\d+)$/);
-        if (m) { if (+m[1] >= 0) goTo(+m[1], +m[2], 0); return; }
+        if (m) { if (+m[1] >= 0) jump(+m[1], +m[2], 0); return; }
         if (/^https?:\/\//i.test(link)) Qt.openUrlExternally(link);
     }
     FileView {
@@ -196,6 +212,51 @@ Scope {
         printErrors: false
         onLoaded: r.chapterHtml = text()
         onLoadFailed: r.error = "Couldn't read this chapter."
+    }
+
+    // ---- Search: book.py finds the matches in the converted chapters; the book view finds the n-th one again ----
+    property string query: ""           // being typed in the search panel
+    property string searched: ""        // the query the results are for
+    property var results: []            // { chapter, n, where, before, match, after }
+    property int total: 0               // matches, also past the listed ones
+    property int result: -1             // the result last jumped to (n / N go on from there)
+    readonly property bool searching: searchProc.running
+    function search() {
+        const q = query.trim();
+        if (!book || !q || searchProc.running) return;
+        searchProc.command = ["python3", helper, "search", book.dir, q];
+        searchProc.q = q;
+        searchProc.running = true;
+        results = [];
+    }
+    function clearSearch() { query = ""; searched = ""; results = []; total = 0; result = -1; }
+    // n / N: the next or previous match after the last one shown.
+    function nextResult(by) {
+        if (results.length) showResult(result < 0 ? (by > 0 ? 0 : results.length - 1) : (result + by + results.length) % results.length);
+    }
+    function showResult(i) {
+        const m = results[i];
+        if (!m) return;
+        result = i;
+        jump(m.chapter, -1, 0);
+        find = { query: searched, n: m.n };     // read by the view's relayout, which goTo only queued
+    }
+    Process {
+        id: searchProc
+        property string q
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    const d = JSON.parse(data);
+                    r.results = d.results ?? [];
+                    r.total = d.total ?? 0;
+                    r.searched = searchProc.q;
+                    r.result = -1;
+                } catch (e) {
+                    r.results = [];
+                }
+            }
+        }
     }
 
     // The contents entry being read: the last one starting before the middle of the view.

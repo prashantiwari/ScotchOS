@@ -3,6 +3,7 @@
 
   book.py scan <library_dir> <cache_dir>   JSON list of books (metadata and covers cached)
   book.py open <file> <cache_dir>          converts once into <cache_dir>/<id>/, prints {"dir": ...}
+  book.py search <book_dir> <query>        finds the query in a converted book, prints {"results": [...]}
 
 Errors are printed as {"error": "..."} with exit code 0, so the shell can show them.
 Stdlib only; MOBI/AZW3 text needs the `mobi` package (AUR python-mobi, or `pipx install mobi`).
@@ -1056,15 +1057,63 @@ def open_book(path, cache):
     return outdir
 
 
+# ---- Search (in a converted book) ----
+
+SEARCH_MAX = 300                # results listed; the rest are only counted
+
+
+def search(bookdir, query):
+    """Every match of the query's words (any case, any whitespace between them) in the chapters' text.
+    `n` is the match's number within its chapter: the reader finds the n-th match in its own copy of the text,
+    which differs from this one in offsets but not in the order of the words."""
+    words = query.split()
+    if not words:
+        return {"results": [], "total": 0}
+    with open(os.path.join(bookdir, "book.json"), encoding="utf-8") as f:
+        book = json.load(f)
+    pattern = re.compile(r"\s+".join(map(re.escape, words)), re.I)
+    blocks = re.compile(r"<(?:/?(?:%s)\b[^>]*|br\b[^>]*)>" % "|".join(sorted(BLOCKS)), re.I)
+    toc = book.get("toc", [])
+    results, total = [], 0
+    for c, ch in enumerate(book["chapters"]):
+        with open(os.path.join(bookdir, ch["file"]), encoding="utf-8") as f:
+            text = f.read()
+        # Blocks and line breaks separate words, other tags don't; markers stay to know which anchor came last.
+        text = html.unescape(re.sub(r"<[^>]+>", "", blocks.sub(" ", text)))
+        plain = text.replace(MARK, "")
+        marks = [i - k for k, i in enumerate(i for i, x in enumerate(text) if x == MARK)]
+        for n, m in enumerate(pattern.finditer(plain)):
+            total += 1
+            if len(results) >= SEARCH_MAX:
+                continue
+            seen = sum(1 for at in marks if at <= m.start())
+            where = ch["title"]
+            for e in toc:
+                if e["chapter"] < c or (e["chapter"] == c and e["anchor"] < seen):
+                    where = e["title"]
+            # About 45 characters on each side, cut between words.
+            before = plain[max(0, m.start() - 45):m.start()]
+            after = plain[m.end():m.end() + 70]
+            if m.start() > 45:
+                before = re.sub(r"^\S*", "", before)
+            if m.end() + 70 < len(plain):
+                after = re.sub(r"\S*$", "", after)
+            results.append({"chapter": c, "n": n, "where": where, "before": re.sub(r"\s+", " ", before).lstrip(),
+                            "match": " ".join(m.group().split()), "after": re.sub(r"\s+", " ", after).rstrip()})
+    return {"results": results, "total": total}
+
+
 def main(argv):
-    if len(argv) != 4 or argv[1] not in ("scan", "open"):
+    if len(argv) != 4 or argv[1] not in ("scan", "open", "search"):
         print(__doc__, file=sys.stderr)
         return 2
     try:
         if argv[1] == "scan":
             print(json.dumps({"books": scan(argv[2], argv[3])}, ensure_ascii=False))
-        else:
+        elif argv[1] == "open":
             print(json.dumps({"dir": open_book(argv[2], argv[3])}, ensure_ascii=False))
+        else:
+            print(json.dumps(search(argv[2], argv[3]), ensure_ascii=False))
     except BookError as e:
         print(json.dumps({"error": str(e)}))
     except Exception as e:

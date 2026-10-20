@@ -51,7 +51,12 @@ Item {
         const marks = [];
         for (let at = plain.indexOf("\u2060"); at >= 0; at = plain.indexOf("\u2060", at + 1)) marks.push(at);
         reader.marks = marks;
-        if (reader.anchor >= 0) {
+        if (reader.find) {
+            const m = match(plain, reader.find);
+            reader.find = null;
+            show(m ? m.index : 0, true);
+            if (m) te.select(m.index, m.index + m[0].length);
+        } else if (reader.anchor >= 0) {
             const at = marks[reader.anchor] ?? 0;
             reader.anchor = -1;
             show(at, true);
@@ -62,6 +67,16 @@ Item {
         } else {
             show(reader.pos, true);
         }
+    }
+    // The n-th match of a search in the chapter's text (or the last one, if book.py counted more). The words may
+    // be split by any whitespace or anchor marker, like in book.py's copy of the text, which has no markers.
+    function match(plain, find) {
+        const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const words = find.query.split(/\s+/).filter(w => w);
+        const re = new RegExp(words.map(w => [...w].map(esc).join("\u2060?")).join("[\\s\u2060\ufffc]+"), "gi");
+        let m, last = null;
+        for (let i = 0; i <= find.n && (m = re.exec(plain)); i++) last = m;
+        return last;
     }
     // Shows the page (or scroll offset) holding character `p`; `report` saves it as the new position.
     function show(p, report) {
@@ -176,6 +191,8 @@ Item {
             textFormat: TextEdit.RichText
             wrapMode: TextEdit.Wrap
             color: v.core.fg
+            selectionColor: Qt.alpha(v.core.accent, 0.35)       // a search match
+            selectedTextColor: v.core.fg
             font.family: v.reader.bookFont
             font.pixelSize: v.fs
             text: v.html

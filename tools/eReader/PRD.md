@@ -19,7 +19,7 @@ Status: v1, 2026-10-20.
 
 - DRM-protected books (detected and reported, never decrypted).
 - PDF, CBZ/CBR comics, DjVu: they are page images, not reflowable text, and would need a different renderer.
-- Highlights, notes, search in the book, dictionary lookup, text-to-speech.
+- Highlights, notes, dictionary lookup, text-to-speech.
 - The book's own CSS: fonts, colors and layout are replaced by the theme. Structure (headings, emphasis, lists, quotes, tables, images, links) is kept.
 - Syncing, a store, metadata editing, several library folders.
 
@@ -54,7 +54,9 @@ There's no keybind of its own (no change to `hyprland.lua`).
 - **Links**: links inside the book (footnotes, the book's own contents page) jump in the reader. Web links open in the browser. Other schemes are ignored.
 - **Images** are scaled to fit the column and page.
 - **T** opens the table of contents: the book's own TOC (EPUB nav or NCX, FB2 sections), or the headings when there's none. The current chapter is highlighted. Click or Enter jumps.
-- **B** bookmarks the page (a ribbon shows in the corner while the page has one; B again removes it). **M** lists the bookmarks (start of the page, contents entry, %), in reading order; Enter or a click jumps, Delete or × removes. **Tab** switches the panel between contents and bookmarks.
+- **B** bookmarks the page (a ribbon shows in the corner while the page has one; B again removes it). **M** lists the bookmarks (start of the page, contents entry, %), in reading order; Enter or a click jumps, Delete or × removes. **Tab** switches the panel between contents, bookmarks and search.
+- **/** searches the book: the words typed, any case, across line breaks. Enter lists every match (up to 300, with the total) with context and chapter; Enter or a click jumps there and highlights it. **n** / **N** then go to the next / previous match.
+- **Backspace** goes back to where the last jump (link, contents, bookmark, search) left from, up to 50 jumps.
 - **Esc** goes back to the library (or closes the panel). **Q** closes the window.
 
 ### Adjusting (live, saved to `scotchos.conf`, so they apply to every book)
@@ -93,11 +95,11 @@ The position in the book survives all of these: it's stored as a character offse
 
 | Piece | Role |
 |---|---|
-| `book.py` (Python 3, stdlib only, plus `mobi` for MOBI text) | `scan`: library metadata and covers, cached. `open`: converts a book once into cleaned, theme-free HTML chapters plus a `book.json` (title, author, chapters, TOC, anchors) in the cache. |
+| `book.py` (Python 3, stdlib only, plus `mobi` for MOBI text) | `scan`: library metadata and covers, cached. `open`: converts a book once into cleaned, theme-free HTML chapters plus a `book.json` (title, author, chapters, TOC, anchors) in the cache. `search`: matches in a converted book, as (chapter, n-th match in it, context). |
 | `Reader.qml` (Scope) | Loaded while `reader` is on. Holds the `reader` IPC target, the library list, the open book, the reading positions, and runs `book.py`. The window is a `LazyLoader` inside it. |
 | `ReaderWindow.qml` / `ReaderFullscreen.qml` | The floating `FloatingWindow` and the fullscreen overlay `PanelWindow` (exclusive keyboard focus). Both hold the same `ReaderContent`. |
 | `ReaderContent.qml` | Keys, and switching between library, book and TOC. |
-| `ReaderLibrary.qml`, `ReaderBook.qml`, `ReaderPanel.qml` | The library, the book, and the side panel (contents, bookmarks). |
+| `ReaderLibrary.qml`, `ReaderBook.qml`, `ReaderPanel.qml` | The library, the book, and the side panel (contents, bookmarks, search). |
 
 ### Conversion (book.py)
 
@@ -150,3 +152,4 @@ The position in the book survives all of these: it's stored as a character offse
 8. Fullscreen covers the focused monitor, and F or Esc gets back.
 9. Shell memory with the window closed is unchanged (`scotchos status`) compared with before the reader existed.
 10. A bookmark stays on the same text after a font size or width change, and after a restart.
+11. A search result opens on the page holding that match, highlighted, and Backspace returns to the page before.
