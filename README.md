@@ -50,6 +50,7 @@ scotchos claude refresh     # fetch the Claude usage now
 scotchos status             # running? memory use?
 scotchos restart | log
 scotchos doctor             # is every widget and tool wired in everywhere?
+scotchos test               # book.py on its fixtures, the conf parser (node)
 ```
 
 `scotchos toggle <name>` also works as a Hyprland bind.
@@ -61,7 +62,7 @@ ScotchOS/
 ├── shell.qml           The Quickshell entry point: colors, settings, empty-workspace tracking, one LazyLoader per widget
 ├── scotchos.default.conf  The default settings, copied to ~/.config/scotchos/scotchos.conf on first start
 ├── settings/         The settings window (scotchos settings)
-├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window), http.js
+├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window), http.js, conf.js (+ tests/)
 ├── widgets/<name>/     One folder per widget: <Name>Widget.qml (state + panels), the card, helpers, README
 ├── tools/<name>/       Scripts started by keybinds or the app launcher; each checks its switch with `scotchos enabled <name>`
 ├── wallbash/           HyDE template that exports the colors the widgets use

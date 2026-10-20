@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0" xmlns:l="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <author><first-name>Fyodor</first-name><middle-name>M.</middle-name><last-name>Fixture</last-name></author>
+      <book-title>Test FB2</book-title>
+      <coverpage><image l:href="#cover.png"/></coverpage>
+      <lang>en</lang>
+    </title-info>
+  </description>
+  <body>
+    <title><p>Test FB2</p></title>
+    <epigraph><p>A lead epigraph.</p></epigraph>
+    <section id="s1">
+      <title><p>First</p><p>Chapter</p></title>
+      <p>Opening <emphasis>words</emphasis> with a note<a l:href="#n1" type="note">[1]</a>.</p>
+      <empty-line/>
+      <section id="s1a">
+        <title><p>Inner Part</p></title>
+        <p>Inside the inner part. A link to <a l:href="#s2">the second</a> and the <a l:href="https://example.com/">web</a>.</p>
+        <image l:href="#pic.png"/>
+      </section>
+    </section>
+    <section id="s2">
+      <title><p>Second Chapter</p></title>
+      <poem><stanza><v>A line of verse,</v><v>and another.</v></stanza></poem>
+      <p>Needle in the second chapter.</p>
+    </section>
+  </body>
+  <body name="notes">
+    <title><p>Notes</p></title>
+    <section id="n1">
+      <title><p>1</p></title>
+      <p>The note's text.</p>
+    </section>
+  </body>
+  <binary id="cover.png" content-type="image/png">@COVER@</binary>
+  <binary id="pic.png" content-type="image/png">@PIC@</binary>
+</FictionBook>

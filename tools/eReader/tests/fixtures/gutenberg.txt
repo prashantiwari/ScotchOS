@@ -1,0 +1,25 @@
+The Project Gutenberg eBook of A Plain Tale
+
+Title: A Plain Tale
+
+Author: Tex Teller
+
+*** START OF THE PROJECT GUTENBERG EBOOK A PLAIN TALE ***
+
+CONTENTS
+I. The Start
+II. The End
+
+CHAPTER I. THE START
+
+This is a long paragraph of prose that has been wrapped at about seventy
+characters per line, the way Project Gutenberg texts are, so the reader
+should join these lines back into a single paragraph of text.
+
+A short verse
+kept on its lines
+as it was written
+
+CHAPTER II. THE END
+
+The final words of the tale, and a needle to find.

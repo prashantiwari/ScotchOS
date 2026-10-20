@@ -381,12 +381,15 @@ def local(tag):
     return tag.rsplit("}", 1)[-1]
 
 
+FONT_OBFUSCATION = {"http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC"}
+
+
 def epub_opf(z):
     if "META-INF/encryption.xml" in z.namelist():
         enc = ET.fromstring(z.read("META-INF/encryption.xml"))
         algos = [e.get("Algorithm", "") for e in enc.iter() if local(e.tag) == "EncryptionMethod"]
         # Font obfuscation (IDPF / Adobe) is harmless; anything else is DRM.
-        if any("font" not in a.lower() and "obfuscation" not in a.lower() for a in algos):
+        if any(a not in FONT_OBFUSCATION for a in algos):
             raise BookError("This EPUB is DRM-protected.")
     root = ET.fromstring(zread(z, "META-INF/container.xml"))
     path = next(e.get("full-path") for e in root.iter() if local(e.tag) == "rootfile")

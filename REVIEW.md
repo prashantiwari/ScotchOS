@@ -45,9 +45,9 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] Portability (section 4): CPU sensor list, skip NVML while the GPU is suspended (not testable here: Runtime D3 is off), `install.sh` dependencies and the workspace rule. AMD/Intel GPUs are still not shown
 - [x] `common/http.js` (a JS library rather than a QML type: it's stateless) shared by the quote, Claude usage and dailyTheory (5.4)
 
-### Phase 5: tests
-- [ ] `tools/eReader/tests/` with small EPUB 2/3, FB2, TXT and Markdown fixtures (5.3)
-- [ ] `parseConf` / `setConf` before/after cases
+### Phase 5: tests (done 2026-10-21)
+- [x] `tools/eReader/tests/` with small EPUB 2/3, FB2, TXT and Markdown fixtures (5.3). The EPUBs are folders zipped by the test and the images are generated, so git holds no binaries. 27 tests: chapters, TOC, anchors, links, images, search, DRM, scan, covers, moved books, the cache and the CLI's JSON errors. **Found:** IDPF font obfuscation (`http://www.idpf.org/2008/embedding`) was refused as DRM, since the check looked for "font" or "obfuscation" in the URI; it now compares against the two known URIs
+- [x] `parseConf` / `setConf` before/after cases: the text logic moved to `common/conf.js` (shell.qml keeps the file reading and writing), so `node --test common/tests/` runs the real code. 26 tests, including `bin/scotchos get` agreeing with `parse` on every key of the default conf, and `enable`/`disable`. **Found:** filling an empty value that has a comment after it moved the comment one column right each time. `scotchos test` runs both suites
 
 ### Phase 6: features (section 6), one session each, picked as wanted
 

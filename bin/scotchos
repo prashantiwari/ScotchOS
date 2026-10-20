@@ -29,6 +29,7 @@ Usage: scotchos <command>
   enabled <name>             exit 0 if it's on (for scripts)
   get <section> <key> [def]  print a setting from ~/.config/scotchos/scotchos.conf
   doctor                     check every widget and tool is wired in (default conf, shell.qml, settings, READMEs)
+  test                       run the tests: book.py on its fixtures, the conf parser (needs node)
 EOF
 }
 
@@ -100,5 +101,17 @@ case "$1" in
     enabled) is_on "$2" ;;
     get)     get "$2" "$3" "$4" ;;
     doctor)  exec "$root/bin/scotchos-doctor" ;;
+    test)
+        # Both suites run even when the first fails; the exit code says whether either did.
+        ok=0
+        echo "book.py (tools/eReader/tests)"
+        python3 -m unittest discover -s "$root/tools/eReader/tests" || ok=1
+        echo "conf.js (common/tests)"
+        if command -v node >/dev/null; then
+            node --test "$root/common/tests/" || ok=1
+        else
+            echo "  skipped: node isn't installed"
+        fi
+        exit $ok ;;
     *)       usage; [[ -z "$1" || "$1" == -h || "$1" == --help ]] ;;
 esac

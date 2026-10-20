@@ -66,6 +66,7 @@ In `[reader]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.defa
 | `ReaderBook.qml` | The chapter: rich text with a stylesheet made from the theme, pagination, the page layouts (and the second page), scrolling, links. |
 | `ReaderPanel.qml` | The side panel: contents, bookmarks, search, and fonts and text settings. |
 | `book.py` | Lists the library (metadata and covers, cached), converts a book once into theme-free HTML chapters, and searches a converted book. |
+| `tests/` | `test_book.py` and its fixtures: a small EPUB 3 and EPUB 2 (as folders, zipped by the test), FB2, TXT and Markdown. `scotchos test` runs it. |
 | `reader.sh` | What the launcher entry runs: exits if `reader` is off, else `scotchos reader open`. |
 | `scotchos-reader.desktop` | The app launcher entry; `install.sh` copies it to `~/.local/share/applications/` with the real path in `Exec`. |
 | `PRD.md` | Requirements and design. |
@@ -106,6 +107,9 @@ qs ipc -p ~/Projects/ScotchOS call reader close
 python3 tools/eReader/book.py scan ~/Books ~/.cache/scotchos/reader [~/.local/state/scotchos/reader-progress.json]
 python3 tools/eReader/book.py open ~/Books/some.epub ~/.cache/scotchos/reader
 python3 tools/eReader/book.py search ~/.cache/scotchos/reader/<id> "some words"
+
+# The converter's tests (temp dirs only, the real cache isn't touched):
+python3 -m unittest discover -s tools/eReader/tests
 ```
 
 QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&1 | grep -E 'WARN|ERROR'`. `book.py` errors go to the log too (its stderr).
@@ -128,7 +132,7 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 | Ranges of the adjustment keys | `ReaderContent.qml` and `Reader.qml` | size 10–32, width 400–1600, spacing 100–220 |
 | Positions file | `stateDir` in `Reader.qml` | `~/.local/state/scotchos/reader-progress.json` |
 
-After changing `book.py`'s output, bump `VERSION` there, so that cached books are converted again.
+After changing `book.py`, run `scotchos test` (and add a case to `tests/test_book.py` for what you fixed). If its output changed, bump `VERSION` there, so that cached books are converted again.
 
 ## How it works
 

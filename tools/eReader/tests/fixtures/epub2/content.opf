@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uid">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+    <dc:identifier id="uid">scotchos-test-epub2</dc:identifier>
+    <dc:title>Test EPUB Two</dc:title>
+    <dc:creator opf:role="aut">Bo Writer</dc:creator>
+    <dc:creator opf:role="ill">Second Person</dc:creator>
+    <meta name="cover" content="cover-img"/>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="blank" href="blank.html" media-type="application/xhtml+xml"/>
+    <item id="p1" href="part1.html" media-type="application/xhtml+xml"/>
+    <item id="p2" href="part2.html" media-type="application/xhtml+xml"/>
+    <item id="cover-img" href="cover.png" media-type="image/png"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="blank"/>
+    <itemref idref="p1"/>
+    <itemref idref="p2"/>
+  </spine>
+</package>

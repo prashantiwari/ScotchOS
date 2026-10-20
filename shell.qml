@@ -13,6 +13,7 @@ import "settings"
 import "tools/dailyTheoryClient"
 import "tools/launcher"
 import "tools/eReader"
+import "common/conf.js" as Conf
 
 ShellRoot {
     id: root
@@ -42,7 +43,7 @@ ShellRoot {
     }
 
     // ---- Settings from scotchos.conf (confPath below): [section] headers, `key = value` lines, # comments ----
-    // A "#" only starts a comment at the start of a line or after a space, so values like URLs can hold one.
+    // Parsing and editing the text is in common/conf.js (tested in common/tests/); reading and writing is here.
     // conf.<section>.<key> is the raw string; widgets read theirs through DesktopWidget's str / num / flag.
     property var conf: ({})
     readonly property var positions: ["top-left", "top", "top-right", "left", "center", "right",
@@ -53,18 +54,7 @@ ShellRoot {
     function enabled(name) { return isYes(conf.enabled?.[name] ?? "no") }
 
     // Parsed into { section: { key: value } }, or null when there's no [enabled] section.
-    function parseConf(text) {
-        const out = {};
-        let section = out[""] = {};
-        for (const line of text.split("\n")) {
-            const l = line.replace(/(^|\s)#.*/, "").trim();
-            const s = l.match(/^\[([\w-]+)\]$/);
-            if (s) { section = out[s[1]] = out[s[1]] ?? {}; continue; }
-            const m = l.match(/^(\w+)\s*=\s*(.*)$/);
-            if (m) section[m[1]] = m[2];
-        }
-        return out.enabled ? out : null;
-    }
+    function parseConf(text) { return Conf.parse(text) }
 
     property string confText: ""
     function applyConf(text) {
@@ -78,41 +68,15 @@ ShellRoot {
         root.conf = out;
     }
 
-    // Sets `key = value` under [section] (used by the settings window). Only the value changes, so the
-    // line's alignment and comment stay; a missing key goes after the section's last setting.
+    // Sets `key = value` under [section] (used by the settings window), keeping the line's alignment and comment.
     function setConf(section, key, value) {
         // The file on disk isn't the text the settings came from (a half-saved hand edit): writing would lose it.
         if (confFile.text() !== confText) {
             console.warn("scotchos.conf: the file has changes that weren't applied - not saving", section + "." + key);
             return;
         }
-        const lines = confText.split("\n");
-        let cur = "", at = -1;
-        for (let i = 0; i < lines.length; i++) {
-            const l = lines[i].replace(/(^|\s)#.*/, "").trim();
-            const s = l.match(/^\[([\w-]+)\]$/);
-            if (s) { cur = s[1]; if (cur === section) at = i; continue; }
-            if (cur !== section || !l) continue;
-            // The lazy space after "=" leaves at least one space before the comment of an empty `key =  # …`.
-            const m = lines[i].match(/^(\s*(\w+)\s*=[ \t]*?)(\S.*?)?(\s+#.*)?\s*$/);
-            if (m && m[2] === key) {
-                const old = m[3] ?? "";
-                if (old === String(value)) return;
-                // Pad or trim the gap before a comment so it stays in its column.
-                const gap = String(value).length - old.length;
-                let rest = m[4] ?? "";
-                if (rest && gap < 0) rest = " ".repeat(-gap) + rest;
-                else if (rest && gap > 0) rest = rest.replace(new RegExp("^ {0," + gap + "}( )"), "$1");
-                // An empty `key =` has no space after the "=" to keep.
-                lines[i] = m[1] + (/\s$/.test(m[1]) || value === "" ? "" : " ") + value + rest;
-                at = -2;
-                break;
-            }
-            at = i;
-        }
-        if (at === -1) lines.push("", "[" + section + "]", key + " = " + value);
-        else if (at >= 0) lines.splice(at + 1, 0, key + " = " + value);
-        const text = lines.join("\n");
+        const text = Conf.set(confText, section, key, value);
+        if (text === null) return;
         confFile.setText(text);     // atomic (temp file + rename), like bin/scotchos
         applyConf(text);
     }
