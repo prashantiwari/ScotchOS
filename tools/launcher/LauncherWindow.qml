@@ -3,7 +3,6 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Wayland
 
 PanelWindow {
@@ -12,7 +11,7 @@ PanelWindow {
     readonly property var core: launcher.core
 
     // On the monitor with focus, above windows, and the only thing that gets the keyboard while it's open.
-    screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
+    screen: launcher.screen
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "scotchos-launcher"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive

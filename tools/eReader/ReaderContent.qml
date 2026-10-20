@@ -17,7 +17,7 @@ Item {
         if (k === Qt.Key_Q && r.view === "book" && !r.panel) { r.open = false; return true; }
         if (r.view === "library") {
             if (k === Qt.Key_Escape && !library.item?.filter) r.open = false;
-            else if (k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
+            else if (k === Qt.Key_F11) r.setFullscreen(!r.fullscreen);
             else if (!library.item?.key(event)) return false;
             return true;
         }
@@ -32,7 +32,7 @@ Item {
         }
         const shift = event.modifiers & Qt.ShiftModifier;
         if (k === Qt.Key_Escape) {
-            if (r.fullscreen) r.fullscreen = false;
+            if (r.fullscreen) r.setFullscreen(false);
             else r.view = "library";
         }
         else if (k === Qt.Key_Right || k === Qt.Key_PageDown || k === Qt.Key_L || (k === Qt.Key_Space && !shift)) bookView.next();
@@ -49,7 +49,7 @@ Item {
         else if (k === Qt.Key_W) r.cyclePageLayout(shift ? -1 : 1);
         else if (k === Qt.Key_N) r.nextResult(shift ? -1 : 1);
         else if (k === Qt.Key_Backspace) r.back();
-        else if (k === Qt.Key_F || k === Qt.Key_F11) r.fullscreen = !r.fullscreen;
+        else if (k === Qt.Key_F || k === Qt.Key_F11) r.setFullscreen(!r.fullscreen);
         else if (k === Qt.Key_S) r.set("layout", r.layout === "pages" ? "scroll" : "pages");
         else if (k === Qt.Key_Plus || k === Qt.Key_Equal) r.step("font_size", 16, 10, 32, 1);
         else if (k === Qt.Key_Minus || k === Qt.Key_Underscore) r.step("font_size", 16, 10, 32, -1);

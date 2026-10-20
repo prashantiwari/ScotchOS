@@ -1,4 +1,4 @@
-// YouTube search in a private Brave window; the work is in yt-open.sh (it needs hyprctl and curl).
+// YouTube search in a private browser window; the work is in yt-open.sh (it needs hyprctl and curl).
 import Quickshell
 
 Provider {
@@ -14,7 +14,7 @@ Provider {
         if (!s) return [];
         return [{
             title: "Search YouTube for “" + s + "”",
-            subtitle: "Brave private window",
+            subtitle: "Private browser window",
             glyph: glyph,
             altHint: "play the first video",
             run: () => Quickshell.execDetached([p.script, s, "results"]),

@@ -29,7 +29,7 @@ DesktopWidget {
     // Clock time the 5-hour window resets, shown in the title. "-" while no window is running: the API gives no
     // reset (or one a full 5 h away, within 10 min) until the first message of a window.
     readonly property string resetClock: {
-        const t = usage?.fiveHour.resetsAt ?? 0;
+        const t = usage?.fiveHour?.resetsAt ?? 0;
         return t > now && t - now < 290 * 60000 ? Qt.formatDateTime(new Date(t), "HH:mm") : "-";
     }
 
@@ -37,8 +37,9 @@ DesktopWidget {
     property var creds: null        // claudeAiOauth from Claude Code's credentials file
     property bool startedUp: false
 
+    // null when the response has no such limit (the card hides that row); only both missing is an error.
     function limit(d) {
-        if (!d || typeof d.utilization !== "number") throw "no utilization in the response";
+        if (!d || typeof d.utilization !== "number") return null;
         return { pct: d.utilization, resetsAt: Date.parse(d.resets_at) || 0 };
     }
 
@@ -58,7 +59,9 @@ DesktopWidget {
                 if (xhr.status === 429) throw "rate-limited, retrying later";
                 if (xhr.status !== 200) throw "HTTP " + xhr.status;
                 const d = JSON.parse(xhr.responseText);
-                w.usage = { fiveHour: w.limit(d.five_hour), sevenDay: w.limit(d.seven_day) };
+                const u = { fiveHour: w.limit(d.five_hour), sevenDay: w.limit(d.seven_day) };
+                if (!u.fiveHour && !u.sevenDay) throw "no utilization in the response";
+                w.usage = u;
                 w.fetchedAt = Date.now();
                 w.error = "";
                 cache.setText(JSON.stringify({ usage: w.usage, fetchedAt: w.fetchedAt }));
@@ -80,7 +83,7 @@ DesktopWidget {
         const since = now - lastTry;
         if (error && since < retryMs) return;
         // Also refetch once a window has reset, so the card doesn't keep showing the old percentage.
-        const reset = usage && [usage.fiveHour, usage.sevenDay].some(l => l.resetsAt && l.resetsAt < now);
+        const reset = usage && [usage.fiveHour, usage.sevenDay].some(l => l?.resetsAt && l.resetsAt < now);
         if (now - fetchedAt >= intervalMin * 60000 || (reset && since >= retryMs))
             fetchUsage();
     }

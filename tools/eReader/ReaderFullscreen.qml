@@ -2,14 +2,13 @@
 // Created only while open and fullscreen; F or Esc goes back to the floating window.
 import QtQuick
 import Quickshell
-import Quickshell.Hyprland
 import Quickshell.Wayland
 
 PanelWindow {
     id: win
     required property var reader
 
-    screen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0]
+    screen: reader.screen
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "scotchos-reader"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive

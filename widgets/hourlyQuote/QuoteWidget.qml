@@ -19,6 +19,7 @@ DesktopWidget {
     property real fetchedAt: 0      // ms since epoch, 0 = never
     property real lastTry: 0
     property bool loading: false
+    property bool cacheRead: false  // the cached quote may make a fetch unnecessary, so wait for it
     readonly property int retryMs: 5 * 60 * 1000
 
     // Tried in order; each turns the response body into { text, author }.
@@ -59,7 +60,7 @@ DesktopWidget {
 
     function tick() {
         const now = Date.now();
-        if (!loading && now - fetchedAt >= intervalMin * 60000 && now - lastTry >= retryMs)
+        if (cacheRead && !loading && now - fetchedAt >= intervalMin * 60000 && now - lastTry >= retryMs)
             fetchQuote();
     }
 
@@ -72,16 +73,19 @@ DesktopWidget {
                 w.quote = c.quote;
                 w.fetchedAt = c.fetchedAt;
             } catch (e) {}
-            w.tick();
+            w.cacheRead = true;
+            if (w.anyEmpty) w.tick();
         }
-        onLoadFailed: w.tick()
+        onLoadFailed: { w.cacheRead = true; if (w.anyEmpty) w.tick(); }
     }
 
     // Checks once a minute instead of one long timer, so it also catches up right after a suspend.
+    // Only while shown: a quote nobody sees isn't worth fetching.
     Timer {
         interval: 60000
         repeat: true
-        running: true
+        running: w.anyEmpty
+        triggeredOnStart: true
         onTriggered: w.tick()
     }
 

@@ -42,6 +42,7 @@ ShellRoot {
     }
 
     // ---- Settings from scotchos.conf: [section] headers, `key = value` lines, # comments ----
+    // A "#" only starts a comment at the start of a line or after a space, so values like URLs can hold one.
     // conf.<section>.<key> is the raw string; widgets read theirs through DesktopWidget's str / num / flag.
     property var conf: ({})
     readonly property var positions: ["top-left", "top", "top-right", "left", "center", "right",
@@ -56,7 +57,7 @@ ShellRoot {
         const out = {};
         let section = out[""] = {};
         for (const line of text.split("\n")) {
-            const l = line.replace(/#.*/, "").trim();
+            const l = line.replace(/(^|\s)#.*/, "").trim();
             const s = l.match(/^\[([\w-]+)\]$/);
             if (s) { section = out[s[1]] = out[s[1]] ?? {}; continue; }
             const m = l.match(/^(\w+)\s*=\s*(.*)$/);
@@ -80,18 +81,25 @@ ShellRoot {
     // Sets `key = value` under [section] (used by the settings window). Only the value changes, so the
     // line's alignment and comment stay; a missing key goes after the section's last setting.
     function setConf(section, key, value) {
+        // The file on disk isn't the text the settings came from (a half-saved hand edit): writing would lose it.
+        if (confFile.text() !== confText) {
+            console.warn("scotchos.conf: the file has changes that weren't applied - not saving", section + "." + key);
+            return;
+        }
         const lines = confText.split("\n");
         let cur = "", at = -1;
         for (let i = 0; i < lines.length; i++) {
-            const l = lines[i].replace(/#.*/, "").trim();
+            const l = lines[i].replace(/(^|\s)#.*/, "").trim();
             const s = l.match(/^\[([\w-]+)\]$/);
             if (s) { cur = s[1]; if (cur === section) at = i; continue; }
             if (cur !== section || !l) continue;
-            const m = lines[i].match(/^(\s*(\w+)\s*=\s*)(.*?)(\s*#.*)?$/);
+            // The lazy space after "=" leaves at least one space before the comment of an empty `key =  # …`.
+            const m = lines[i].match(/^(\s*(\w+)\s*=[ \t]*?)(\S.*?)?(\s+#.*)?\s*$/);
             if (m && m[2] === key) {
-                if (m[3] === String(value)) return;
+                const old = m[3] ?? "";
+                if (old === String(value)) return;
                 // Pad or trim the gap before a comment so it stays in its column.
-                const gap = String(value).length - m[3].length;
+                const gap = String(value).length - old.length;
                 let rest = m[4] ?? "";
                 if (rest && gap < 0) rest = " ".repeat(-gap) + rest;
                 else if (rest && gap > 0) rest = rest.replace(new RegExp("^ {0," + gap + "}( )"), "$1");
@@ -134,6 +142,11 @@ ShellRoot {
     }
     Component.onCompleted: Hyprland.refreshToplevels()
     readonly property bool anyEmpty: Quickshell.screens.some(s => workspaceEmpty(s))
+
+    // The screen with the focused monitor, for windows that open there (read once; not for bindings).
+    function focusedScreen() {
+        return Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) ?? Quickshell.screens[0];
+    }
 
     // ---- The widgets, each loaded only while enabled ----
     LazyLoader {

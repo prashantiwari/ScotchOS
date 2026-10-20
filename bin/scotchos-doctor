@@ -9,7 +9,7 @@ bad() { printf '    \e[31m✗\e[0m %s\n' "$*"; problems=$((problems + 1)); }
 
 # ---- What scotchos.conf, shell.qml and the settings window name ----
 conf_enabled=$(awk '/^\[/{s=$0; next} s=="[enabled]"' scotchos.conf)
-enabled_keys=$(sed 's/#.*//' <<<"$conf_enabled" | awk -F= 'NF==2 { gsub(/[ \t]/, "", $1); print $1 }')
+enabled_keys=$(sed -E 's/(^|[[:space:]])#.*//' <<<"$conf_enabled" | awk -F= 'NF==2 { gsub(/[ \t]/, "", $1); print $1 }')
 has_section() { grep -qE "^\[$1\][[:space:]]*(#.*)?$" scotchos.conf; }
 in_enabled() { grep -qxF "$1" <<<"$enabled_keys"; }
 known=()    # every key a widget or tool folder claims, for the reverse checks

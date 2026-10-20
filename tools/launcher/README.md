@@ -7,7 +7,7 @@ Keywords aim the box at one source (a *provider*):
 | Type | Source | Enter | Shift + Enter |
 |---|---|---|---|
 | plain text | apps and commands that match, then "Search YouTube for …" | runs the row | the row's alternative, if it has one |
-| `yt cats` | YouTube only | results page in a Brave private window (workspace 1) | plays the first video |
+| `yt cats` | YouTube only | results page in a private browser window (Brave, workspace 1 by default) | plays the first video |
 | `> restart` or `sos restart` | ScotchOS commands only | runs it | — |
 | `app firefox` | applications only | starts it | — |
 
@@ -19,7 +19,15 @@ Switch it off with `scotchos disable launcher`: the keybind stays but does nothi
 
 ## Settings
 
-None. Which keyword picks which provider is in each provider file (`keywords`).
+`[launcher]` in `scotchos.conf`, also in the settings window. They only affect the YouTube search (`yt-open.sh` reads them on each search).
+
+| Key | Default | What it does |
+|---|---|---|
+| `browser` | `brave --incognito --new-window` | The browser command; the URL is added at the end. Firefox: `firefox --private-window` |
+| `browser_class` | `brave-browser` | The class of its windows in `hyprctl clients`, to tell when the new one has appeared. Firefox: `firefox` |
+| `workspace` | `1` | The workspace it opens on; focus comes back to yours afterwards |
+
+Which keyword picks which provider is in each provider file (`keywords`).
 
 ## Files in this folder
 
@@ -32,7 +40,7 @@ None. Which keyword picks which provider is in each provider file (`keywords`).
 | `AppsProvider.qml` | Applications, from Quickshell's desktop entries. |
 | `YouTubeProvider.qml` | The "Search YouTube" rows. |
 | `CommandsProvider.qml` | ScotchOS commands and the on/off switches. |
-| `yt-open.sh` | Opens the search (or the first video) in Brave on workspace 1, then restores focus. |
+| `yt-open.sh` | Opens the search (or the first video) in the browser on the `[launcher]` workspace, then restores focus. |
 | `README.md` | This file. |
 
 ## Requirements
@@ -96,7 +104,7 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 | Where the box sits | `LauncherWindow.qml`, `card` (`y: parent.height * 0.2`, `width: 640`) | 20 % from the top, 640 px |
 | Keywords | each provider's `keywords` | `>`/`sos`, `yt`/`youtube`, `app` |
 | Order Tab steps through | `Launcher.qml`, `providers` | Commands, YouTube, Apps |
-| Browser, window class, workspace | `yt-open.sh` (`brave`, `brave-browser`, `workspace = "1"`) | Brave, workspace 1 |
+| Browser, window class, workspace | `[launcher]` in `scotchos.conf` (see Settings) | Brave, workspace 1 |
 | Old-style config (`hyprland.conf`) | — | `bind = SUPER, Y, exec, <path>/launcher.sh`; in `yt-open.sh` use `hyprctl dispatch workspace N` |
 
 **A new source** is one file: a `Provider { name; glyph; keywords; search: q => [rows] }` (copy `YouTubeProvider.qml`), then add it to the `providers` list in `Launcher.qml`. A row is `{ title, subtitle, glyph or iconName, run(), alt() }`.
@@ -108,7 +116,7 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 3. Every keystroke recomputes `results`: a keyword or chip asks that one provider; plain text asks the providers marked `inDefault` (top five each), then appends every provider's `fallback` rows, which are never cut off.
 4. The rows are a fixed set of nine delegates that show or hide, so typing doesn't create or destroy anything. App icons are decoded at 28 px.
 5. Running a row calls its `run()`. Programs are started with `Quickshell.execDetached`, so they outlive the window.
-6. YouTube: `yt-open.sh` URL-encodes the query, optionally fetches the first video id, focuses workspace 1, starts Brave in a private window, waits for it to appear and returns to your workspace.
+6. YouTube: `yt-open.sh` URL-encodes the query, optionally fetches the first video id, reads `[launcher]` with `scotchos get`, focuses that workspace, starts the browser, waits for it to appear and returns to your workspace.
 
 ## Uninstall
 

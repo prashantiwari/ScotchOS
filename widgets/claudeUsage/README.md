@@ -16,7 +16,7 @@ These are the plan-wide limits, so they include claude.ai chats as well as Claud
 
 ## Where the numbers come from
 
-`GET https://api.anthropic.com/api/oauth/usage`, authenticated with the OAuth token Claude Code keeps in `~/.claude/.credentials.json`. Only `five_hour` and `seven_day` are read from the response.
+`GET https://api.anthropic.com/api/oauth/usage`, authenticated with the OAuth token Claude Code keeps in `~/.claude/.credentials.json`. Only `five_hour` and `seven_day` are read from the response. If one of them is missing or null, the card shows the other (only both missing counts as a failed fetch).
 
 - **This endpoint is undocumented.** It's what Claude Code's `/usage` uses, so it can change without notice. If the two fields go missing, the card says so and keeps the last reading.
 - **The token is only read, never refreshed.** Claude Code owns that file and refreshes the token when you use it. While the token is expired, the card shows the last reading with "token expired - open Claude Code"; it picks the new token up as soon as the file changes.

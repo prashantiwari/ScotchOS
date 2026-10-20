@@ -29,15 +29,15 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] Rescan when `library_dir` changes while the window is open
 - [x] Re-layout on resize only rewrites image sizes when the chapter has images; debounce resizes
 
-### Phase 3: small widget and tool fixes
-- [ ] Quote timer bound to `w.anyEmpty`
-- [ ] Dashboard: clear the histories when the collector starts again
-- [ ] Claude usage: show one limit when the other is missing
-- [ ] `setConf`: don't write when the file on disk differs from `confText` (lost hand edits)
-- [ ] Decide on `#` in values (document it, or only treat ` #` as a comment)
-- [ ] `yt-open.sh`: browser, window class and workspace from `[launcher]`; escape `prev_ws`
-- [ ] Launcher and reader windows: pick the screen once when they open
-- [ ] dailyTheory: warn about `http://` to a non-local server; limit the refresh after the quota reset; update `now` when the quota runs out
+### Phase 3: small widget and tool fixes (done 2026-10-21)
+- [x] Quote timer bound to `w.anyEmpty`
+- [x] Dashboard: clear the histories when the collector starts again
+- [x] Claude usage: show one limit when the other is missing
+- [x] `setConf`: don't write when the file on disk differs from `confText` (lost hand edits)
+- [x] Decide on `#` in values: only `#` at the start of a line or after a space is a comment
+- [x] `yt-open.sh`: browser, window class and workspace from `[launcher]`; escape `prev_ws`
+- [x] Launcher and reader windows: pick the screen once when they open
+- [x] dailyTheory: warn about `http://` to a non-local server; limit the refresh after the quota reset; update `now` when the quota runs out
 
 ### Phase 4: structure (needs a decision first: where the live conf lives, see 5.1)
 - [ ] Live `scotchos.conf` out of git (default file + gitignore, or `~/.config/scotchos/`), and check the symlink / atomic-write question

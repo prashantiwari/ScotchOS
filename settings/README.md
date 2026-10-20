@@ -69,7 +69,7 @@ QML changes hot-reload on save. Logs: `scotchos log`
 
 1. **Opening:** `scotchos settings` runs `qs ipc call settings toggle`; the `IpcHandler` in `shell.qml` flips `settingsOpen`, and a `LazyLoader` creates or destroys the window. Closed, nothing of it exists.
 2. **Reading:** the window shows `core.conf`, the same parsed settings the widgets use, with each setting's default when the key isn't in the file.
-3. **Writing:** `setConf(section, key, value)` in `shell.qml` changes only the value on that line, so the alignment and `# comments` stay (a missing key is added after the section's last setting, a missing section at the end). The file is written atomically (`FileView.atomicWrites`: temp file + rename) and the new text is applied right away, so the widgets update on the same click.
+3. **Writing:** `setConf(section, key, value)` in `shell.qml` changes only the value on that line, so the alignment and `# comments` stay (a missing key is added after the section's last setting, a missing section at the end). The file is written atomically (`FileView.atomicWrites`: temp file + rename) and the new text is applied right away, so the widgets update on the same click. If the file on disk isn't the text the settings were last read from (a hand edit saved without an `[enabled]` section, so it wasn't applied), it doesn't write and logs a warning instead of overwriting the edit. A `#` starts a comment only at the start of a line or after a space, so a value can contain one (a URL's `#fragment`).
 4. **Floating:** the window's minimum and maximum size are equal, which Hyprland treats as a dialog and floats. Floating windows don't count when deciding whether a workspace is empty, so the widgets stay on screen.
 
 ## Uninstall

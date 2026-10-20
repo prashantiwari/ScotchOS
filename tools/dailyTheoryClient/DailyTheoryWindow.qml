@@ -22,13 +22,20 @@ FloatingWindow {
     // ---- Time ----
     // Minute steps are enough for "resets in 3 h 20 min"; the timer only runs while the quota is used up.
     property double now: Date.now()
+    // Refreshes asked for since the reset time passed. Each one doubles the wait (30 s … 8 min), so a server whose
+    // reset runs late isn't asked twice every 30 s.
+    property int resetTries: 0
+    Connections {
+        target: win.client
+        function onOutOfQuotaChanged() { win.now = Date.now(); win.resetTries = 0; }
+    }
     Timer {
-        interval: 30000
+        interval: 30000 * Math.pow(2, Math.min(win.resetTries, 4))
         repeat: true
         running: win.client.outOfQuota
         onTriggered: {
             win.now = Date.now();
-            if (win.now >= Date.parse(win.client.quota.resets_at)) win.client.refresh();
+            if (win.now >= Date.parse(win.client.quota.resets_at)) { win.resetTries++; win.client.refresh(); }
         }
     }
     function clock(iso) { return Qt.formatDateTime(new Date(iso), "HH:mm") }
@@ -326,9 +333,10 @@ FloatingWindow {
                 Text {
                     width: parent.width
                     topPadding: 8
-                    text: win.client.server.replace(/^https?:\/\//, "") + "\nEsc closes."
+                    text: win.client.server.replace(/^https?:\/\//, "")
+                          + (win.client.insecure ? "\nnot encrypted (http)" : "") + "\nEsc closes."
                     elide: Text.ElideRight
-                    color: win.core.dim
+                    color: win.client.insecure ? "#f0b429" : win.core.dim
                     font.family: win.core.font
                     font.pixelSize: 10
                 }

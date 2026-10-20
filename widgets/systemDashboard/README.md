@@ -1,6 +1,6 @@
 # System Dashboard
 
-A system monitor panel drawn **on the desktop**, on the left side of **every screen**. It sits above the wallpaper and below your windows, so you see it on any empty workspace. It never takes keyboard focus, clicks go straight through it, and it doesn't show up in Alt+Tab. It only appears on screens whose current workspace has no tiled windows: as soon as one opens there it's hidden and not drawn at all. Floating windows don't count, unless they're fullscreen. `stats.py` is stopped while no screen shows the panel, so the history graphs pick up again from where they left off when it reappears.
+A system monitor panel drawn **on the desktop**, on the left side of **every screen**. It sits above the wallpaper and below your windows, so you see it on any empty workspace. It never takes keyboard focus, clicks go straight through it, and it doesn't show up in Alt+Tab. It only appears on screens whose current workspace has no tiled windows: as soon as one opens there it's hidden and not drawn at all. Floating windows don't count, unless they're fullscreen. `stats.py` is stopped while no screen shows the panel, and the history graphs start over when it reappears (so they never join samples from minutes apart).
 
 It starts automatically when Hyprland starts and updates once per second:
 

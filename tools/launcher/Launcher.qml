@@ -9,6 +9,11 @@ Scope {
     required property var core
 
     property bool open: false
+    // Picked once on open: a binding to the focused monitor would move the window when focus follows the mouse.
+    // `shown` follows `open` but only after `screen` is set, so the window never starts on the old one.
+    property var screen: null
+    property bool shown: false
+    onOpenChanged: { if (open) screen = core.focusedScreen(); shown = open; }
 
     // `scotchos launcher` (qs ipc call launcher toggle), which the keybind runs.
     IpcHandler {
@@ -25,7 +30,7 @@ Scope {
     readonly property var providers: [commands, youtube, apps]
 
     LazyLoader {
-        active: l.open
+        active: l.shown
         LauncherWindow { launcher: l }
     }
 }

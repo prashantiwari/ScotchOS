@@ -21,7 +21,7 @@ In `[dailytheory]` of [`scotchos.conf`](../../scotchos.conf), or in the settings
 
 | Key | Default | What it does |
 |---|---|---|
-| `server` | `http://localhost:8080` | Base URL of the dailyTheory API (no trailing `/` needed). |
+| `server` | `http://localhost:8080` | Base URL of the dailyTheory API (no trailing `/` needed). Use `https://` for anything but this machine: over plain `http://` the token and registration key aren't encrypted, and the window and log say so. |
 | `registration_key` | empty | Sent as `X-Registration-Key` on signup, and only on signup. Needed only if the server sets `REGISTRATION_KEY`. |
 
 ## Files in this folder
@@ -108,7 +108,7 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 2. **Opening:** the window calls `refresh()`. Signed in, that's `GET /v1/me` (profile and quota) and `GET /v1/theories?limit=50` (history; the newest becomes the current theory, or the one you were reading is replaced by the server's fresh copy, which picks up fields added since, such as links). Signed out, it's `GET /v1/topics` for the suggestion chips.
 3. **Requests:** `call()` sends JSON with `XMLHttpRequest` in the shell process, so nothing is spawned. It sends only the documented fields, because the server rejects unknown ones. `Authorization: Bearer` goes on every call except signup, and `X-Registration-Key` only on signup. `PUT /v1/me` sends only the fields that changed. Next and Save are disabled while a request is in flight, so a double click can't send two.
 4. **Errors:** every non-2xx answer is `{"error": {"code", "message"}}`, and `fail()` picks the message by `code` (never by HTTP status). `not_found`, `method_not_allowed` and `payload_too_large` mean the client sent something wrong, so they also go to the log as a warning. `unauthorized` deletes the token and returns to signup. `quota_exceeded` marks the quota as used up until `resets_at`. A failed Next says it didn't use up quota, because the server doesn't count it.
-5. **Quota:** it's updated from every Next response and from `/v1/me`. While it's used up, a 30 s timer refreshes the countdown, and after `resets_at` it calls `refresh()` once. The timer runs only while the window is open and the quota is used up.
+5. **Quota:** it's updated from every Next response and from `/v1/me`. While it's used up, a 30 s timer refreshes the countdown, and after `resets_at` it calls `refresh()`; if the server still reports it used up, each further try waits twice as long (up to 8 min). The timer runs only while the window is open and the quota is used up.
 6. **Text and links:** server text is shown as plain text, so a `<` in it can't turn into rich text; the theory's blank lines (`\n\n`) are its paragraph breaks. A source or reading line is clickable when it has a `url`; `openLink()` passes it to `Qt.openUrlExternally` only if it starts with `http://` or `https://`.
 7. **Token:** a `Process` runs `sh -c 'umask 077 && mkdir -p … && cat > tmp && mv tmp token'` and writes the token to its **stdin**, so it never appears in a command line that `ps` could show. The file is created `0600` and replaced atomically.
 

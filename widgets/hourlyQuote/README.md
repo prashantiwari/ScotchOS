@@ -83,7 +83,7 @@ scotchos restart
 
 ## How it works
 
-1. **Timing:** a timer checks once a minute whether `interval` minutes have passed since the last fetch. Checking often instead of one long timer means the quote also refreshes soon after waking from suspend. A failed attempt waits 5 minutes before the next one, so a dead connection doesn't hammer the APIs.
+1. **Timing:** a timer checks once a minute whether `interval` minutes have passed since the last fetch. It only runs while some screen shows an empty workspace, so nothing is fetched while the quote can't be seen; it checks right away when one becomes empty. Checking often instead of one long timer means the quote also refreshes soon after waking from suspend. A failed attempt waits 5 minutes before the next one, so a dead connection doesn't hammer the APIs.
 2. **Fetching:** QML's `XMLHttpRequest` asks each source in turn (15 s timeout) until one gives a non-empty quote.
 3. **Colors:** the same wallbash colors as the other cards, from `~/.cache/hyde/wallbash/scotchos.dcol`, so it recolors with your wallpaper and theme.
 4. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, just like the other cards.

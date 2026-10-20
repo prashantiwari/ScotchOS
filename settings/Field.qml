@@ -29,8 +29,8 @@ Rectangle {
         selectionColor: f.shell.accentDim
         font.family: f.shell.font
         font.pixelSize: 12
-        // "#" starts a comment in scotchos.conf, and a newline would end the line.
-        validator: RegularExpressionValidator { regularExpression: /[^#\n]*/ }
+        // "#" at the start or after a space starts a comment in scotchos.conf, and a newline would end the line.
+        validator: RegularExpressionValidator { regularExpression: /(?!#)(?![^\n]*\s#)[^\n]*/ }
         onEditingFinished: {
             const v = text.trim();
             if (v !== f.value) f.edited(v);

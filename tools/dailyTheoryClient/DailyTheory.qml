@@ -11,6 +11,11 @@ Scope {
     // ---- Settings ([dailytheory] in scotchos.conf) ----
     readonly property string server: String(core.conf.dailytheory?.server || "http://localhost:8080").replace(/\/+$/, "")
     readonly property string regKey: core.conf.dailytheory?.registration_key ?? ""
+    // Plain http to another machine sends the token and registration key unencrypted.
+    readonly property bool insecure: /^http:\/\//i.test(server)
+                                     && !/^http:\/\/(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?(\/|$)/i.test(server)
+    onInsecureChanged: if (insecure) console.warn("dailytheory:", server, "is plain http to another host: the token crosses the network unencrypted")
+    Component.onCompleted: insecureChanged()
 
     // ---- State ----
     property bool open: false

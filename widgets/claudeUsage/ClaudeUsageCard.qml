@@ -15,8 +15,8 @@ Rectangle {
 
     // "2h 13m", "3d 4h", from the shared once-a-minute `now`.
     function resetsIn(t) {
-        const m = Math.ceil((t - shell.now) / 60000);
         if (!t) return "";
+        const m = Math.ceil((t - shell.now) / 60000);
         if (m <= 0) return "reset, refreshing…";
         const d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
         return "resets in " + (d ? d + "d " + h + "h" : h ? h + "h " + m % 60 + "m" : m + "m");

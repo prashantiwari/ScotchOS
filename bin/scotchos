@@ -25,11 +25,12 @@ Usage: scotchos <command>
 EOF
 }
 
-# get <section> <key> [default]: value of `key = value` under [section], comments stripped.
+# get <section> <key> [default]: value of `key = value` under [section], comments stripped
+# (a "#" at the start of a line or after a space, like shell.qml's parseConf).
 get() {
     local v
     v=$(awk -v s="[$1]" -v k="$2" '
-        { sub(/#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
+        { sub(/(^|[ \t])#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
         /^\[/ { in_s = ($0 == s); next }
         in_s && $0 ~ "^" k "[ \t]*=" { sub(/^[^=]*=[ \t]*/, ""); print; exit }
     ' "$conf")
@@ -84,7 +85,7 @@ case "$1" in
         fi
         "$0" list ;;
     list)
-        awk '/^\[/{s=$0; next} s=="[enabled]"' "$conf" | sed 's/#.*//' |
+        awk '/^\[/{s=$0; next} s=="[enabled]"' "$conf" | sed -E 's/(^|[[:space:]])#.*//' |
             awk -F= 'NF==2 { gsub(/[ \t]/, "", $1); gsub(/[ \t]/, "", $2); printf "  %-12s %s\n", $1, ($2 ~ /^(yes|on|true|1)$/ ? "on" : "off") }' ;;
     enable)  [[ -n "$2" ]] || { usage; exit 1; }; set_enabled "$2" yes ;;
     disable) [[ -n "$2" ]] || { usage; exit 1; }; set_enabled "$2" no ;;

@@ -41,6 +41,12 @@ Scope {
     // ---- State ----
     property bool open: false
     property bool fullscreen: false
+    // The screen the window goes on, picked when it opens and when fullscreen switches (so F covers the monitor the
+    // window is on), not bound: a binding to the focused monitor would move it when focus follows the mouse.
+    // `shown` follows `open` but only after `screen` is set, so the window never starts on the old one.
+    property var screen: null
+    property bool shown: false
+    function setFullscreen(on) { screen = core.focusedScreen(); fullscreen = on; }
     property string view: "library"     // library / book
     property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, search, text
     property var books: []
@@ -69,19 +75,22 @@ Scope {
     }
 
     LazyLoader {
-        active: r.open && !r.fullscreen
+        active: r.shown && !r.fullscreen
         ReaderWindow { reader: r }
     }
     LazyLoader {
-        active: r.open && r.fullscreen
+        active: r.shown && r.fullscreen
         ReaderFullscreen { reader: r }
     }
 
     onOpenChanged: {
         if (open) {
+            screen = core.focusedScreen();
+            shown = true;
             scan();
         } else {
             saveProgress();
+            shown = false;
             fullscreen = false;
         }
     }

@@ -48,7 +48,11 @@ DesktopWidget {
     Process {
         command: ["python3", Quickshell.shellDir + "/widgets/systemDashboard/stats.py"]
         running: w.anyEmpty && w.collectorAlive
-        onStarted: w.collectorStarted = Date.now()
+        // Start the graphs over: samples from before the card was hidden would join across the gap.
+        onStarted: {
+            w.collectorStarted = Date.now();
+            w.cpuHistory = []; w.tempHistory = []; w.rxHistory = []; w.txHistory = [];
+        }
         stdout: SplitParser {
             onRead: line => {
                 try {
