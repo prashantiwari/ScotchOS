@@ -23,6 +23,10 @@ PanelWindow {
     property var mode: null         // the provider locked in as a chip, or null
     property int sel: 0
     readonly property int maxRows: 9
+    // Nothing typed: the recent apps as square icons, wrapping onto new rows (tile 56 + gap 8 = 9 per row in the card).
+    readonly property bool grid: !mode && !input.text.trim()
+    readonly property int maxTiles: 18
+    readonly property int perRow: 9
 
     // The provider a typed keyword selects ("yt cats", "> restart"); `tab` also accepts the bare word.
     function parse(raw, tab) {
@@ -44,7 +48,7 @@ PanelWindow {
         if (!query.trim()) {
             const recent = [];
             for (const p of launcher.providers) recent.push(...p.recents());
-            return recent.slice(0, maxRows);
+            return recent.slice(0, maxTiles);
         }
         const rows = [];
         for (const p of launcher.providers) if (p.inDefault) rows.push(...p.search(query).slice(0, 5));
@@ -166,6 +170,12 @@ PanelWindow {
                                 else if (e.key === Qt.Key_Tab) win.tab(1);
                                 else if (e.key === Qt.Key_Backtab) win.tab(-1);
                                 else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) win.run(alt);
+                                else if (win.grid && e.key === Qt.Key_Left) win.sel = Math.max(win.sel - 1, 0);
+                                else if (win.grid && e.key === Qt.Key_Right) win.sel = Math.min(win.sel + 1, win.results.length - 1);
+                                else if (win.grid && (e.key === Qt.Key_Down || (ctrl && (e.key === Qt.Key_J || e.key === Qt.Key_N))))
+                                    win.sel = Math.min(win.sel + win.perRow, win.results.length - 1);
+                                else if (win.grid && (e.key === Qt.Key_Up || (ctrl && (e.key === Qt.Key_K || e.key === Qt.Key_P))))
+                                    win.sel = Math.max(win.sel - win.perRow, 0);
                                 else if (e.key === Qt.Key_Down || (ctrl && (e.key === Qt.Key_J || e.key === Qt.Key_N)))
                                     win.sel = Math.min(win.sel + 1, win.results.length - 1);
                                 else if (e.key === Qt.Key_Up || (ctrl && (e.key === Qt.Key_K || e.key === Qt.Key_P)))
@@ -187,7 +197,61 @@ PanelWindow {
                 height: 1
                 color: Qt.alpha(win.core.accent, 0.25)
             }
+            // ---- Recent apps: icon tiles, the picked one's name underneath ----
             Column {
+                visible: win.grid && win.results.length > 0
+                width: parent.width
+                topPadding: 10
+                bottomPadding: 4
+                leftPadding: 20
+                spacing: 6
+                Flow {
+                    width: parent.width - 40
+                    spacing: 8
+                    Repeater {
+                        model: win.maxTiles
+                        delegate: Rectangle {
+                            id: tile
+                            required property int index
+                            readonly property var r: win.results[index] ?? null
+                            visible: !!r
+                            width: 56
+                            height: 56
+                            radius: 12
+                            color: index === win.sel ? Qt.alpha(win.core.accent, 0.22)
+                                                     : (tileArea.containsMouse ? Qt.alpha(win.core.fg, 0.07) : Qt.alpha(win.core.fg, 0.04))
+                            border.width: index === win.sel ? 1 : 0
+                            border.color: Qt.alpha(win.core.accent, 0.6)
+                            Image {
+                                anchors.centerIn: parent
+                                width: 36
+                                height: 36
+                                source: tile.r?.iconName ? Quickshell.iconPath(tile.r.iconName, "application-x-executable") : ""
+                                sourceSize: Qt.size(36, 36)     // decoded at display size
+                                asynchronous: true
+                            }
+                            MouseArea {
+                                id: tileArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered: win.sel = tile.index
+                                onClicked: win.run(false)
+                            }
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width - 40
+                    text: win.picked?.title ?? ""
+                    elide: Text.ElideRight
+                    color: win.core.dim
+                    font.family: win.core.font
+                    font.pixelSize: 11
+                }
+            }
+
+            Column {
+                visible: !win.grid
                 width: parent.width
                 topPadding: win.results.length ? 6 : 0
                 Repeater {
