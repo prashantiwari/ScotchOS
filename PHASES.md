@@ -26,7 +26,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 1: Launcher remembers what you pick
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Sonnet 5.5, medium effort (small, clear task; the scoring is plain JS with tests).
 
