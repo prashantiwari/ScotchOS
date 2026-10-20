@@ -168,7 +168,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 6: `scotchos doctor --fix`; enable/disable keep the comment column
 
-**Status:** done
+**Status:** approved 2026-10-21
 
 **Model:** Sonnet 5.5, medium effort (shell and awk, with tests to check against).
 
