@@ -7,12 +7,15 @@ cd "$root" || exit 1
 problems=0
 bad() { printf '    \e[31m✗\e[0m %s\n' "$*"; problems=$((problems + 1)); }
 
-# ---- What scotchos.conf, shell.qml and the settings window name ----
-conf_enabled=$(awk '/^\[/{s=$0; next} s=="[enabled]"' scotchos.conf)
+# ---- What the default conf, shell.qml and the settings window name ----
+# The repo's scotchos.default.conf, not the live one in ~/.config: it's what a new install starts from.
+conf=scotchos.default.conf
+conf_enabled=$(awk '/^\[/{s=$0; next} s=="[enabled]"' "$conf")
 enabled_keys=$(sed -E 's/(^|[[:space:]])#.*//' <<<"$conf_enabled" | awk -F= 'NF==2 { gsub(/[ \t]/, "", $1); print $1 }')
-has_section() { grep -qE "^\[$1\][[:space:]]*(#.*)?$" scotchos.conf; }
+has_section() { grep -qE "^\[$1\][[:space:]]*(#.*)?$" "$conf"; }
 in_enabled() { grep -qxF "$1" <<<"$enabled_keys"; }
 known=()    # every key a widget or tool folder claims, for the reverse checks
+declare -A folder_of   # key -> folder, for the defaults check
 
 # ---- Checks both kinds share ----
 # common <key> <kind> <folder>: [enabled] line with a comment, settings window entry, root README row, README sections.
@@ -21,9 +24,9 @@ common() {
     [[ "$key" =~ ^[a-z][a-z0-9_]*$ ]] || bad "conf key '$key' isn't lowercase"
     if in_enabled "$key"; then
         grep -qE "^[[:space:]]*$key[[:space:]]*=[^#]*#" <<<"$conf_enabled" ||
-            bad "scotchos.conf: '$key' in [enabled] has no '# description' comment"
+            bad "$conf: '$key' in [enabled] has no '# description' comment"
     else
-        bad "scotchos.conf: no '$key' in [enabled]"
+        bad "$conf: no '$key' in [enabled]"
     fi
     grep -qE "\{ *key: \"$key\",[^}]*kind: \"$kind\"" settings/SettingsWindow.qml ||
         bad "settings/SettingsWindow.qml: no items entry with key \"$key\" and kind \"$kind\""
@@ -53,7 +56,7 @@ for dir in widgets/*/; do
     key=$(grep -oE 'section: *"[^"]+"' "$file" | head -1 | sed 's/.*"\(.*\)"/\1/')
     echo "  ${key:-?}  ($folder)"
     [[ -n "$key" ]] || { bad "$file: no 'section: \"<key>\"'"; continue; }
-    known+=("$key")
+    known+=("$key"); folder_of[$key]=$folder
     p=$problems
 
     grep -qE '^[[:space:]]*DesktopWidget[[:space:]]*\{' "$file" || bad "$file: root isn't DesktopWidget"
@@ -62,7 +65,7 @@ for dir in widgets/*/; do
         bad "shell.qml: no LazyLoader { active: root.enabled(\"$key\"); $name { core: root } }"
     grep -qF "layerName: \"scotchos-$key\"" "$folder"/*.qml || bad "no DesktopPanel with layerName: \"scotchos-$key\""
     grep -qF "workspaceEmpty(" "$folder"/*.qml || bad "no panel visibility bound to workspaceEmpty(...)"
-    has_section "$key" || bad "scotchos.conf: no [$key] section"
+    has_section "$key" || bad "$conf: no [$key] section"
     common "$key" widget "$folder"
     ((problems == p)) && printf '    \e[32m✓\e[0m wired in\n'
 done
@@ -80,7 +83,7 @@ for dir in tools/*/; do
         bash -n "$s" 2>/dev/null || bad "$s: bash -n finds a syntax error"
     done
     [[ -n "$key" ]] || { bad "no script starts with '\"\$dir/../../bin/scotchos\" enabled <key> || exit 0'"; continue; }
-    known+=("$key")
+    known+=("$key"); folder_of[$key]=$folder
     common "$key" tool "$folder"
     ((problems == p)) && printf '    \e[32m✓\e[0m wired in\n'
 done
@@ -90,7 +93,7 @@ echo "Leftovers"
 p=$problems
 is_known() { printf '%s\n' "${known[@]}" | grep -qxF "$1"; }
 for key in $enabled_keys; do
-    is_known "$key" || bad "scotchos.conf: '$key' in [enabled] matches no widget or tool folder"
+    is_known "$key" || bad "$conf: '$key' in [enabled] matches no widget or tool folder"
 done
 for key in $(grep -oE 'root\.enabled\("[^"]+"\)' shell.qml | sed 's/.*("\(.*\)")/\1/'); do
     is_known "$key" || bad "shell.qml: LazyLoader for '$key' matches no widget folder"
@@ -98,11 +101,74 @@ done
 for key in $(grep -oE '\{ *key: "[^"]+",[^}]*kind: "(widget|tool)"' settings/SettingsWindow.qml | sed 's/{ *key: "\([^"]*\)".*/\1/'); do
     is_known "$key" || bad "settings/SettingsWindow.qml: item '$key' matches no widget or tool folder"
 done
-# shell.qml imports every widget folder and settings/, so two QML files with one name there clash.
-for dup in $(find widgets settings -name '*.qml' -printf '%f\n' | sort | uniq -d); do
-    bad "$dup exists in more than one folder that shell.qml imports: $(find widgets settings -name "$dup" | tr '\n' ' ')"
+# shell.qml imports every widget and tool folder and settings/, so two QML files with one name there clash.
+for dup in $(find widgets tools settings -name '*.qml' -printf '%f\n' | sort | uniq -d); do
+    bad "$dup exists in more than one folder that shell.qml imports: $(find widgets tools settings -name "$dup" | tr '\n' ' ')"
 done
 ((problems == p)) && printf '    \e[32m✓\e[0m none\n'
+
+# ---- Defaults: the settings window's def: must be the fallback the code uses when the key is missing ----
+echo "Defaults"
+p=$problems
+if command -v python3 >/dev/null; then
+    while IFS= read -r line; do bad "$line"; done < <(
+        for k in "${!folder_of[@]}"; do echo "$k=${folder_of[$k]}"; done | python3 -I -c '
+import glob, re, sys
+folders = dict(l.strip().split("=", 1) for l in sys.stdin if "=" in l)
+section = None
+def norm(v):
+    v = v.strip("\x27\"")
+    return {"true": "yes", "false": "no"}.get(v, v)
+for line in open("settings/SettingsWindow.qml"):
+    m = re.search(r"\{ *key: \"([^\"]+)\",[^}]*kind: \"(widget|tool)\"", line)
+    if m:
+        section, kind = m.groups()
+        continue
+    m = re.search(r"\{ *key: \"([^\"]+)\",.*\bdef: (\"[^\"]*\"|[\w.-]+)", line)
+    if not m or section not in folders:
+        continue
+    key, d = m.group(1), norm(m.group(2))
+    lit = r"(\"[^\"]*\"|\x27[^\x27]*\x27|-?\d+|true|false)"
+    pats = [r"\b(?:str|num|flag|setting|clamped)\(\s*\"%s\"\s*,\s*%s" % (key, lit),
+            r"\?\.%s\s*(?:\|\||\?\?)\s*%s" % (key, lit),
+            r"\bget %s (\x27[^\x27]*\x27|[^)\s]+)" % key]
+    if key == "position":
+        pats.append(r"placeSetting\(\s*%s" % lit)
+    # The folder first; a widget falls back to DesktopWidget for what every card has (margins).
+    found = set()
+    for files in (glob.glob(folders[section] + "/*.qml") + glob.glob(folders[section] + "/*.sh"),
+                  ["common/DesktopWidget.qml"] if kind == "widget" else []):
+        code = "".join(open(f).read() for f in files)
+        found = {norm(v) for p in pats for v in re.findall(p, code)}
+        if found:
+            break
+    if not found:
+        print("%s.%s: no fallback found in %s (def: %s)" % (section, key, folders[section], d))
+    elif found != {d}:
+        print("%s.%s: settings window says %s, the code falls back to %s" % (section, key, d, " / ".join(sorted(found))))
+')
+    ((problems == p)) && printf '    \e[32m✓\e[0m match\n'
+else
+    printf '    - python3 not installed, skipped\n'
+fi
+
+# ---- Linters, when installed ----
+echo "Lint"
+p=$problems
+if command -v shellcheck >/dev/null; then
+    for s in bin/scotchos bin/scotchos-doctor install.sh tools/*/*.sh; do
+        shellcheck -S warning "$s" >/dev/null 2>&1 || bad "shellcheck $s"
+    done
+else
+    printf '    - shellcheck not installed, skipped (pacman -S shellcheck)\n'
+fi
+# Parsed, not compiled, so nothing writes __pycache__ into the repo.
+for py in widgets/*/*.py tools/*/*.py; do
+    [[ -f "$py" ]] || continue
+    err=$(python3 -I -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$py" 2>&1) ||
+        bad "$py: $(tail -1 <<<"$err")"
+done
+((problems == p)) && printf '    \e[32m✓\e[0m clean\n'
 
 echo
 if ((problems)); then echo "$problems problem(s)"; exit 1; fi

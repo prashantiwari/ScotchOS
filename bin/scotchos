@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # ScotchOS control: start / stop the widget shell, switch widgets and tools on and off.
 root="$(dirname "$(dirname "$(readlink -f "$0")")")"
-conf="$(readlink -f "$root/scotchos.conf")"   # resolved, so a symlinked conf stays a symlink
+live="${XDG_CONFIG_HOME:-$HOME/.config}/scotchos/scotchos.conf"
+# Outside the repo, so a re-clone or a moved repo keeps the settings; the first run copies the defaults there.
+[[ -e "$live" ]] || { mkdir -p "$(dirname "$live")" && cp "$root/scotchos.default.conf" "$live"; } ||
+    { echo "scotchos: can't create $live" >&2; exit 1; }
+conf="$(readlink -f "$live")"   # resolved, so a symlinked conf (dotfiles) is written through, not replaced
+
+# The shell is told the same path, so it reads and writes the file this script does.
+start_shell() { SCOTCHOS_CONF="$conf" qs -n -d -p "$root"; }
 
 usage() {
     cat <<EOF
@@ -20,8 +27,8 @@ Usage: scotchos <command>
   disable <name>             switch one off (applies right away)
   toggle <name>              flip it
   enabled <name>             exit 0 if it's on (for scripts)
-  get <section> <key> [def]  print a setting from scotchos.conf
-  doctor                     check every widget and tool is wired in (conf, shell.qml, settings, READMEs)
+  get <section> <key> [def]  print a setting from ~/.config/scotchos/scotchos.conf
+  doctor                     check every widget and tool is wired in (default conf, shell.qml, settings, READMEs)
 EOF
 }
 
@@ -61,13 +68,13 @@ set_enabled() {
 }
 
 case "$1" in
-    start)   qs -n -d -p "$root" ;;
+    start)   start_shell ;;
     stop)    qs kill -p "$root" ;;
     restart)
         qs kill -p "$root" >/dev/null 2>&1
         # -n refuses to start while the old shell is still exiting, so wait for it (up to 5 s).
         for _ in {1..50}; do [[ -z "$(shell_pid)" ]] && break; sleep 0.1; done
-        qs -n -d -p "$root" ;;
+        start_shell ;;
     log)     qs log -p "$root" ;;
     settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     theory)  qs ipc -p "$root" call dailytheory "${2:-toggle}" ;;

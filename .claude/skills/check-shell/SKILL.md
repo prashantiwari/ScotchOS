@@ -1,6 +1,6 @@
 ---
 name: check-shell
-description: Check that the ScotchOS widget shell is healthy after a change - restart it, read the log for warnings, confirm each enabled widget's layer appears on an empty workspace, take a screenshot, and measure memory/CPU. Use after editing QML, scotchos.conf or a widget helper, or when a widget isn't showing.
+description: Check that the ScotchOS widget shell is healthy after a change - restart it, read the log for warnings, confirm each enabled widget's layer appears on an empty workspace, take a screenshot, and measure memory/CPU. Use after editing QML, the conf (~/.config/scotchos/scotchos.conf) or a widget helper, or when a widget isn't showing.
 ---
 
 # Check the ScotchOS shell

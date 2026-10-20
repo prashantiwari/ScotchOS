@@ -1,6 +1,6 @@
 # Settings window
 
-A floating window to switch every widget and tool on and off and change their settings: position (a 3 × 3 grid shaped like the screen), margins, the dashboard layout, the quote interval, and so on. Each click is saved to [`scotchos.conf`](../scotchos.conf) straight away, so the cards on the desktop move and change while you watch. The window floats, so the widgets on an otherwise empty workspace stay visible behind it.
+A floating window to switch every widget and tool on and off and change their settings: position (a 3 × 3 grid shaped like the screen), margins, the dashboard layout, the quote interval, and so on. Each click is saved to `~/.config/scotchos/scotchos.conf` straight away, so the cards on the desktop move and change while you watch. The window floats, so the widgets on an otherwise empty workspace stay visible behind it.
 
 Open it from **rofi** (or any app launcher): type `scotchos` or `settings` and pick **ScotchOS Settings**. Or from a terminal:
 

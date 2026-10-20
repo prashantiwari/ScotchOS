@@ -25,7 +25,7 @@ Which player is shown: the one playing right now. When it pauses it stays on the
 
 ## Settings
 
-The `[nowplaying]` section of [`scotchos.conf`](../../scotchos.conf); `nowplaying` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
+The `[nowplaying]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)); `nowplaying` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
 
 | Key | Values | Default |
 |---|---|---|
@@ -103,5 +103,5 @@ Changes to `cava.conf` also apply the next time cava starts, which is whenever m
 ## Uninstall
 
 1. Switch it off: `scotchos disable nowplaying`, or `nowplaying = no` in `scotchos.conf`. That alone unloads it.
-2. To remove it for good: delete the `LazyLoader` holding `NowPlayingWidget` and its `import "widgets/nowPlaying"` from `shell.qml`, the `nowplaying` line under `[enabled]` and the `[nowplaying]` section from `scotchos.conf`, then this folder.
+2. To remove it for good: delete the `LazyLoader` holding `NowPlayingWidget` and its `import "widgets/nowPlaying"` from `shell.qml`, the `nowplaying` line under `[enabled]` and the `[nowplaying]` section from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, then this folder.
 

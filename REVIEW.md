@@ -39,11 +39,11 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] Launcher and reader windows: pick the screen once when they open
 - [x] dailyTheory: warn about `http://` to a non-local server; limit the refresh after the quota reset; update `now` when the quota runs out
 
-### Phase 4: structure (decided 2026-10-21: the live conf moves to `~/.config/scotchos/`, see 5.1)
-- [ ] Live conf at `${XDG_CONFIG_HOME:-~/.config}/scotchos/scotchos.conf`. The repo keeps the defaults as `scotchos.default.conf` (reset to the settings window's `def:` values; today's tracked file holds personal values such as font 24 / two pages). `scotchos start` and `install.sh` copy the default when the live file is missing; move this machine's current conf there once (record it under "Changes made to the system"). `bin/scotchos start` passes the resolved path to the shell as `SCOTCHOS_CONF`, and `shell.qml` reads and writes that path, so a symlinked conf (dotfiles) is written through instead of being replaced by the atomic write. `doctor` checks the default file; docs, skills and `CLAUDE.md` name the new path
-- [ ] `doctor`: include `tools/` in the duplicate-name check, run shellcheck and `py_compile`, compare settings `def:` with the widgets' fallbacks
-- [ ] Portability (section 4): CPU sensor list, skip NVML while the GPU is suspended, `install.sh` dependencies and the workspace rule
-- [ ] `common/Http.qml` shared by the quote, Claude usage and dailyTheory (5.4)
+### Phase 4: structure (done 2026-10-21)
+- [x] Live conf at `${XDG_CONFIG_HOME:-~/.config}/scotchos/scotchos.conf`. The repo keeps the defaults as `scotchos.default.conf` (reset to the settings window's `def:` values; today's tracked file holds personal values such as font 24 / two pages). `scotchos start` and `install.sh` copy the default when the live file is missing; move this machine's current conf there once (record it under "Changes made to the system"). `bin/scotchos start` passes the resolved path to the shell as `SCOTCHOS_CONF`, and `shell.qml` reads and writes that path, so a symlinked conf (dotfiles) is written through instead of being replaced by the atomic write. `doctor` checks the default file; docs, skills and `CLAUDE.md` name the new path
+- [x] `doctor`: include `tools/` in the duplicate-name check, run shellcheck and `py_compile`, compare settings `def:` with the widgets' fallbacks
+- [x] Portability (section 4): CPU sensor list, skip NVML while the GPU is suspended (not testable here: Runtime D3 is off), `install.sh` dependencies and the workspace rule. AMD/Intel GPUs are still not shown
+- [x] `common/http.js` (a JS library rather than a QML type: it's stateless) shared by the quote, Claude usage and dailyTheory (5.4)
 
 ### Phase 5: tests
 - [ ] `tools/eReader/tests/` with small EPUB 2/3, FB2, TXT and Markdown fixtures (5.3)
@@ -102,7 +102,7 @@ Also uncommitted: the e-reader "full width keeps a 56 px margin" change (`Reader
 ### Core / settings
 - **[robust] `setConf` can overwrite hand edits with stale text.** `shell.qml:82-110` builds the new file from `confText`, the last *valid* read. Suppose the conf on disk has no `[enabled]` (an editor's half-save, or an edit in progress). A click in the settings window then writes the old text plus the change, and your edit is lost. It's rare, but a cheap fix is to skip the write (and warn) when `confFile.text()` differs from `confText`.
 - **[robust] `#` can't appear in any value.** `parseConf` (`shell.qml:59`) and `bin/scotchos get` strip from the first `#`. `Field.qml` blocks typing it, but a URL with a fragment or a hand-written key containing `#` gets cut. Either document it in the conf header, or treat only ` #` (whitespace before it) as a comment.
-- **[robust] Symlinked conf.** `bin/scotchos:4` carefully resolves a symlinked conf, but `FileView { atomicWrites: true }` in `shell.qml` writes to `shellDir + "/scotchos.conf"`. Depending on how Quickshell does atomic writes, that may replace the symlink with a plain file. This only matters if you adopt 5.1. Check it first, or point the FileView at the resolved path.
+- **[robust] Symlinked conf.** `bin/scotchos:4` carefully resolves a symlinked conf, but `FileView { atomicWrites: true }` in `shell.qml` writes to `shellDir + "/scotchos.conf"`. Depending on how Quickshell does atomic writes, that may replace the symlink with a plain file. This only matters if you adopt 5.1. Check it first, or point the FileView at the resolved path. **Checked (Phase 4):** Quickshell 0.3.2 writes through the symlink (QSaveFile follows it), and the shell now gets the resolved path anyway.
 
 ### Widgets
 - **[perf] The quote timer runs while hidden.** `QuoteWidget.qml:81-86` has `running: true`. Every other widget follows the rule "bind `Timer.running` to `w.anyEmpty`". It's once a minute, so cheap, but it also fetches a quote when nobody can see it. Use `running: w.anyEmpty` with `triggeredOnStart: true`, like `ClaudeUsageWidget`.

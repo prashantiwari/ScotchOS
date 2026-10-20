@@ -123,4 +123,4 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 To only switch it off: `scotchos disable launcher`. To remove it:
 
 1. Remove the launcher bind from `~/.config/hypr/hyprland.lua` and `hyprctl reload`.
-2. Delete this folder, its `LazyLoader` and import in `shell.qml`, the `launcher` line in `scotchos.conf`, its entry in `settings/SettingsWindow.qml`, and the `launcher` command in `bin/scotchos`.
+2. Delete this folder, its `LazyLoader` and import in `shell.qml`, the `launcher` line in `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, its entry in `settings/SettingsWindow.qml`, and the `launcher` command in `bin/scotchos`.

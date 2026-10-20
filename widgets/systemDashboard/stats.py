@@ -7,8 +7,10 @@ import os
 import sys
 import time
 
-# hwmon numbers can change between boots, so sensors are found by name.
-SENSORS = {"cpu": "coretemp"}
+# hwmon numbers can change between boots, so sensors are found by name: the first one present wins.
+# temp1 is the package / die temperature on each: coretemp (Intel), k10temp and zenpower (AMD, Tctl),
+# cpu_thermal (Raspberry Pi and other ARM boards).
+SENSORS = {"cpu": ["coretemp", "k10temp", "zenpower", "cpu_thermal"]}
 
 # Seconds between the slower readings (the rest update every second).
 PROC_EVERY = 3    # top processes: scanning /proc costs ~5-10 ms
@@ -51,12 +53,14 @@ def temps():
         except OSError:
             pass
     out = {}
-    for key, name in SENSORS.items():
-        try:
-            # temp1 is "Package id 0" for coretemp.
-            out[key] = int(read(names[name] + "/temp1_input")) / 1000
-        except (KeyError, OSError, ValueError):
-            out[key] = None
+    for key, candidates in SENSORS.items():
+        out[key] = None
+        for name in candidates:
+            try:
+                out[key] = int(read(names[name] + "/temp1_input")) / 1000
+                break
+            except (KeyError, OSError, ValueError):
+                pass
     return out
 
 
@@ -116,11 +120,29 @@ class _Mem(ctypes.Structure):
     _fields_ = [("total", ctypes.c_ulonglong), ("free", ctypes.c_ulonglong), ("used", ctypes.c_ulonglong)]
 
 
+def nvidia_pm():
+    """The runtime power status file of the first NVIDIA display device, or None."""
+    for d in sorted(glob.glob("/sys/bus/pci/devices/*")):
+        try:
+            if read(d + "/vendor").strip() == "0x10de" and read(d + "/class").startswith("0x03"):
+                return d + "/power/runtime_status"
+        except OSError:
+            pass
+    return None
+
+
+def asleep(pm):
+    """True while the GPU is runtime-suspended (Optimus laptops): a query would wake it and cost battery."""
+    try:
+        return pm is not None and read(pm).strip() == "suspended"
+    except OSError:
+        return False
+
+
 def nvml_open():
     """(lib, handle, name) for GPU 0 through NVML, the library nvidia-smi uses, or None without one.
 
-    Calling it in-process is far cheaper than starting nvidia-smi every second. Runtime D3 is
-    disabled on this laptop, so the card never sleeps and querying it doesn't keep it awake.
+    Calling it in-process is far cheaper than starting nvidia-smi every second.
     """
     try:
         lib = ctypes.CDLL("libnvidia-ml.so.1")
@@ -175,7 +197,10 @@ def mhz():
 
 
 def main():
-    nv = nvml_open()
+    # Opened while the GPU is awake (opening it wakes the card); until then it's tried on each GPU tick.
+    pm = nvidia_pm()
+    has_nvml = os.path.exists("/proc/driver/nvidia")  # the proprietary driver, not nouveau
+    nv = None if asleep(pm) else nvml_open()
     prev, prev_net, prev_t = cpu_times(), net_bytes(), time.monotonic()
     prev_procs, procs_t = proc_times(), prev_t
     top, fast, slow = [], {}, {}
@@ -191,17 +216,23 @@ def main():
             cur_procs = proc_times()
             top = top_procs(prev_procs, cur_procs, t - procs_t)
             prev_procs, procs_t = cur_procs, t
-        if nv and tick % GPU_EVERY == 0:
-            fast = gpu(nv)
-        if nv and tick % POWER_EVERY == 0:
-            slow = gpu_slow(nv)
+        sleeping = asleep(pm)
+        if sleeping:
+            fast, slow = {"name": nv[2] if nv else "", "asleep": True}, {}
+        else:
+            if not nv and has_nvml and tick % GPU_EVERY == 0:
+                nv = nvml_open()
+            if nv and tick % GPU_EVERY == 0:
+                fast = gpu(nv)
+            if nv and tick % POWER_EVERY == 0:
+                slow = gpu_slow(nv)
         print(json.dumps({
             "cpu": cpu,
             "net": {"rx": round(rx), "tx": round(tx)},  # bytes/s
             "mhz": mhz(),
             "mem": memory(),
             "temps": temps(),
-            "gpu": {**fast, **slow} if nv else None,
+            "gpu": {**fast, **slow} if nv or sleeping else None,
             "top": top,
             "uptime": int(float(read("/proc/uptime").split()[0])),
         }), flush=True)

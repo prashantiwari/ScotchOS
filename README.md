@@ -17,7 +17,7 @@ Widgets are cards drawn on the desktop (above the wallpaper, below windows) on e
 
 ## Switching things on and off
 
-[`scotchos.conf`](scotchos.conf) has an `[enabled]` section, then one section per widget with its settings. Save the file and the change applies right away: a widget switched off is unloaded, and its helper processes (`stats.py`, cava) stop.
+`~/.config/scotchos/scotchos.conf` (or `$XDG_CONFIG_HOME/scotchos/`) has an `[enabled]` section, then one section per widget with its settings. The first `scotchos start` copies it from the repo's [`scotchos.default.conf`](scotchos.default.conf), so your settings stay out of git and survive a re-clone; it can be a symlink into your dotfiles (it's written through, not replaced). Save the file and the change applies right away: a widget switched off is unloaded, and its helper processes (`stats.py`, cava) stop.
 
 ```ini
 [enabled]
@@ -59,9 +59,9 @@ scotchos doctor             # is every widget and tool wired in everywhere?
 ```
 ScotchOS/
 ├── shell.qml           The Quickshell entry point: colors, settings, empty-workspace tracking, one LazyLoader per widget
-├── scotchos.conf       All settings, and what's switched on
+├── scotchos.default.conf  The default settings, copied to ~/.config/scotchos/scotchos.conf on first start
 ├── settings/         The settings window (scotchos settings)
-├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window)
+├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window), http.js
 ├── widgets/<name>/     One folder per widget: <Name>Widget.qml (state + panels), the card, helpers, README
 ├── tools/<name>/       Scripts started by keybinds or the app launcher; each checks its switch with `scotchos enabled <name>`
 ├── wallbash/           HyDE template that exports the colors the widgets use
@@ -76,7 +76,7 @@ git clone https://github.com/prashantiwari/ScotchOS.git ~/Projects/ScotchOS
 ~/Projects/ScotchOS/install.sh
 ```
 
-`install.sh` checks dependencies, copies the wallbash template into HyDE, links `scotchos` into `~/.local/bin`, adds **ScotchOS Settings** to the app launcher, and prints the Hyprland lines to add. It doesn't edit your Hyprland config.
+`install.sh` checks dependencies, copies the default settings to `~/.config/scotchos/scotchos.conf` (if it isn't there yet), copies the wallbash template into HyDE, links `scotchos` into `~/.local/bin`, adds **ScotchOS Settings** to the app launcher, and prints the Hyprland lines to add. It doesn't edit your Hyprland config.
 
 ## Hyprland
 
@@ -92,6 +92,10 @@ hl.bind("SUPER + Y", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/to
 ```
 
 These replaced three separate `qs` lines, one per widget. The config before that change is saved as `~/.config/hypr/hyprland.lua.bak-before-scotchos-unify`. The tool also needs `hl.workspace_rule({ workspace = "1", monitor = "eDP-1" })` (see its README).
+
+Started like this (not through `scotchos start`), the shell finds the settings at the same `~/.config/scotchos/scotchos.conf` itself, and copies the defaults there if the file is missing. `install.sh` prints `scotchos start` for new installs instead.
+
+**Settings moved (2026-10-21):** the live conf used to be the repo's `scotchos.conf`. This machine's copy, with its own values (square dashboard, minimal Claude usage every 120 min, quote off, reader font 24 on two pages), was moved to `~/.config/scotchos/scotchos.conf`, and the repo file became `scotchos.default.conf` with the settings window's defaults. To undo: copy it back to the repo as `scotchos.conf` and revert that commit.
 
 ## Resource use
 

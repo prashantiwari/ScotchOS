@@ -21,7 +21,7 @@ The last quote and its fetch time are saved in Quickshell's cache (`~/.cache/qui
 
 ## Settings
 
-The `[quote]` section of [`scotchos.conf`](../../scotchos.conf); `quote` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
+The `[quote]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)); `quote` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
 
 | Key | Values | Default |
 |---|---|---|
@@ -93,5 +93,5 @@ On the laptop screen (1280 × 720 logical) the card fits under the now playing c
 ## Uninstall
 
 1. Switch it off: `scotchos disable quote`, or `quote = no` in `scotchos.conf`. That alone unloads it.
-2. To remove it for good: delete the `LazyLoader` holding `QuoteWidget` and its `import "widgets/hourlyQuote"` from `shell.qml`, the `quote` line under `[enabled]` and the `[quote]` section from `scotchos.conf`, then this folder.
+2. To remove it for good: delete the `LazyLoader` holding `QuoteWidget` and its `import "widgets/hourlyQuote"` from `shell.qml`, the `quote` line under `[enabled]` and the `[quote]` section from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, then this folder.
 

@@ -1,4 +1,4 @@
-// ScotchOS: every desktop widget in one Quickshell process, switched on and off in scotchos.conf.
+// ScotchOS: every desktop widget in one Quickshell process, switched on and off in ~/.config/scotchos/scotchos.conf.
 // This file holds what the widgets share: the wallbash colors, the settings, and which screens show an
 // empty workspace. Each widget lives in widgets/<name>/ and is only loaded while it's enabled.
 import QtQuick
@@ -41,7 +41,7 @@ ShellRoot {
         }
     }
 
-    // ---- Settings from scotchos.conf: [section] headers, `key = value` lines, # comments ----
+    // ---- Settings from scotchos.conf (confPath below): [section] headers, `key = value` lines, # comments ----
     // A "#" only starts a comment at the start of a line or after a space, so values like URLs can hold one.
     // conf.<section>.<key> is the raw string; widgets read theirs through DesktopWidget's str / num / flag.
     property var conf: ({})
@@ -117,13 +117,26 @@ ShellRoot {
         applyConf(text);
     }
 
+    // `scotchos start` passes the path it resolved; started some other way (Hyprland's autostart running qs),
+    // the same XDG path. A symlinked conf is written through (QSaveFile follows the link), not replaced.
+    readonly property string confPath: Quickshell.env("SCOTCHOS_CONF")
+        || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/scotchos/scotchos.conf"
     FileView {
         id: confFile
-        path: Quickshell.shellDir + "/scotchos.conf"
+        path: root.confPath
         atomicWrites: true
         watchChanges: true
         onFileChanged: reload()
         onLoaded: root.applyConf(text())
+        onLoadFailed: err => { if (err === FileViewError.FileNotFound) copyDefaults.running = true }
+    }
+    // First run without `scotchos start`: copy the defaults (never over an existing file), then read them.
+    Process {
+        id: copyDefaults
+        command: ["sh", "-c", '[ -e "$2" ] || { mkdir -p "$(dirname "$2")" && cp "$1" "$2"; }', "sh",
+                  Quickshell.shellDir + "/scotchos.default.conf", root.confPath]
+        // Only on success, so a conf dir that can't be written doesn't loop.
+        onExited: code => { if (code === 0) confFile.reload(); else console.warn("scotchos.conf: couldn't create", root.confPath) }
     }
 
     // ---- Which screens show a workspace with no tiled windows (widgets are only drawn there) ----

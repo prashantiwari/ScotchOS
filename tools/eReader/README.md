@@ -40,7 +40,7 @@ The design and its limits are in [`PRD.md`](PRD.md). Switch it off with `scotcho
 
 ## Settings
 
-In `[reader]` of [`scotchos.conf`](../../scotchos.conf), or in the settings window (**E-reader**):
+In `[reader]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)), or in the settings window (**E-reader**):
 
 | Key | Default | What it does |
 |---|---|---|
@@ -148,5 +148,5 @@ After changing `book.py`'s output, bump `VERSION` there, so that cached books ar
 To only switch it off, `scotchos disable reader` is enough. To remove it:
 
 1. Delete `~/.local/share/applications/scotchos-reader.desktop`, `~/.local/state/scotchos/reader-progress.json` and `~/.cache/scotchos/reader/`.
-2. Remove `import "tools/eReader"` and the `LazyLoader` holding `Reader` from `shell.qml`, the `reader)` line and its usage line from `bin/scotchos`, the E-reader lines (and the python-mobi hint) from `install.sh`, the "Open E-reader" row from `tools/launcher/CommandsProvider.qml`, the `reader` item from `items` in `settings/SettingsWindow.qml`, and `reader` plus `[reader]` from `scotchos.conf`. Also remove its row from the root README.
+2. Remove `import "tools/eReader"` and the `LazyLoader` holding `Reader` from `shell.qml`, the `reader)` line and its usage line from `bin/scotchos`, the E-reader lines (and the python-mobi hint) from `install.sh`, the "Open E-reader" row from `tools/launcher/CommandsProvider.qml`, the `reader` item from `items` in `settings/SettingsWindow.qml`, and `reader` plus `[reader]` from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`. Also remove its row from the root README.
 3. Delete this folder. Optionally `yay -R python-mobi`.

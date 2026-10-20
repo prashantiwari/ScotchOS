@@ -36,7 +36,7 @@ The last reading is saved in Quickshell's cache (`~/.cache/quickshell/by-shell/<
 
 ## Settings
 
-The `[claudeusage]` section of [`scotchos.conf`](../../scotchos.conf); `claudeusage` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
+The `[claudeusage]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)); `claudeusage` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
 
 | Key | Values | Default |
 |---|---|---|
@@ -118,4 +118,4 @@ On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (m
 ## Uninstall
 
 1. Switch it off: `scotchos disable claudeusage`, or `claudeusage = no` in `scotchos.conf`. That alone unloads it.
-2. To remove it for good: delete the `LazyLoader` holding `ClaudeUsageWidget` and its `import "widgets/claudeUsage"` from `shell.qml`, the `claudeusage` line under `[enabled]` and the `[claudeusage]` section from `scotchos.conf`, its entry in `items` in `settings/SettingsWindow.qml`, its row in the main README, then this folder. Optionally `rm ~/.cache/quickshell/by-shell/*/claude-usage.json`.
+2. To remove it for good: delete the `LazyLoader` holding `ClaudeUsageWidget` and its `import "widgets/claudeUsage"` from `shell.qml`, the `claudeusage` line under `[enabled]` and the `[claudeusage]` section from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, its entry in `items` in `settings/SettingsWindow.qml`, its row in the main README, then this folder. Optionally `rm ~/.cache/quickshell/by-shell/*/claude-usage.json`.

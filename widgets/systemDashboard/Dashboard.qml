@@ -339,7 +339,7 @@ Rectangle {
                 color: Qt.alpha(card.shell.accent, 0.35)
             }
 
-            // NVIDIA GPU (hidden when there's no NVIDIA driver)
+            // NVIDIA GPU (hidden when there's no NVIDIA driver; "asleep" while the card is runtime-suspended)
             Column {
                 readonly property var g: card.s ? card.s.gpu : null
                 id: gpuSection
@@ -349,7 +349,7 @@ Rectangle {
                 Layout.preferredWidth: card.sectionWidth
                 spacing: 6
                 GraphHeader {
-                    title: "GPU · " + (gpuSection.g ? gpuSection.g.name.toUpperCase() : "")
+                    title: "GPU" + (gpuSection.g?.name ? " · " + gpuSection.g.name.toUpperCase() : "")
                     LegendItem {
                         value: card.fmtTemp(gpuSection.g ? gpuSection.g.temp : null)
                         tint: card.shell.tempColor(gpuSection.g ? gpuSection.g.temp : null)
@@ -362,7 +362,8 @@ Rectangle {
                 Meter {
                     name: "LOAD"
                     value: gpuSection.g && gpuSection.g.util != null ? gpuSection.g.util / 100 : 0
-                    valueText: gpuSection.g && gpuSection.g.util != null
+                    valueText: gpuSection.g?.asleep ? "asleep"
+                               : gpuSection.g && gpuSection.g.util != null
                                ? gpuSection.g.util + "%" + (gpuSection.g.mhz ? " · " + (gpuSection.g.mhz / 1000).toFixed(1) + " GHz" : "")
                                : "--"
                 }

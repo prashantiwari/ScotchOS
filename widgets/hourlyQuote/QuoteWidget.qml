@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../common"
+import "../../common/http.js" as Http
 
 DesktopWidget {
     id: w
@@ -37,13 +38,11 @@ DesktopWidget {
             return;
         }
         const src = sources[i];
-        const xhr = new XMLHttpRequest();
-        xhr.timeout = 15000;
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
+        Http.get(src.url, {}, r => {
             try {
-                if (xhr.status !== 200) throw "HTTP " + xhr.status;
-                const q = src.parse(JSON.parse(xhr.responseText));
+                if (!r.ok) throw "HTTP " + r.status;
+                if (!r.data) throw "not JSON";
+                const q = src.parse(r.data);
                 if (!q.text) throw "empty quote";
                 w.quote = { text: q.text.trim(), author: (q.author ?? "").trim() };
                 w.fetchedAt = Date.now();
@@ -53,9 +52,7 @@ DesktopWidget {
                 console.warn("hourlyQuote:", src.url, e);
                 w.fetchQuote(i + 1);
             }
-        };
-        xhr.open("GET", src.url);
-        xhr.send();
+        });
     }
 
     function tick() {

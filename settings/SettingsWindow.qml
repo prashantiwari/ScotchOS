@@ -1,5 +1,5 @@
 // ScotchOS settings: switch widgets and tools on and off and change their settings. Every change is
-// written to scotchos.conf right away, so the widgets on the desktop update while you click.
+// written to ~/.config/scotchos/scotchos.conf right away, so the desktop widgets update while you click.
 import QtQuick
 import Quickshell
 
@@ -185,7 +185,7 @@ FloatingWindow {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.margins: 16
-                text: "Saved to scotchos.conf as you click.\nEsc closes."
+                text: "Saved to " + win.core.confPath.replace(Quickshell.env("HOME"), "~") + " as you click.\nEsc closes."
                 wrapMode: Text.WordWrap
                 color: win.core.dim
                 font.family: win.core.font

@@ -11,7 +11,7 @@ It starts automatically when Hyprland starts and updates once per second:
 
 ## Settings
 
-The `[dashboard]` section of [`scotchos.conf`](../../scotchos.conf); `dashboard` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
+The `[dashboard]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)); `dashboard` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
 
 | Key | Values | Default |
 |---|---|---|
@@ -87,7 +87,7 @@ Changes to `stats.py` need `scotchos restart` (or a disable / enable).
 
 | What | Where | Current value |
 |---|---|---|
-| CPU temperature sensor | `stats.py`, the `SENSORS` dict | `coretemp`. List yours with `cat /sys/class/hwmon/hwmon*/name`. If it isn't found, the ring shows `--`. |
+| CPU temperature sensor | `stats.py`, the `SENSORS` dict (the first one present is used) | `coretemp`, `k10temp`, `zenpower`, `cpu_thermal`. List yours with `cat /sys/class/hwmon/hwmon*/name`. If it isn't found, the ring shows `--`. |
 | Temperature colors | `DashboardWidget.qml`, `tempColor()` | < 60 green, < 80 amber, else red |
 | Temp ring range | `Dashboard.qml`, the TEMP `Ring` (`(t - 30) / 70`) and the temperature `Graph` (`min`/`max`) | 30–100 °C |
 | Which screens | `DashboardWidget.qml`, `Variants { model: Quickshell.screens }` | All screens. To show it on one screen only, use `Quickshell.screens.filter(s => s.name === "HDMI-A-1")` |
@@ -105,13 +105,13 @@ Changes to `stats.py` need `scotchos restart` (or a disable / enable).
    - **RAM used** is `MemTotal − MemAvailable` from `/proc/meminfo`, the same figure `free` and btop report.
    - **Network** is the change in received / sent bytes in `/proc/net/dev`, summed over **physical** interfaces only (those with `/sys/class/net/<name>/device`, here `wlan0` and `enp7s0`), so Docker bridges and VPN tunnels aren't counted twice.
    - **Top processes** come from the change in `utime + stime` in each `/proc/<pid>/stat`, every 3 seconds.
-   - **GPU** stats come from NVML (`libnvidia-ml.so.1`, the library `nvidia-smi` itself uses), called in-process through `ctypes`. That's much cheaper than starting `nvidia-smi` every second. Load, temperature and VRAM are read every 2 seconds, and power and clock every 10 seconds, because the power query alone costs about 10 ms.
+   - **GPU** stats come from NVML (`libnvidia-ml.so.1`, the library `nvidia-smi` itself uses), called in-process through `ctypes`. That's much cheaper than starting `nvidia-smi` every second. Load, temperature and VRAM are read every 2 seconds, and power and clock every 10 seconds, because the power query alone costs about 10 ms. While the card is runtime-suspended (`/sys/bus/pci/devices/<gpu>/power/runtime_status` is `suspended`, on Optimus laptops), NVML isn't called at all and the section shows **asleep**: a query would wake the card. NVML is only opened once the card is awake.
    - **CPU temperature** comes from `/sys/class/hwmon`. The sensor is looked up **by name** each second, because the `hwmonN` numbers can change between boots.
 2. `DashboardWidget.qml` reads those lines with a `SplitParser`, keeps the last 60 CPU, temperature and network values, and restarts the collector if it exits while the card is shown: after 2 s, doubling up to 64 s while it keeps crashing (a run of over a minute resets the delay).
 3. The colors come from `~/.cache/hyde/wallbash/scotchos.dcol`, using `dcol_pry1` for the background, `dcol_txt1` for text and `dcol_1xa7`/`dcol_1xa3` for the accent and track. HyDE writes that file from the [`scotchos.dcol`](../../wallbash/scotchos.dcol) template on every wallpaper, theme or wallbash-mode change, so it always holds the colors HyDE actually applied. Quickshell watches it, so the panel recolors right away. (It does not use `~/.cache/hyde/wall.dcol`: that is a symlink HyDE re-points on each wallpaper change, which file watchers never see, and it holds the raw wallpaper colors whatever the wallbash mode.)
 4. Each panel is a layer-shell surface on the **bottom** layer. HyDE's wallpaper daemon (awww) draws on the background layer below it, and normal windows draw above it. It uses an exclusive zone of `0`, so it stays clear of waybar without reserving screen space, and an empty input `mask` so clicks pass through.
 
-**Note:** on this laptop the NVIDIA driver's Runtime D3 power saving is disabled (see `/proc/driver/nvidia/gpus/*/power`), so the card is always powered on and reading it doesn't stop it from sleeping. If you enable Runtime D3 later, the once-every-2-seconds NVML queries would keep the card awake. In that case, remove the GPU section or raise `GPU_EVERY` in `stats.py`. The laptop doesn't report fan speed to Linux, so fans aren't shown.
+**Note:** on this laptop the NVIDIA driver's Runtime D3 power saving is disabled (see `/proc/driver/nvidia/gpus/*/power`), so the card is always powered on and the "asleep" path has only been checked by reading the code. With Runtime D3 on, the queries are skipped while the card sleeps, but they still run every 2 seconds while it's awake, so they can delay it going back to sleep; raise `GPU_EVERY` in `stats.py` if that matters. The laptop doesn't report fan speed to Linux, so fans aren't shown.
 
 ## Resource use
 
@@ -120,5 +120,5 @@ Measured on the i5-9300H with a panel on each of 2 screens: about **2–3 % of o
 ## Uninstall
 
 1. Switch it off: `scotchos disable dashboard`, or `dashboard = no` in `scotchos.conf`. That alone unloads it.
-2. To remove it for good: delete the `LazyLoader` holding `DashboardWidget` and its `import "widgets/systemDashboard"` from `shell.qml`, the `dashboard` line under `[enabled]` and the `[dashboard]` section from `scotchos.conf`, then this folder.
+2. To remove it for good: delete the `LazyLoader` holding `DashboardWidget` and its `import "widgets/systemDashboard"` from `shell.qml`, the `dashboard` line under `[enabled]` and the `[dashboard]` section from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, then this folder.
 

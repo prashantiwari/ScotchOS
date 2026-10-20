@@ -3,6 +3,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../../common/http.js" as Http
 
 Scope {
     id: t
@@ -85,31 +86,19 @@ Scope {
     // slow: the LLM-backed calls (signup, interest change, next) take 3-12 s, ~25 s when the server retries; it gives
     // up at 75 s with 503 upstream_unavailable, so wait past that to get its answer instead of a timeout.
     function call(method, path, body, slow, done) {
-        const xhr = new XMLHttpRequest();
-        xhr.timeout = slow ? 85000 : 10000;
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
-            let data = null;
-            try { data = JSON.parse(xhr.responseText); } catch (e) {}
-            if (xhr.status >= 200 && xhr.status < 300 && data) return done(data, null);
-            const err = data?.error ?? (xhr.status === 0
+        const headers = { "Accept": "application/json" };
+        if (token && path !== "/v1/users") headers["Authorization"] = "Bearer " + token;
+        if (path === "/v1/users" && regKey) headers["X-Registration-Key"] = regKey;
+        Http.request(method, server + path, { headers: headers, body: body, timeout: slow ? 85000 : 10000 }, r => {
+            if (r.ok && r.data) return done(r.data, null);
+            const err = r.data?.error ?? (r.status === 0
                 ? { code: "network", message: "Couldn't reach " + t.server + " (offline, or it timed out)." }
-                : { code: "internal", message: "HTTP " + xhr.status });
+                : { code: "internal", message: "HTTP " + r.status });
             // rate_limited carries Retry-After (seconds), which fail() turns into minutes.
-            if (err.code === "rate_limited") err.retry_after = parseInt(xhr.getResponseHeader("Retry-After")) || 0;
+            if (err.code === "rate_limited") err.retry_after = parseInt(r.header("Retry-After")) || 0;
             if (err.code === "unauthorized" && t.token) t.forget();
             done(null, err);
-        };
-        xhr.open(method, server + path);
-        xhr.setRequestHeader("Accept", "application/json");
-        if (token && path !== "/v1/users") xhr.setRequestHeader("Authorization", "Bearer " + token);
-        if (path === "/v1/users" && regKey) xhr.setRequestHeader("X-Registration-Key", regKey);
-        if (body) {
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(JSON.stringify(body));
-        } else {
-            xhr.send();
-        }
+        });
     }
 
     // What to tell the user, by error code (never by status or message text).

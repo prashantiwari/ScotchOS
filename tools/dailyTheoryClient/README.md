@@ -17,7 +17,7 @@ Switch it off with `scotchos disable dailytheory`: the window and its state are 
 
 ## Settings
 
-In `[dailytheory]` of [`scotchos.conf`](../../scotchos.conf), or in the settings window (**Daily theory**):
+In `[dailytheory]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.default.conf`](../../scotchos.default.conf)), or in the settings window (**Daily theory**):
 
 | Key | Default | What it does |
 |---|---|---|
@@ -117,5 +117,5 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 To only switch it off, `scotchos disable dailytheory` is enough. To remove it:
 
 1. Delete `~/.local/share/applications/scotchos-dailytheory.desktop` and `~/.local/state/scotchos/dailytheory-token`.
-2. Remove `import "tools/dailyTheoryClient"` and the `LazyLoader` holding `DailyTheory` from `shell.qml`, the `theory)` line from `bin/scotchos`, the Daily Theory lines from `install.sh`, the `dailytheory` item from `items` in `settings/SettingsWindow.qml`, and `dailytheory` plus `[dailytheory]` from `scotchos.conf`. Also remove its row from the root README.
+2. Remove `import "tools/dailyTheoryClient"` and the `LazyLoader` holding `DailyTheory` from `shell.qml`, the `theory)` line from `bin/scotchos`, the Daily Theory lines from `install.sh`, the `dailytheory` item from `items` in `settings/SettingsWindow.qml`, and `dailytheory` plus `[dailytheory]` from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`. Also remove its row from the root README.
 3. Delete this folder. `settings/Field.qml` can stay: the settings window uses it for any `text` setting.

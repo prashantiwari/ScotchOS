@@ -30,7 +30,7 @@ Ask: the keybind (check it's free in `hyprctl binds` and HyDE's `~/.local/share/
 
 ## 3. Wire it in
 
-- `scotchos.conf`: `<key> = yes   # description` under `[enabled]`.
+- `scotchos.default.conf`: `<key> = yes   # description` under `[enabled]`. Add the same line to the live `~/.config/scotchos/scotchos.conf`, or the tool stays off.
 - `settings/SettingsWindow.qml`: an entry in `items` (`kind: "tool"`, and any settings it reads with `scotchos get`).
 - Root `README.md` table, and the bind lines printed by `install.sh`.
 - `~/.config/hypr/hyprland.lua`: **ask first**, back up to `hyprland.lua.bak-before-<folder>`, add the `hl.bind(…)` with a `description`, `hyprctl reload`, check `hyprctl configerrors`.

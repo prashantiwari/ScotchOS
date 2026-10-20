@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../common"
+import "../../common/http.js" as Http
 
 DesktopWidget {
     id: w
@@ -49,16 +50,15 @@ DesktopWidget {
         if (!creds?.accessToken) { error = "not logged in to Claude Code"; return; }
         if (creds.expiresAt && creds.expiresAt < Date.now()) { error = "token expired - open Claude Code"; return; }
         loading = true;
-        const xhr = new XMLHttpRequest();
-        xhr.timeout = 15000;
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState !== XMLHttpRequest.DONE) return;
+        const headers = { "Authorization": "Bearer " + creds.accessToken, "anthropic-beta": "oauth-2025-04-20" };
+        Http.get(endpoint, { headers: headers }, r => {
             w.loading = false;
             try {
-                if (xhr.status === 401) throw "token rejected - open Claude Code";
-                if (xhr.status === 429) throw "rate-limited, retrying later";
-                if (xhr.status !== 200) throw "HTTP " + xhr.status;
-                const d = JSON.parse(xhr.responseText);
+                if (r.status === 401) throw "token rejected - open Claude Code";
+                if (r.status === 429) throw "rate-limited, retrying later";
+                if (!r.ok) throw "HTTP " + r.status;
+                const d = r.data;
+                if (!d) throw "not JSON";
                 const u = { fiveHour: w.limit(d.five_hour), sevenDay: w.limit(d.seven_day) };
                 if (!u.fiveHour && !u.sevenDay) throw "no utilization in the response";
                 w.usage = u;
@@ -69,11 +69,7 @@ DesktopWidget {
                 console.warn("claudeUsage:", e);
                 w.error = String(e);
             }
-        };
-        xhr.open("GET", endpoint);
-        xhr.setRequestHeader("Authorization", "Bearer " + creds.accessToken);
-        xhr.setRequestHeader("anthropic-beta", "oauth-2025-04-20");
-        xhr.send();
+        });
     }
 
     function tick() {

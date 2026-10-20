@@ -12,10 +12,11 @@ check() {   # check <command> <package> <what for>
     if command -v "$1" >/dev/null; then ok "$1"; else warn "$1 missing ($3)"; missing+=("$2"); fi
 }
 check qs       quickshell "every widget"
-check python3  python     "system dashboard"
+check python3  python     "system dashboard, e-reader"
 check cava     cava       "now playing visualizer (optional)"
 check rofi     rofi       "app launcher entries (optional)"
 check jq       jq         "launcher: YouTube search"
+check hyprctl  hyprland   "launcher: YouTube search (opens the browser on its workspace)"
 check curl     curl       "launcher: YouTube first video"
 check brave    brave-bin  "launcher: YouTube search (AUR)"
 python3 -c "import mobi" 2>/dev/null || [[ -d ~/.local/share/pipx/venvs/mobi ]] || echo "  optional: python-mobi (AUR) for MOBI / AZW3 books in the e-reader"
@@ -39,6 +40,14 @@ else
     warn "HyDE not found: widgets use their built-in fallback colors"
 fi
 
+echo "Settings"
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/scotchos/scotchos.conf"
+if [[ -e "$conf" ]]; then
+    ok "$conf (kept)"
+else
+    mkdir -p "$(dirname "$conf")" && cp "$root/scotchos.default.conf" "$conf" && ok "defaults copied to $conf"
+fi
+
 echo "Command"
 chmod +x "$root/bin/scotchos" "$root/bin/scotchos-doctor" "$root"/tools/*/*.sh "$root"/widgets/*/*.py 2>/dev/null
 mkdir -p ~/.local/bin
@@ -54,17 +63,23 @@ sed "s|@DIR@|$root/tools/dailyTheoryClient|" "$root/tools/dailyTheoryClient/scot
 sed "s|@DIR@|$root/tools/eReader|" "$root/tools/eReader/scotchos-reader.desktop" \
     > ~/.local/share/applications/scotchos-reader.desktop && ok "E-reader in rofi / app launchers"
 
+# The launcher's YouTube search opens the browser on [launcher] workspace (default 1); pinning that
+# workspace to the main screen keeps it from opening on whichever monitor last had it.
+monitor=$(hyprctl monitors -j 2>/dev/null | jq -r '.[0].name // empty' 2>/dev/null)
 cat <<EOF
 
 Add to Hyprland
   Lua config (~/.config/hypr/hyprland.lua), inside hl.on("hyprland.start", function() … end):
-      hl.exec_cmd("qs -n -d -p $root")
-  and the launcher bind:
+      hl.exec_cmd("$root/bin/scotchos start")
+  the launcher bind:
       hl.bind("SUPER + Y", hl.dsp.exec_cmd("$root/tools/launcher/launcher.sh"))
+  and, optional, the workspace the YouTube search opens on pinned to one screen:
+      hl.workspace_rule({ workspace = "1", monitor = "${monitor:-<monitor name>}" })
 
   Old-style config (hyprland.conf):
-      exec-once = qs -n -d -p $root
+      exec-once = $root/bin/scotchos start
       bind = SUPER, Y, exec, $root/tools/launcher/launcher.sh
+      workspace = 1, monitor:${monitor:-<monitor name>}
 
 Then start it now with:  scotchos start
 EOF
