@@ -10,6 +10,8 @@ It shows:
 
 With `size = compact` it's one small line instead: the icon, `5h 35%  7d 39%`, with a percentage turning red from `warn` and the icon turning amber while the reading is stale or the last fetch failed.
 
+`size = minimal` sits in between: the full card's title bar (title, fetch time, `stale`), then just the two percentages in large type with "5-hour" and "7-day" under them.
+
 These are the plan-wide limits, so they include claude.ai chats as well as Claude Code.
 
 ## Where the numbers come from
@@ -37,7 +39,7 @@ The `[claudeusage]` section of [`scotchos.conf`](../../scotchos.conf); `claudeus
 
 | Key | Values | Default |
 |---|---|---|
-| `size` | `full` (bars and countdowns), `compact` (one line with the two percentages) | `full` |
+| `size` | `full` (bars and countdowns), `compact` (one line with the two percentages), `minimal` (title bar and the two percentages, large) | `full` |
 | `position` | `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `top-right` |
 | `margin_x`, `margin_y` | Gap in px from the edges the card touches | `20` / `20` |
 | `interval` | Minutes between fetches (at least 5) | `30` |
@@ -50,6 +52,7 @@ The `[claudeusage]` section of [`scotchos.conf`](../../scotchos.conf); `claudeus
 | `ClaudeUsageWidget.qml` | Reads `[claudeusage]` and the credentials, fetches and caches the usage, and creates one desktop-layer panel per screen. |
 | `ClaudeUsageCard.qml` | The full card: header, a bar and countdown per limit, the status line. |
 | `ClaudeUsageCompactCard.qml` | The compact card: one line with the two percentages. |
+| `ClaudeUsageMinimalCard.qml` | The minimal card: title bar and the two percentages in large type. |
 | `README.md` | This file. |
 
 ## Requirements
@@ -91,7 +94,7 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 
 | What | Where | Current value |
 |---|---|---|
-| Card width | `contentWidth` in `ClaudeUsageCard.qml` | 340 px |
+| Card width | `contentWidth` in `ClaudeUsageCard.qml` / `ClaudeUsageMinimalCard.qml` | 340 px / 240 px |
 | Retry delay after a failure | `retryMs` in `ClaudeUsageWidget.qml` | 10 minutes |
 | Which limits are shown | `Repeater` model in `ClaudeUsageCard.qml`, `fetchUsage()` in `ClaudeUsageWidget.qml` | `five_hour`, `seven_day` |
 | Warning / stale colors | `#ff6b6b` / `#f0b429` in `ClaudeUsageCard.qml` | Same as the dashboard's |
@@ -106,7 +109,7 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 4. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
 5. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
 
-On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (the compact one about 36 px) and sits above the now playing card on the right.
+On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (minimal about 120 px, compact about 36 px) and sits above the now playing card on the right.
 
 ## Uninstall
 
