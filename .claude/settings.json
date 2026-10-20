@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bin/scotchos:*)",
+      "Bash(scotchos:*)",
+      "Bash(qs log:*)",
+      "Bash(qs list:*)",
+      "Bash(hyprctl layers:*)",
+      "Bash(hyprctl clients:*)",
+      "Bash(hyprctl monitors:*)",
+      "Bash(hyprctl activeworkspace:*)",
+      "Bash(hyprctl binds:*)",
+      "Bash(hyprctl configerrors:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}

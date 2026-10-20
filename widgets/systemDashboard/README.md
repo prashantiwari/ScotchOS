@@ -11,7 +11,7 @@ It starts automatically when Hyprland starts and updates once per second:
 
 ## Layout
 
-`dashboard.conf` picks one of three layouts. Save the file and the panels switch right away, with no restart:
+The `[dashboard]` section of [`scotchos.conf`](../../scotchos.conf) picks one of three layouts (`dashboard` under `[enabled]` switches it on and off). Save the file and the panels switch right away, with no restart:
 
 ```ini
 layout = vertical     # a tall card on the left edge, vertically centered (default)
@@ -31,8 +31,7 @@ Temperatures are **green** below 60 °C, **amber** below 80 °C and **red** abov
 
 | File | What it does |
 |---|---|
-| `dashboard.conf` | Settings: layout, position and margins. |
-| `shell.qml` | Entry point. Loads the wallbash colors and `dashboard.conf`, runs `stats.py`, keeps the 60-second history, and creates one desktop-layer panel per screen. |
+| `DashboardWidget.qml` | Reads `[dashboard]`, runs `stats.py`, keeps the 60-second history, and creates one desktop-layer panel per screen. |
 | `Dashboard.qml` | The card: header, rings, graphs, GPU and top processes, stacked (vertical), side by side (horizontal) or in two columns (square). The `cells` table says where each section goes in each layout. |
 | `Ring.qml` | The circular gauge component. |
 | `Graph.qml` | The history graph component (one or two lines with a gradient fill, fixed or auto scale). |
@@ -50,7 +49,7 @@ The versions are the ones this was built and tested with, on CachyOS + Hyprland 
 | Python 3 | `python` | 3.14 | `stats.py` (standard library only) |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy in `~/.local/share/fonts` | — | Font and the chip icon (U+F2DB) in the header |
 | NVIDIA driver (optional) | `nvidia-open` or `nvidia` (provides `libnvidia-ml.so.1`) | 615.78.08 | The GPU section |
-| HyDE (optional) | — | — | Provides `~/.cache/hyde/wallbash/scotchos.dcol` with the wallbash colors (needs [`wallbash/scotchos.dcol`](../wallbash/scotchos.dcol) copied to `~/.config/hyde/wallbash/always/`) |
+| HyDE (optional) | — | — | Provides `~/.cache/hyde/wallbash/scotchos.dcol` with the wallbash colors (needs [`wallbash/scotchos.dcol`](../../wallbash/scotchos.dcol) copied to `~/.config/hyde/wallbash/always/`) |
 
 Install anything that's missing:
 
@@ -62,46 +61,35 @@ sudo pacman -S --needed hyprland quickshell python ttf-jetbrains-mono-nerd
 
 ## Changes made to the system
 
-### 1. `~/.config/hypr/hyprland.lua`: autostart
-
-Added at the top of the existing `hl.on("hyprland.start", …)` block:
-
-```lua
--- ScotchOS system dashboard (desktop layer, left side of every screen)
-hl.exec_cmd("qs -n -d -p " .. projects .. "/ScotchOS/systemDashboard")
-```
-
-`-n` stops a second copy from starting, and `-d` detaches it from Hyprland.
-
-### 2. Backup
-
-The original config was saved as `~/.config/hypr/hyprland.lua.bak-before-dashboard` before the edit.
+None of its own. The shell is started from `~/.config/hypr/hyprland.lua`; see the [main README](../../README.md#hyprland).
 
 ## Running it by hand
 
+Part of the single ScotchOS shell (see the [main README](../../README.md)); it isn't started on its own.
+
 ```bash
-qs -n -d -p ~/Projects/ScotchOS/systemDashboard   # start
-qs kill -p ~/Projects/ScotchOS/systemDashboard    # stop
+scotchos disable dashboard   # unload it (applies right away)
+scotchos enable dashboard    # load it again
+scotchos restart         # restart the whole shell, e.g. after changing `stats.py`
 ```
 
-Quickshell reloads the QML files on its own when you save them, so changes to the layout show up immediately. Changes to `stats.py` need a stop and start.
+QML changes show up as soon as you save. Logs: `scotchos log`
 
-Logs: `qs log -p ~/Projects/ScotchOS/systemDashboard`
+Changes to `stats.py` need `scotchos restart` (or a disable / enable).
 
 ## Adapting to another system
 
 | What | Where | Current value |
 |---|---|---|
 | CPU temperature sensor | `stats.py`, the `SENSORS` dict | `coretemp`. List yours with `cat /sys/class/hwmon/hwmon*/name`. If it isn't found, the ring shows `--`. |
-| Temperature colors | `shell.qml`, `tempColor()` | < 60 green, < 80 amber, else red |
+| Temperature colors | `DashboardWidget.qml`, `tempColor()` | < 60 green, < 80 amber, else red |
 | Temp ring range | `Dashboard.qml`, the TEMP `Ring` (`(t - 30) / 70`) and the temperature `Graph` (`min`/`max`) | 30–100 °C |
-| Which screens | `shell.qml`, `Variants { model: Quickshell.screens }` | All screens. To show it on one screen only, use `Quickshell.screens.filter(s => s.name === "HDMI-A-1")` |
-| Layout | `dashboard.conf`, `layout` | `vertical` |
-| Position | `dashboard.conf`, `position` (`top-left` … `bottom-right`, `center`, or `auto`) | `auto`: left edge for vertical and square, bottom edge for horizontal |
-| Margins | `dashboard.conf`, `margin_x` / `margin_y` (px from the edges the card touches) | `20` / `20` |
+| Which screens | `DashboardWidget.qml`, `Variants { model: Quickshell.screens }` | All screens. To show it on one screen only, use `Quickshell.screens.filter(s => s.name === "HDMI-A-1")` |
+| Layout | `scotchos.conf` `[dashboard]`, `layout` | `vertical` |
+| Position | `scotchos.conf` `[dashboard]`, `position` (`top-left` … `bottom-right`, `center`, or `auto`) | `auto`: left edge for vertical and square, bottom edge for horizontal |
+| Margins | `scotchos.conf` `[dashboard]`, `margin_x` / `margin_y` (px from the edges the card touches) | `20` / `20` |
 | Size / transparency | `Dashboard.qml`: `sectionWidth`, `netWidth`, `graphHeight` and `Qt.alpha(shell.bg, 0.78)` | Vertical 300 px wide; horizontal ~1220 × 230 px; 78 % opaque |
-| Colors without HyDE | `shell.qml`, the fallback values in `hex("dcol_…", "#…")` | A Catppuccin-like dark palette |
-| Old-style config (`hyprland.conf`, not Lua) | — | `exec-once = qs -n -d -p ~/Projects/ScotchOS/systemDashboard` |
+| Colors without HyDE | the root `shell.qml`, the fallback values in `hex("dcol_…", "#…")` | A Catppuccin-like dark palette |
 
 ## How it works
 
@@ -113,8 +101,8 @@ Logs: `qs log -p ~/Projects/ScotchOS/systemDashboard`
    - **Top processes** come from the change in `utime + stime` in each `/proc/<pid>/stat`, every 3 seconds.
    - **GPU** stats come from NVML (`libnvidia-ml.so.1`, the library `nvidia-smi` itself uses), called in-process through `ctypes`. That's much cheaper than starting `nvidia-smi` every second. Load, temperature and VRAM are read every 2 seconds, and power and clock every 10 seconds, because the power query alone costs about 10 ms.
    - **CPU temperature** comes from `/sys/class/hwmon`. The sensor is looked up **by name** each second, because the `hwmonN` numbers can change between boots.
-2. `shell.qml` reads those lines with a `SplitParser`, keeps the last 60 CPU, temperature and network values, and restarts the collector if it ever exits.
-3. The colors come from `~/.cache/hyde/wallbash/scotchos.dcol`, using `dcol_pry1` for the background, `dcol_txt1` for text and `dcol_1xa7`/`dcol_1xa3` for the accent and track. HyDE writes that file from the [`scotchos.dcol`](../wallbash/scotchos.dcol) template on every wallpaper, theme or wallbash-mode change, so it always holds the colors HyDE actually applied. Quickshell watches it, so the panel recolors right away. (It does not use `~/.cache/hyde/wall.dcol`: that is a symlink HyDE re-points on each wallpaper change, which file watchers never see, and it holds the raw wallpaper colors whatever the wallbash mode.)
+2. `DashboardWidget.qml` reads those lines with a `SplitParser`, keeps the last 60 CPU, temperature and network values, and restarts the collector if it ever exits.
+3. The colors come from `~/.cache/hyde/wallbash/scotchos.dcol`, using `dcol_pry1` for the background, `dcol_txt1` for text and `dcol_1xa7`/`dcol_1xa3` for the accent and track. HyDE writes that file from the [`scotchos.dcol`](../../wallbash/scotchos.dcol) template on every wallpaper, theme or wallbash-mode change, so it always holds the colors HyDE actually applied. Quickshell watches it, so the panel recolors right away. (It does not use `~/.cache/hyde/wall.dcol`: that is a symlink HyDE re-points on each wallpaper change, which file watchers never see, and it holds the raw wallpaper colors whatever the wallbash mode.)
 4. Each panel is a layer-shell surface on the **bottom** layer. HyDE's wallpaper daemon (awww) draws on the background layer below it, and normal windows draw above it. It uses an exclusive zone of `0`, so it stays clear of waybar without reserving screen space, and an empty input `mask` so clicks pass through.
 
 **Note:** on this laptop the NVIDIA driver's Runtime D3 power saving is disabled (see `/proc/driver/nvidia/gpus/*/power`), so the card is always powered on and reading it doesn't stop it from sleeping. If you enable Runtime D3 later, the once-every-2-seconds NVML queries would keep the card awake. In that case, remove the GPU section or raise `GPU_EVERY` in `stats.py`. The laptop doesn't report fan speed to Linux, so fans aren't shown.
@@ -125,6 +113,6 @@ Measured on the i5-9300H with a panel on each of 2 screens: about **2–3 % of o
 
 ## Uninstall
 
-1. Stop it: `qs kill -p ~/Projects/ScotchOS/systemDashboard`
-2. Remove the two dashboard lines from the `hyprland.start` block in `~/.config/hypr/hyprland.lua`. Alternatively, restore the backup, but only if you haven't made other edits since then.
-3. Delete this folder.
+1. Switch it off: `scotchos disable dashboard`, or `dashboard = no` in `scotchos.conf`. That alone unloads it.
+2. To remove it for good: delete the `LazyLoader` holding `DashboardWidget` and its `import "widgets/systemDashboard"` from `shell.qml`, the `dashboard` line under `[enabled]` and the `[dashboard]` section from `scotchos.conf`, then this folder.
+

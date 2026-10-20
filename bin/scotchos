@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ScotchOS control: start / stop the widget shell, switch widgets and tools on and off.
+root="$(dirname "$(dirname "$(readlink -f "$0")")")"
+conf="$(readlink -f "$root/scotchos.conf")"   # resolved, so a symlinked conf stays a symlink
+
+usage() {
+    cat <<EOF
+Usage: scotchos <command>
+
+  start | stop | restart     the widget shell (one Quickshell process for every widget)
+  status                     is it running, its memory use, and what's switched on
+  log                        the shell's log (qs log)
+  list                       every widget and tool with its on/off state
+  enable <name>              switch one on  (applies right away)
+  disable <name>             switch one off (applies right away)
+  toggle <name>              flip it
+  enabled <name>             exit 0 if it's on (for scripts)
+  get <section> <key> [def]  print a setting from scotchos.conf
+EOF
+}
+
+# get <section> <key> [default]: value of `key = value` under [section], comments stripped.
+get() {
+    local v
+    v=$(awk -v s="[$1]" -v k="$2" '
+        { sub(/#.*/, ""); gsub(/^[ \t]+|[ \t]+$/, "") }
+        /^\[/ { in_s = ($0 == s); next }
+        in_s && $0 ~ "^" k "[ \t]*=" { sub(/^[^=]*=[ \t]*/, ""); print; exit }
+    ' "$conf")
+    echo "${v:-$3}"
+}
+
+is_on() { [[ "$(get enabled "$1" no)" =~ ^(yes|on|true|1)$ ]]; }
+
+# set_enabled <name> yes|no: rewrites the value in [enabled], keeping the line's comment.
+set_enabled() {
+    grep -qE "^[[:space:]]*$1[[:space:]]*=" <(awk '/^\[/{s=$0} s=="[enabled]"' "$conf") ||
+        { echo "scotchos: no '$1' in [enabled] of $conf" >&2; exit 1; }
+    awk -v k="$1" -v v="$2" '
+        /^\[/ { s = $0 }
+        s == "[enabled]" && $0 ~ "^[ \t]*" k "[ \t]*=" {
+            match($0, /^[ \t]*[^=]*=[ \t]*/); head = substr($0, 1, RLENGTH)
+            rest = substr($0, RLENGTH + 1); sub(/^[^ \t#]*/, "", rest)
+            $0 = head v rest
+        }
+        { print }
+    ' "$conf" > "$conf.tmp" && mv "$conf.tmp" "$conf"   # atomic, so the shell never reads a half-written file
+    echo "$1: $(is_on "$1" && echo on || echo off)"
+}
+
+case "$1" in
+    start)   qs -n -d -p "$root" ;;
+    stop)    qs kill -p "$root" ;;
+    restart) qs kill -p "$root" >/dev/null 2>&1; sleep 0.5; qs -n -d -p "$root" ;;
+    log)     qs log -p "$root" ;;
+    status)
+        pid=$(pgrep -f "qs -n -d -p $root\$" | head -1)
+        if [[ -n "$pid" ]]; then
+            echo "running (pid $pid, $(( $(ps -o rss= -p "$pid") / 1024 )) MB)"
+        else
+            echo "not running"
+        fi
+        "$0" list ;;
+    list)
+        awk '/^\[/{s=$0; next} s=="[enabled]"' "$conf" | sed 's/#.*//' |
+            awk -F= 'NF==2 { gsub(/[ \t]/, "", $1); gsub(/[ \t]/, "", $2); printf "  %-12s %s\n", $1, ($2 ~ /^(yes|on|true|1)$/ ? "on" : "off") }' ;;
+    enable)  [[ -n "$2" ]] || { usage; exit 1; }; set_enabled "$2" yes ;;
+    disable) [[ -n "$2" ]] || { usage; exit 1; }; set_enabled "$2" no ;;
+    toggle)  [[ -n "$2" ]] || { usage; exit 1; }; is_on "$2" && set_enabled "$2" no || set_enabled "$2" yes ;;
+    enabled) is_on "$2" ;;
+    get)     get "$2" "$3" "$4" ;;
+    *)       usage; [[ -z "$1" || "$1" == -h || "$1" == --help ]] ;;
+esac

@@ -1,8 +1,10 @@
 # Wallbash template
 
-`scotchos.dcol` is a HyDE wallbash template. It makes HyDE write the colors it applies (wallpaper or theme, after its dark/light handling) to `~/.cache/hyde/wallbash/scotchos.dcol`. The [system dashboard](../systemDashboard/README.md), [now playing](../nowPlaying/README.md) and [hourly quote](../hourlyQuote/README.md) cards read their colors from that file.
+`scotchos.dcol` is a HyDE wallbash template. It makes HyDE write the colors it applies (wallpaper or theme, after its dark/light handling) to `~/.cache/hyde/wallbash/scotchos.dcol`. The [system dashboard](../widgets/systemDashboard/README.md), [now playing](../widgets/nowPlaying/README.md) and [hourly quote](../widgets/hourlyQuote/README.md) cards read their colors from that file.
 
 ## Install
+
+`install.sh` does this. By hand:
 
 ```bash
 cp wallbash/scotchos.dcol ~/.config/hyde/wallbash/always/

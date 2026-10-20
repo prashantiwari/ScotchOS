@@ -15,13 +15,13 @@ Every hour it fetches a new quote from the web and shows:
 | [ZenQuotes](https://zenquotes.io) `api/random` | No | First choice |
 | [DummyJSON](https://dummyjson.com/docs/quotes) `quotes/random` | No | If ZenQuotes fails |
 
-If both fail (offline, rate-limited), the card keeps the last quote and tries again 5 minutes later. To use a different API, add an entry to `sources` in `shell.qml`: a `url` and a `parse` function that turns the JSON body into `{ text, author }`.
+If both fail (offline, rate-limited), the card keeps the last quote and tries again 5 minutes later. To use a different API, add an entry to `sources` in `QuoteWidget.qml`: a `url` and a `parse` function that turns the JSON body into `{ text, author }`.
 
 The last quote and its fetch time are saved in Quickshell's cache (`~/.cache/quickshell/by-shell/<id>/quote.json`), so after a restart or reboot the card shows it right away and only fetches again once the hour is up.
 
 ## Settings
 
-`quote.conf`. Save the file and the change applies right away, with no restart:
+The `[quote]` section of [`scotchos.conf`](../../scotchos.conf); `quote` under `[enabled]` switches it on and off. Save the file and the change applies right away, with no restart:
 
 | Key | Values | Default |
 |---|---|---|
@@ -33,8 +33,7 @@ The last quote and its fetch time are saved in Quickshell's cache (`~/.cache/qui
 
 | File | What it does |
 |---|---|
-| `quote.conf` | Settings: position, margins, interval. |
-| `shell.qml` | Entry point. Loads the wallbash colors and `quote.conf`, fetches and caches the quote, and creates one desktop-layer panel per screen. |
+| `QuoteWidget.qml` | Reads `[quote]`, fetches and caches the quote, and creates one desktop-layer panel per screen. |
 | `QuoteCard.qml` | The card: header, quote and author. |
 | `README.md` | This file. |
 
@@ -46,35 +45,30 @@ Built and tested on CachyOS + Hyprland + HyDE.
 |---|---|---|---|
 | Quickshell | `quickshell` | 0.3.2 | The panel, and the HTTP request (QML's built-in `XMLHttpRequest`, no curl needed) |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and the quote / clock icons |
-| HyDE (optional) | — | — | `~/.cache/hyde/wallbash/scotchos.dcol` with the wallbash colors (needs [`wallbash/scotchos.dcol`](../wallbash/scotchos.dcol) copied to `~/.config/hyde/wallbash/always/`) |
+| HyDE (optional) | — | — | `~/.cache/hyde/wallbash/scotchos.dcol` with the wallbash colors (needs [`wallbash/scotchos.dcol`](../../wallbash/scotchos.dcol) copied to `~/.config/hyde/wallbash/always/`) |
 
 ## Changes made to the system
 
-`~/.config/hypr/hyprland.lua`: added to the `hl.on("hyprland.start", …)` block, right after the now playing line:
-
-```lua
--- ScotchOS hourly quote card (desktop layer, bottom-right of every screen)
-hl.exec_cmd("qs -n -d -p " .. projects .. "/ScotchOS/hourlyQuote")
-```
-
-The config before this edit was saved as `~/.config/hypr/hyprland.lua.bak-before-quote`.
+None of its own. The shell is started from `~/.config/hypr/hyprland.lua`; see the [main README](../../README.md#hyprland).
 
 ## Running it by hand
 
+Part of the single ScotchOS shell (see the [main README](../../README.md)); it isn't started on its own.
+
 ```bash
-qs -n -d -p ~/Projects/ScotchOS/hourlyQuote   # start
-qs kill -p ~/Projects/ScotchOS/hourlyQuote    # stop
+scotchos disable quote   # unload it (applies right away)
+scotchos enable quote    # load it again
+scotchos restart         # restart the whole shell, e.g. after changing the sources
 ```
+
+QML changes show up as soon as you save. Logs: `scotchos log`
 
 To get a new quote right now, delete the cached one and restart:
 
 ```bash
-qs kill -p ~/Projects/ScotchOS/hourlyQuote
 rm ~/.cache/quickshell/by-shell/*/quote.json   # only this widget writes quote.json
-qs -n -d -p ~/Projects/ScotchOS/hourlyQuote
+scotchos restart
 ```
-
-Logs: `qs log -p ~/Projects/ScotchOS/hourlyQuote`
 
 ## Adapting
 
@@ -82,10 +76,10 @@ Logs: `qs log -p ~/Projects/ScotchOS/hourlyQuote`
 |---|---|---|
 | Card width | `contentWidth` in `QuoteCard.qml` | 340 px |
 | Lines before cutting | `maximumLineCount` on the quote `Text` in `QuoteCard.qml` | 5 |
-| Retry delay after a failure | `retryMs` in `shell.qml` | 5 minutes |
-| Quote sources | `sources` in `shell.qml` | ZenQuotes, then DummyJSON |
+| Retry delay after a failure | `retryMs` in `QuoteWidget.qml` | 5 minutes |
+| Quote sources | `sources` in `QuoteWidget.qml` | ZenQuotes, then DummyJSON |
 | Transparency | `Qt.alpha(shell.bg, 0.78)` in `QuoteCard.qml` | 78 % opaque |
-| Which screens | `Variants { model: Quickshell.screens }` in `shell.qml` | All screens |
+| Which screens | `Variants { model: Quickshell.screens }` in `QuoteWidget.qml` | All screens |
 
 ## How it works
 
@@ -98,6 +92,6 @@ On the laptop screen (1280 × 720 logical) the card fits under the now playing c
 
 ## Uninstall
 
-1. Stop it: `qs kill -p ~/Projects/ScotchOS/hourlyQuote`
-2. Remove the two hourly quote lines from the `hyprland.start` block in `~/.config/hypr/hyprland.lua`.
-3. Delete this folder.
+1. Switch it off: `scotchos disable quote`, or `quote = no` in `scotchos.conf`. That alone unloads it.
+2. To remove it for good: delete the `LazyLoader` holding `QuoteWidget` and its `import "widgets/hourlyQuote"` from `shell.qml`, the `quote` line under `[enabled]` and the `[quote]` section from `scotchos.conf`, then this folder.
+

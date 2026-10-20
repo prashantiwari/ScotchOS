@@ -2,6 +2,9 @@
 # Floating YouTube search: rofi prompt -> Brave incognito window.
 dir="$(dirname "$(readlink -f "$0")")"
 
+# Switched off in scotchos.conf ([enabled] yt_search): the bind does nothing.
+"$dir/../../bin/scotchos" enabled yt_search || exit 0
+
 # Pressing the bind again while the box is open closes it.
 pkill -x rofi && exit 0
 

@@ -7,11 +7,13 @@ Press **Super + Y** and a search bar opens in the middle of the screen. Type a q
 - **Enter** with an empty query does nothing.
 - **Super + Y** again while the bar is open closes it.
 
+Switch it off with `scotchos disable yt_search` (or `yt_search = no` under `[enabled]` in [`scotchos.conf`](../../scotchos.conf)): the bind stays but does nothing.
+
 ## Files in this folder
 
 | File | What it does |
 |---|---|
-| `yt-search.sh` | Shows the rofi prompt, URL-encodes the query, looks up the first video on Shift+Enter, opens Brave on workspace 1, then restores focus. |
+| `yt-search.sh` | Exits if `yt_search` is off, then shows the rofi prompt, URL-encodes the query, looks up the first video on Shift+Enter, opens Brave on workspace 1, then restores focus. |
 | `yt-search.rasi` | Rofi theme: a single input line (no result list), centered, 600px wide, with rounded corners. Imports the wallbash colors from HyDE. |
 | `README.md` | This file. |
 
@@ -47,7 +49,7 @@ Added after the "Application Launcher" bind:
 
 ```lua
 -- YouTube search (Brave private window)
-hl.bind("SUPER + Y", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/youtubeSearchBox/yt-search.sh"), {
+hl.bind("SUPER + Y", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/youtubeSearch/yt-search.sh"), {
         description = "[Launcher|Rofi menus] youtube search in brave private window",
 })
 ```
@@ -80,7 +82,7 @@ Check or change these values when using this on a different machine:
 
 | What | Where | Current value |
 |---|---|---|
-| Path to the script | The `hl.bind` line in `hyprland.lua` | `~/Projects/ScotchOS/youtubeSearchBox/yt-search.sh` (update it if you move the folder) |
+| Path to the script | The `hl.bind` line in `hyprland.lua` | `~/Projects/ScotchOS/tools/youtubeSearch/yt-search.sh` (update it if you move the folder) |
 | Laptop monitor name | The `hl.workspace_rule` line | `eDP-1`. Find yours with `hyprctl monitors` |
 | Target workspace | `yt-search.sh`, the `hl.dsp.focus({workspace = "1"})` line | `1` |
 | Brave command / window class | `yt-search.sh`: `brave` and `select(.class == "brave-browser")` | `brave`, `brave-browser`. Check the class with `hyprctl clients` |
@@ -108,6 +110,8 @@ chmod +x yt-search.sh
 **Caveat:** if the workspace you started from is on the laptop screen too, returning to it hides workspace 1. The Brave window is still there; switch to workspace 1 to see it.
 
 ## Uninstall
+
+To only switch it off, `scotchos disable yt_search` is enough. To remove it:
 
 1. Remove the `SUPER + Y` bind and the workspace 1 rule from `~/.config/hypr/hyprland.lua`. Alternatively, restore the backup, but only if you haven't made other edits since then.
 2. Run `hyprctl reload`.
