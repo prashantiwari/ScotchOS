@@ -82,7 +82,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 3: Claude usage notification; settings window buttons
 
-**Status:** todo
+**Status:** done
 
 **Model:** Sonnet 5.5, medium effort (two small features following existing patterns (`setConf`, `Process`)).
 
@@ -91,22 +91,25 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** `widgets/claudeUsage/ClaudeUsageWidget.qml` (167), `common/conf.js`, `settings/SettingsWindow.qml` (326). READMEs of `widgets/claudeUsage` and `settings` when updating them.
 
 **Tasks:**
-- [ ] Claude usage: `notify-send` once when a limit goes from below `warn` to at or above it, again only after that limit resets. Remember what was sent in `Quickshell.cacheDir`, so a restart doesn't repeat it. A `Process` that runs only when a notification is due. Setting `notify` (`yes`) in `[claudeusage]`, wired everywhere a setting goes. Add `libnotify` to the README's Requirements.
-- [ ] `conf.js`: `remove(text, section, key)` (null when the key isn't there; leaves the section header even when it becomes empty), with before/after cases in `common/tests/conf.test.mjs`. `shell.qml`: `removeConf(section, key)` with the same "file changed on disk" guard as `setConf`.
-- [ ] Settings window: a small reset button on each setting row, shown only when the conf has that key and its value differs from `def:`; it calls `removeConf`, so the widget's fallback (which doctor keeps equal to `def:`) applies. An "Open scotchos.conf" button in the header or footer (`xdg-open root.confPath` through a `Process`).
-- [ ] READMEs: claudeUsage Settings table; settings README.
+- [x] Claude usage: `notify-send` once when a limit goes from below `warn` to at or above it, again only after that limit resets. Remember what was sent in `Quickshell.cacheDir`, so a restart doesn't repeat it. A `Process` that runs only when a notification is due. Setting `notify` (`yes`) in `[claudeusage]`, wired everywhere a setting goes. Add `libnotify` to the README's Requirements.
+- [x] `conf.js`: `remove(text, section, key)` (null when the key isn't there; leaves the section header even when it becomes empty), with before/after cases in `common/tests/conf.test.mjs`. `shell.qml`: `removeConf(section, key)` with the same "file changed on disk" guard as `setConf`.
+- [x] Settings window: a small reset button on each setting row, shown only when the conf has that key and its value differs from `def:`; it calls `removeConf`, so the widget's fallback (which doctor keeps equal to `def:`) applies. An "Open scotchos.conf" button in the header or footer (`xdg-open root.confPath` through a `Process`).
+- [x] READMEs: claudeUsage Settings table; settings README.
 
 **Done when:** `scotchos test` passes; resetting a changed setting removes its line from the live conf and the widget shows the default; lowering `warn` below the current usage gives exactly one notification, also across `scotchos restart`; "Open scotchos.conf" opens the file.
 
 **Not in this phase:** notifications for other widgets, a "reset everything" button.
 
 **Handoff:**
+- `notify` (`yes`) in `[claudeusage]`; `notified` ({fiveHour, sevenDay}) lives in `claude-usage.json` in the cache, cleared per limit when it drops below `warn`. One `notify-send` per fetch, both limits in one message. Checked with dbus-monitor: warn 99 → 50 gave one Notify; a restart gave none.
+- `Conf.remove` + `removeConf` in `shell.qml`; reset is a small text button per setting (not on `action` rows). Not clicked in a live window (the window opens with no QML warnings); the user should try Size reset (live conf has `size = minimal`).
+- "Open scotchos.conf" is in the sidebar (`xdg-open`); xdg-utils added to the settings README.
 
 ---
 
 ## Phase 4: E-reader continue reading, bookmark export, converter leftovers
 
-**Status:** todo
+**Status:** in progress
 
 **Model:** Opus 5.5, medium effort (`book.py`'s sanitizer is easy to break in ways the fixtures only partly catch).
 

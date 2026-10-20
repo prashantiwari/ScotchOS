@@ -81,6 +81,18 @@ ShellRoot {
         applyConf(text);
     }
 
+    // Removes `key` from [section] (the settings window's reset), so the widget's own fallback applies.
+    function removeConf(section, key) {
+        if (confFile.text() !== confText) {
+            console.warn("scotchos.conf: the file has changes that weren't applied - not saving", section + "." + key);
+            return;
+        }
+        const text = Conf.remove(confText, section, key);
+        if (text === null) return;
+        confFile.setText(text);
+        applyConf(text);
+    }
+
     // `scotchos start` passes the path it resolved; started some other way (Hyprland's autostart running qs),
     // the same XDG path. A symlinked conf is written through (QSaveFile follows the link), not replaced.
     readonly property string confPath: Quickshell.env("SCOTCHOS_CONF")

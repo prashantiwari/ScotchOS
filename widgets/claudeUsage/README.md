@@ -44,7 +44,8 @@ The `[claudeusage]` section of `~/.config/scotchos/scotchos.conf` (defaults in [
 | `position` | `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `top-right` |
 | `margin_x`, `margin_y` | Gap in px from the edges the card touches | `20` / `20` |
 | `interval` | Minutes between fetches (at least 5) | `30` |
-| `warn` | Percentage at which a bar turns red | `80` |
+| `warn` | Percentage at which a bar turns red (and at which `notify` fires) | `80` |
+| `notify` | `yes`: a desktop notification when a limit reaches `warn`, once per window (again only after it drops below `warn`); `no` to turn it off | `yes` |
 
 ## Files in this folder
 
@@ -65,6 +66,7 @@ Built and tested on CachyOS + Hyprland + HyDE.
 | Quickshell | `quickshell` | 0.3.2 | The panel, and the HTTP request (QML's built-in `XMLHttpRequest`, no curl needed) |
 | Claude Code, logged in with a Claude plan | `claude-code` | 2.1.304 (Pro) | The OAuth token in `~/.claude/.credentials.json` |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and the robot / clock icons |
+| libnotify | `libnotify` | 0.8.9 | `notify-send`, for the warning notification (and a notification daemon, which HyDE starts) |
 | HyDE (optional) | — | — | `~/.cache/hyde/wallbash/scotchos.dcol` with the wallbash colors |
 
 ## Changes made to the system
@@ -109,9 +111,10 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 1. **Credentials:** a `FileView` watches `~/.claude/.credentials.json`. Its first load triggers the login fetch, and later changes (Claude Code refreshing the token) update the token in memory. If `expiresAt` has passed, it doesn't send the request.
 2. **Timing:** a timer ticks once a minute (only while a screen shows an empty workspace), moving the countdowns and checking whether a fetch is due. Short ticks instead of one 30-minute timer mean it catches up right after a suspend.
 3. **Manual refresh:** an `IpcHandler` (`claudeusage` → `refresh()`) for the command, and the shell root's `action` signal for the settings button. Both call the same `refresh()`, which applies the cooldown.
-4. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs, ever.
-5. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
-6. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
+4. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs for it.
+5. **Notifying:** after each fetch, a limit at or above `warn` that isn't in `notified` is announced with one `notify-send` (one `Process`, running only then), and added to `notified`. A limit below `warn` is removed from it, which re-arms it. `notified` is saved in `claude-usage.json` in the cache with the reading, so a restart doesn't repeat a notification; lowering `warn` below the current usage notifies once right away.
+6. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
+7. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
 
 On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (minimal about 120 px, compact about 36 px) and sits above the now playing card on the right.
 

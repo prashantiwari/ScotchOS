@@ -14,6 +14,11 @@ Esc or closing the window (Super+Q, etc.) closes it too.
 
 It has none of its own and no switch in `[enabled]`: it's always available, and costs nothing while closed (it's only created when opened). What it shows for each widget and tool is the `items` list at the top of `SettingsWindow.qml`.
 
+Two buttons besides the settings themselves:
+
+- **reset** next to a setting's name, shown only when `scotchos.conf` has that key with a value different from the default. It removes the line (`removeConf` in `shell.qml`), so the widget's own fallback applies.
+- **Open scotchos.conf** in the sidebar: `xdg-open` on the file, for what the window doesn't cover.
+
 ## Files in this folder
 
 | File | What it does |
@@ -36,6 +41,7 @@ Writing the conf is done by `setConf()` in [`shell.qml`](../shell.qml).
 | Quickshell | `quickshell` | 0.3.2 | The window (`FloatingWindow`), `qs ipc` to open it |
 | Hyprland | `hyprland` | 0.56.2 | Floats the window because it has a fixed size (min = max), no window rule needed |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and icons |
+| xdg-utils | `xdg-utils` | 1.2.1-2 | `xdg-open`, for the Open scotchos.conf button |
 
 ## Changes made to the system
 
@@ -70,6 +76,7 @@ QML changes hot-reload on save. Logs: `scotchos log`
 1. **Opening:** `scotchos settings` runs `qs ipc call settings toggle`; the `IpcHandler` in `shell.qml` flips `settingsOpen`, and a `LazyLoader` creates or destroys the window. Closed, nothing of it exists.
 2. **Reading:** the window shows `core.conf`, the same parsed settings the widgets use, with each setting's default when the key isn't in the file.
 3. **Writing:** `setConf(section, key, value)` in `shell.qml` changes only the value on that line, so the alignment and `# comments` stay (a missing key is added after the section's last setting, a missing section at the end). The file is written atomically (`FileView.atomicWrites`: temp file + rename) and the new text is applied right away, so the widgets update on the same click. If the file on disk isn't the text the settings were last read from (a hand edit saved without an `[enabled]` section, so it wasn't applied), it doesn't write and logs a warning instead of overwriting the edit. A `#` starts a comment only at the start of a line or after a space, so a value can contain one (a URL's `#fragment`).
+   `removeConf(section, key)` (reset) uses `Conf.remove` in `common/conf.js` with the same disk check; the section header stays even when it ends up empty.
 4. **Floating:** the window's minimum and maximum size are equal, which Hyprland treats as a dialog and floats. Floating windows don't count when deciding whether a workspace is empty, so the widgets stay on screen.
 
 ## Uninstall

@@ -14,6 +14,7 @@ DesktopWidget {
     readonly property string size: str("size", "full", ["full", "compact", "minimal"])
     readonly property int intervalMin: Math.max(5, num("interval", 30))
     readonly property int warn: Math.min(100, Math.max(1, num("warn", 80)))
+    readonly property bool notify: flag("notify", true)
 
     // ---- Usage ----
     // { fiveHour: { pct, resetsAt }, sevenDay: { pct, resetsAt } }, resetsAt in ms since epoch. Kept in
@@ -37,6 +38,43 @@ DesktopWidget {
     readonly property string endpoint: "https://api.anthropic.com/api/oauth/usage"
     property var creds: null        // claudeAiOauth from Claude Code's credentials file
     property bool startedUp: false
+
+    // ---- Notification when a limit reaches `warn` ----
+    // The card is only seen on an empty workspace, so a desktop notification is the way to know. `notified`
+    // holds the limits already announced: kept in the cache so a restart doesn't repeat it, and cleared when
+    // a limit drops below `warn` again (i.e. after its window reset).
+    property var notified: ({})
+    property bool cacheRead: false  // `notified` is known only once the cache file has been read
+    property bool fresh: false      // a fetch answered since the shell started
+    readonly property var limitNames: ({ fiveHour: "5-hour", sevenDay: "7-day" })
+
+    function saveCache() {
+        cache.setText(JSON.stringify({ usage: usage, fetchedAt: fetchedAt, notified: notified }));
+    }
+
+    function checkNotify() {
+        if (!notify || !fresh || !cacheRead || !usage || notifier.running) return;
+        const next = Object.assign({}, notified);
+        const lines = [];
+        for (const k of ["fiveHour", "sevenDay"]) {
+            const l = usage[k];
+            if (!l) continue;
+            if (l.pct < warn) { delete next[k]; continue; }
+            if (notified[k]) continue;
+            next[k] = true;
+            const reset = l.resetsAt > now ? ", resets " + Qt.formatDateTime(new Date(l.resetsAt), "ddd HH:mm") : "";
+            lines.push(limitNames[k] + " limit at " + Math.round(l.pct) + "%" + reset);
+        }
+        if (JSON.stringify(next) === JSON.stringify(notified)) return;
+        notified = next;
+        saveCache();
+        if (lines.length) {
+            notifier.command = ["notify-send", "-a", "ScotchOS", "-i", "dialog-warning", "Claude usage", lines.join("\n")];
+            notifier.running = true;
+        }
+    }
+    // Runs only when a notification is due.
+    Process { id: notifier }
 
     // null when the response has no such limit (the card hides that row); only both missing is an error.
     function limit(d) {
@@ -64,7 +102,9 @@ DesktopWidget {
                 w.usage = u;
                 w.fetchedAt = Date.now();
                 w.error = "";
-                cache.setText(JSON.stringify({ usage: w.usage, fetchedAt: w.fetchedAt }));
+                w.fresh = true;
+                w.saveCache();
+                w.checkNotify();
             } catch (e) {
                 console.warn("claudeUsage:", e);
                 w.error = String(e);
@@ -128,9 +168,17 @@ DesktopWidget {
                 const c = JSON.parse(text());
                 // The startup fetch may already have answered.
                 if (c.fetchedAt > w.fetchedAt) { w.usage = c.usage; w.fetchedAt = c.fetchedAt; }
+                w.notified = c.notified ?? {};
             } catch (e) {}
+            w.cacheRead = true;
+            w.checkNotify();
         }
+        onLoadFailed: { w.cacheRead = true; w.checkNotify(); }
     }
+
+    // Lowering `warn` (or turning notify on) below the current usage notifies without waiting for the next fetch.
+    onWarnChanged: checkNotify()
+    onNotifyChanged: checkNotify()
 
     // Checks once a minute instead of one long timer, so it also catches up right after a suspend.
     Timer {

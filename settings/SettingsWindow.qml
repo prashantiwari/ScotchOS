@@ -2,6 +2,7 @@
 // written to ~/.config/scotchos/scotchos.conf right away, so the desktop widgets update while you click.
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 FloatingWindow {
     id: win
@@ -45,6 +46,7 @@ FloatingWindow {
               { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "interval", label: "Fetch every", type: "number", def: 30, min: 5, max: 1440, step: 5, unit: "min" },
               { key: "warn", label: "Warn at", type: "number", def: 80, min: 1, max: 100, step: 5, unit: "%" },
+              { key: "notify", label: "Notify at warn", type: "flag", def: "yes" },
               { key: "refresh", label: "Usage", type: "action", text: "Refresh now", action: "refresh" },
           ] },
         { key: "launcher", name: "Launcher", kind: "tool", icon: "\u{F0349}",
@@ -182,7 +184,23 @@ FloatingWindow {
                 }
             }
 
+            // Opens the file in the default editor, for what the window doesn't cover.
+            Choice {
+                anchors.left: parent.left
+                anchors.bottom: footer.top
+                anchors.leftMargin: 16
+                anchors.bottomMargin: 10
+                shell: win.core
+                options: ["Open scotchos.conf"]
+                onPicked: openConf.running = true
+            }
+            Process {
+                id: openConf
+                command: ["xdg-open", win.core.confPath]
+            }
+
             Text {
+                id: footer
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -249,14 +267,36 @@ FloatingWindow {
                         required property var modelData
                         readonly property string current: win.value(win.item.key, modelData)
                         function save(v) { win.core.setConf(win.item.key, modelData.key, v) }
+                        // Only for a line the conf holds with a non-default value; buttons have no value.
+                        readonly property bool changed: modelData.type !== "action"
+                            && win.core.conf[win.item.key]?.[modelData.key] !== undefined
+                            && current !== String(modelData.def)
                         spacing: 8
 
-                        Text {
-                            text: setting.modelData.label.toUpperCase()
-                            color: win.core.accent
-                            font.family: win.core.font
-                            font.pixelSize: 11
-                            font.letterSpacing: 1
+                        Row {
+                            spacing: 10
+                            Text {
+                                text: setting.modelData.label.toUpperCase()
+                                color: win.core.accent
+                                font.family: win.core.font
+                                font.pixelSize: 11
+                                font.letterSpacing: 1
+                            }
+                            // Removes the line, so the widget's fallback (the same as `def`) applies.
+                            Text {
+                                visible: setting.changed
+                                text: "\u{F0E2}  reset"
+                                color: resetArea.containsMouse ? win.core.fg : win.core.dim
+                                font.family: win.core.font
+                                font.pixelSize: 11
+                                MouseArea {
+                                    id: resetArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: win.core.removeConf(win.item.key, setting.modelData.key)
+                                }
+                            }
                         }
                         Loader {
                             sourceComponent: ({ choice: choice, position: position, number: number, flag: flag, text: textField, action: action })[setting.modelData.type]

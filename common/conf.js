@@ -51,3 +51,19 @@ function set(text, section, key, value) {
     else lines.splice(at + 1, 0, key + " = " + value);
     return lines.join("\n");
 }
+
+// The text without the `key` lines of [section] (a repeated key goes with all its lines), or null when the
+// key isn't there. The section header stays even when it becomes empty.
+function remove(text, section, key) {
+    const lines = text.split("\n");
+    let cur = "", found = false;
+    const kept = lines.filter(line => {
+        const l = stripComment(line);
+        const s = l.match(/^\[([\w-]+)\]$/);
+        if (s) { cur = s[1]; return true; }
+        const m = cur === section && l.match(/^(\w+)\s*=/);
+        if (m && m[1] === key) { found = true; return false; }
+        return true;
+    });
+    return found ? kept.join("\n") : null;
+}

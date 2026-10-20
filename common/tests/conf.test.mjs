@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const repo = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // conf.js is a QML JavaScript library: without its `.pragma library` line it's plain JS.
 const src = readFileSync(join(repo, "common/conf.js"), "utf8").replace(/^\.pragma library$/m, "");
-const Conf = new Function(src + "\nreturn { parse, set };")();
+const Conf = new Function(src + "\nreturn { parse, set, remove };")();
 
 const lines = (...l) => l.join("\n");
 
@@ -175,6 +175,36 @@ test("set there and back gives the original text", () => {
     t = Conf.set(t, "q", "url", "abc");
     t = Conf.set(t, "enabled", "quote", "yes");
     assert.equal(t, before);
+});
+
+// ---- remove ----
+
+test("remove: drops the key's line and keeps the rest", () => {
+    const before = lines("[enabled]", "a = yes", "[q]", "url = x  # source", "n = 1", "[r]", "n = 2", "");
+    assert.equal(Conf.remove(before, "q", "url"), lines("[enabled]", "a = yes", "[q]", "n = 1", "[r]", "n = 2", ""));
+});
+
+test("remove: the section header stays when it becomes empty", () => {
+    assert.equal(Conf.remove(lines("[enabled]", "a = yes", "[q]", "url = x"), "q", "url"),
+                 lines("[enabled]", "a = yes", "[q]"));
+});
+
+test("remove: a missing key or section is null", () => {
+    const t = lines("[enabled]", "a = yes", "[q]", "url = x");
+    assert.equal(Conf.remove(t, "q", "nope"), null);
+    assert.equal(Conf.remove(t, "z", "url"), null);
+    assert.equal(Conf.remove(t, "enabled", "url"), null);
+});
+
+test("remove: a commented-out line isn't the key; a repeated key goes entirely", () => {
+    assert.equal(Conf.remove(lines("[q]", "# url = x"), "q", "url"), null);
+    assert.equal(Conf.remove(lines("[q]", "url = 1", "[r]", "url = 2", "[q]", "url = 3"), "q", "url"),
+                 lines("[q]", "[r]", "url = 2", "[q]"));
+});
+
+test("remove, then set, restores the value", () => {
+    const t = Conf.remove(lines("[enabled]", "a = yes", "[q]", "n = 1"), "q", "n");
+    assert.deepEqual(Conf.parse(Conf.set(t, "q", "n", 1)).q, { n: "1" });
 });
 
 // ---- bin/scotchos reads and writes the same file: it must agree with conf.js ----
