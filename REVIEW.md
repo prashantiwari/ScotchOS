@@ -49,7 +49,8 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] `tools/eReader/tests/` with small EPUB 2/3, FB2, TXT and Markdown fixtures (5.3). The EPUBs are folders zipped by the test and the images are generated, so git holds no binaries. 27 tests: chapters, TOC, anchors, links, images, search, DRM, scan, covers, moved books, the cache and the CLI's JSON errors. **Found:** IDPF font obfuscation (`http://www.idpf.org/2008/embedding`) was refused as DRM, since the check looked for "font" or "obfuscation" in the URI; it now compares against the two known URIs
 - [x] `parseConf` / `setConf` before/after cases: the text logic moved to `common/conf.js` (shell.qml keeps the file reading and writing), so `node --test common/tests/` runs the real code. 26 tests, including `bin/scotchos get` agreeing with `parse` on every key of the default conf, and `enable`/`disable`. **Found:** filling an empty value that has a comment after it moved the comment one column right each time. `scotchos test` runs both suites
 
-### Phase 6: features (section 6), one session each, picked as wanted
+### Phase 6: features (section 6)
+Moved to [`PHASES.md`](PHASES.md), one phase per chat with `/start-phase N`. Dropped (2026-10-21): 6.2 more launcher providers, 6.3 now-playing controls.
 
 ---
 
@@ -168,8 +169,8 @@ These are fine for this laptop, but `install.sh` and the README present ScotchOS
 Roughly in order of usefulness against effort:
 
 1. **Launcher: remember what you pick.** Store a launch count per app in `Quickshell.cacheDir` and add it to the score in `AppsProvider`, so frequent apps rise. Also match on `e.execString`, and allow simple fuzzy matching (initials: "vsc" → Visual Studio Code).
-2. **Launcher: more providers.** The `Provider` design makes these easy: a calculator (`=2*pi`), a web search fallback, open e-reader books (`book dune`), clipboard history (`cliphist`).
-3. **Now playing: controls.** The card is click-through by design. A launcher provider ("Pause", "Next track") or `scotchos media next` over IPC would give control without changing that.
+2. *(dropped)* **Launcher: more providers.** The `Provider` design makes these easy: a calculator (`=2*pi`), a web search fallback, open e-reader books (`book dune`), clipboard history (`cliphist`).
+3. *(dropped)* **Now playing: controls.** The card is click-through by design. A launcher provider ("Pause", "Next track") or `scotchos media next` over IPC would give control without changing that.
 4. **E-reader: highlights and notes**, stored next to bookmarks. **Export** bookmarks to Markdown. A **"continue reading"** command in the launcher that opens the last book where you left off.
 5. **Dashboard: disk and battery.** Root filesystem use from `os.statvfs("/")`, battery and power draw from `/sys/class/power_supply/BAT*`. Both are cheap reads that fit `stats.py`.
 6. **Claude usage: notify** (`notify-send`) once when a limit crosses `warn`, since the card is only visible on an empty workspace.

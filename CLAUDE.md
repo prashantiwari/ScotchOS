@@ -2,6 +2,8 @@
 
 Desktop widgets (Quickshell/QML) and keybind tools (shell scripts) for Hyprland on CachyOS + HyDE. Machine: i5-9300H, GTX 1650, laptop `eDP-1` (1280×720 logical) + `HDMI-A-1`. See `README.md` for what exists and how it's laid out.
 
+Planned work is in `PHASES.md`, one phase per chat with `/start-phase N`; a phase starts only after the previous one is approved by the user.
+
 ## Architecture
 
 - **One Quickshell process for every widget.** `shell.qml` (root) owns what's shared: wallbash colors, the conf, and `workspaceEmpty(screen)` / `anyEmpty`. Each widget is wrapped in a `LazyLoader { active: root.enabled("<key>") }`, so switching it off destroys it and stops its processes.
