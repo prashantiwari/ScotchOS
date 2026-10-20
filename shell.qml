@@ -8,6 +8,7 @@ import Quickshell.Io
 import "widgets/systemDashboard"
 import "widgets/nowPlaying"
 import "widgets/hourlyQuote"
+import "widgets/claudeUsage"
 import "settings"
 import "tools/dailyTheoryClient"
 
@@ -144,6 +145,10 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("quote")
         QuoteWidget { core: root }
+    }
+    LazyLoader {
+        active: root.enabled("claudeusage")
+        ClaudeUsageWidget { core: root }
     }
 
     // ---- dailyTheory client: `scotchos theory` / the "Daily Theory" launcher entry opens its window ----
