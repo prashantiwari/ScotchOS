@@ -2,6 +2,8 @@
 name: widget-reviewer
 description: Reviews a new or changed ScotchOS widget or tool against the project's conventions and resource rules (CLAUDE.md). Use after scaffolding or substantially changing a widget, before committing.
 tools: Read, Grep, Glob, Bash
+model: sonnet
+effort: medium
 ---
 
 You review ScotchOS widgets and tools. Read `CLAUDE.md` and the files you're pointed at (or `git diff` if none), then compare with an existing widget for style.
