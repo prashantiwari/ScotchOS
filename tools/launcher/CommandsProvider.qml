@@ -1,4 +1,4 @@
-// ScotchOS commands: the settings window, the dailyTheory and e-reader windows, a restart, and a switch for every widget and tool.
+// ScotchOS commands: the settings window, the dailyTheory and e-reader windows (and the last book), a restart, and a switch for every widget and tool.
 import Quickshell
 
 Provider {
@@ -20,8 +20,13 @@ Provider {
         ];
         if (isOn("dailytheory"))
             rows.push({ title: "Open Daily Theory", run: () => Quickshell.execDetached([bin, "theory", "open"]) });
-        if (isOn("reader"))
+        if (isOn("reader")) {
             rows.push({ title: "Open E-reader", subtitle: "your books", run: () => Quickshell.execDetached([bin, "reader", "open"]) });
+            // The reader lives in this same shell: called directly, no `qs ipc` process.
+            const last = core.reader?.lastTitle() ?? "";
+            if (last)
+                rows.push({ title: "Continue reading " + last, subtitle: "where you left off", run: () => core.reader.continueReading() });
+        }
         if (isOn("claudeusage"))
             rows.push({ title: "Refresh Claude usage", run: () => core.action("claudeusage", "refresh") });
         // The launcher's own switch is left out: turning it off from here would end this very window.

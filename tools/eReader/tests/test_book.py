@@ -65,6 +65,15 @@ def plain(html_text):
     return " ".join(re.sub(r"<[^>]+>|" + book.MARK, " ", html_text).split())
 
 
+def p_depth(html_text):
+    """The deepest nesting of <p> elements."""
+    depth = deepest = 0
+    for close in re.findall(r"<(/?)p\b", html_text):
+        depth += -1 if close else 1
+        deepest = max(deepest, depth)
+    return deepest
+
+
 def toc(meta):
     return [(e["level"], e["title"], e["chapter"], e["anchor"]) for e in meta["toc"]]
 
@@ -175,6 +184,17 @@ class Epub2(Fixture):
         self.assertIn("<b>bold <i>and italic</i></b>", texts[0])
         self.assertIn('<p align="center">Centred</p>', texts[0])
         self.assertIn("The end &amp; that’s all.", texts[1])
+        # Each unclosed <p> is closed by the next block, so paragraphs never nest.
+        self.assertEqual([p_depth(t) for t in texts], [1, 1])
+        self.assertIn("<p>Unclosed paragraph one\n</p><p>Unclosed paragraph two", texts[0])
+
+    def test_a_block_closes_an_open_paragraph_but_not_across_a_table_cell(self):
+        s = book.Sanitizer(lambda src: None, lambda href: "")
+        s.feed("<p>a<div>b</div><p>c<ul><li>d</li></ul><p>e<table><tr><td><div>f</div></td></tr></table>"
+               "<table><tr><td><p>g<blockquote>h</blockquote></td></tr></table>")
+        self.assertEqual(s.result(), "<p>a</p><div>b</div><p>c</p><ul><li>d</li></ul><p>e</p><table><tr><td>"
+                                     "<div>f</div></td></tr></table><table><tr><td><p>g</p><blockquote>h</blockquote>"
+                                     "</td></tr></table>")
 
     def test_a_link_to_a_blank_page_lands_on_the_next_chapter(self):
         _, texts = self.open(self.epub2)
@@ -245,7 +265,7 @@ class Txt(Fixture):
 class Markdown(Fixture):
     def test_chapters_at_level_one_and_two_headings(self):
         meta, texts = self.open(self.md)
-        self.assertEqual(meta["title"], "notes")        # the file name: Markdown has no metadata
+        self.assertEqual(meta["title"], "Markdown Notes")     # the first "# " heading
         self.assertEqual(len(texts), 2)
         self.assertEqual(toc(meta), [(1, "Markdown Notes", 0, -1), (2, "Second Part", 1, -1)])
         # A "#" line inside a code fence is not a heading.
@@ -258,6 +278,15 @@ class Markdown(Fixture):
             self.assertIn(s, texts[0])
         self.assertIn("<ol>\n<li>first</li>", texts[1])
         self.assertIn("and a local link.", texts[0])         # a link to a file is dropped, its text kept
+
+    def test_title_is_the_first_level_one_heading_else_the_file_name(self):
+        other = os.path.join(self.lib, "my_draft.md")
+        with open(other, "w", encoding="utf-8") as f:
+            f.write("```\n# in a fence\n```\n## Not level one\n\nText.\n\n# The *Real* Title ##\n")
+        self.assertEqual(book.file_meta(other)[0]["title"], "The Real Title")
+        with open(other, "w", encoding="utf-8") as f:
+            f.write("## Only a level two\n\nText.\n")
+        self.assertEqual(book.file_meta(other)[0]["title"], "my draft")
 
     def test_images_only_from_the_books_folder(self):
         _, texts = self.open(self.md)
@@ -272,7 +301,7 @@ class Library(Fixture):
     def test_scan_lists_every_book_sorted_by_title(self):
         books = book.scan(self.lib, self.cache)
         self.assertEqual([(b["title"], b["format"]) for b in books],
-                         [("A Plain Tale", "txt"), ("notes", "md"), ("Test EPUB Three", "epub"),
+                         [("A Plain Tale", "txt"), ("Markdown Notes", "md"), ("Test EPUB Three", "epub"),
                           ("Test EPUB Two", "epub"), ("Test FB2", "fb2")])
         covers = {b["title"]: b["cover"] for b in books}
         self.assertTrue(os.path.isfile(covers["Test EPUB Three"]))
@@ -330,6 +359,28 @@ class Library(Fixture):
         with self.assertRaisesRegex(book.BookError, "no readable text"):
             book.open_book(bad, self.cache)
         self.assertEqual(os.listdir(self.cache), [])
+
+
+class Export(Fixture):
+    def test_every_bookmark_with_its_chapter_and_text(self):
+        outdir = book.open_book(self.epub2, self.cache)
+        entry = {"title": "ignored", "bookmarks": [
+            {"chapter": 0, "pos": 10, "percent": 12.4, "text": "Unclosed  paragraph\none", "where": "The Middle"},
+            {"chapter": 1, "pos": 0, "percent": 80, "text": "", "where": ""},
+            {"chapter": 7, "pos": 0, "percent": 99.6, "text": "Out of range"}]}
+        out = os.path.join(self.tmp, "notes dir", "Test EPUB Two.md")
+        self.assertEqual(book_cli("export", outdir, json.dumps(entry), out), {"path": out})
+        with open(out, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "# Test EPUB Two\n\n*Bo Writer*\n\n## Bookmarks\n\n"
+                                       "### The Middle · 12%\n\n> Unclosed paragraph one\n\n"
+                                       "### Part Two · 80%\n\n> (page without text)\n\n"
+                                       "### Chapter 8 · 100%\n\n> Out of range\n")
+
+    def test_no_bookmarks(self):
+        out = os.path.join(self.tmp, "x.md")
+        book.export(book.open_book(self.md, self.cache), {}, out)
+        with open(out, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "# Markdown Notes\n\n## Bookmarks\n\nNone.\n")
 
 
 def book_cli(*args):

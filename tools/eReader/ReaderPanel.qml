@@ -1,5 +1,6 @@
 // The side panel over the left of the book: the contents (T), the bookmarks (M), a search (/) or the text look (A),
-// Tab switches. Enter or a click jumps; in bookmarks, Delete (or the ×) removes one; in search, typing edits the
+// Tab switches. Enter or a click jumps; in bookmarks, Delete (or the ×) removes one and E (or the export icon)
+// writes them all to a Markdown file; in search, typing edits the
 // query and Enter runs it; in text, typing filters the fonts and Enter picks one. Esc closes it.
 import QtQuick
 
@@ -37,7 +38,7 @@ Rectangle {
         : (reader.book?.toc ?? []).map(e => ({ title: e.title, level: e.level, rich: false, sub: "" }))
     readonly property int here: mode === "bookmarks" ? reader.markHere : searchMode ? reader.result
         : textMode ? shownFonts.indexOf(reader.bookFont) : reader.tocIndex
-    readonly property string empty: mode === "bookmarks" ? "No bookmarks yet. B marks the page you're on."
+    readonly property string empty: mode === "bookmarks" ? "No bookmarks yet. B marks the page you're on, and E exports them."
         : textMode ? "No font matches."
         : !searchMode ? "This book has no contents."
         : reader.searching ? "Searching…"
@@ -62,6 +63,7 @@ Rectangle {
         else if (k === Qt.Key_Up || k === Qt.Key_K) list.decrementCurrentIndex();
         else if (k === Qt.Key_Return || k === Qt.Key_Enter) jump(list.currentIndex);
         else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_D) && mode === "bookmarks") remove(list.currentIndex);
+        else if (k === Qt.Key_E && mode === "bookmarks") reader.exportNotes();
         else return false;
         return true;
     }
@@ -165,6 +167,22 @@ Rectangle {
                     onClicked: panel.reader.panel = parent.modelData.mode
                 }
             }
+        }
+    }
+    // Bookmarks: export (E).
+    Text {
+        visible: panel.mode === "bookmarks"
+        anchors { right: parent.right; verticalCenter: title.verticalCenter; rightMargin: 18 }
+        text: "\u{F0207}"
+        color: exportArea.containsMouse ? panel.core.accent : panel.core.dim
+        font.family: panel.core.font
+        font.pixelSize: 13
+        MouseArea {
+            id: exportArea
+            anchors { fill: parent; margins: -6 }
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: panel.reader.exportNotes()
         }
     }
     // Search: the query being typed, and how many matches it had.

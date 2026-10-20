@@ -72,6 +72,8 @@ Scope {
         function open(): void { r.open = true }
         function close(): void { r.open = false }
         function toggle(): void { r.open = !r.open }
+        // `continue` is a reserved word, so the call is `continueReading`.
+        function continueReading(): void { r.continueReading() }
     }
 
     LazyLoader {
@@ -123,6 +125,7 @@ Scope {
         onExited: {
             r.scanning = false;
             if (r.rescan) { r.rescan = false; r.scan(); }
+            else if (r.resuming) r.resume();
         }
     }
     // A moved or renamed book gets a new id; book.py found the position it had under the old one.
@@ -136,6 +139,27 @@ Scope {
             changed = true;
         }
         if (changed) { progressChanged(); saveProgress(); }
+    }
+
+    // ---- Continue reading: the book opened last (`opened` in its position) that's still in the library ----
+    // Ids of the books with a position, the last opened first; only the ones the last scan found, once there was one.
+    function recent() {
+        return Object.keys(progress).filter(id => progress[id]?.opened && (!books.length || books.some(b => b.id === id)))
+            .sort((a, b) => progress[b].opened - progress[a].opened);
+    }
+    function lastTitle() { const id = recent()[0]; return id ? progress[id].title ?? "" : "" }
+    // Opens the window and waits for its scan, which drops books whose file is gone and adopts moved ones.
+    property bool resuming: false
+    function continueReading() {
+        resuming = true;
+        if (open) scan(); else open = true;
+    }
+    function resume() {
+        resuming = false;
+        const id = recent()[0];
+        const b = id && books.find(x => x.id === id);
+        if (b) openBook(b);
+        else error = "No book to continue.";
     }
 
     // ---- Opening a book: book.py converts it once into the cache, then book.json and one chapter are read ----
@@ -377,6 +401,37 @@ Scope {
         progress[bookId] = Object.assign({}, progress[bookId] ?? { chapter: chapter, pos: pos, percent: 0 }, { bookmarks: list });
         progressChanged();
         saveTimer.restart();
+    }
+
+    // ---- Export: book.py writes the bookmarks to <Documents>/Reader notes/<title>.md ----
+    property string notice: ""          // shown on the status line for a few seconds
+    function exportNotes() {
+        if (!book || exportProc.running) return;
+        saveProgress();
+        // A title is a file name here: no slashes, and no leading dot (that would hide it).
+        const name = String(book.title || "Untitled").replace(/[\/\0]/g, "-").replace(/^\.+/, "").slice(0, 120);
+        exportProc.command = ["sh", "-c", 'exec python3 "$1" export "$2" "$3" "$(xdg-user-dir DOCUMENTS 2>/dev/null || echo "$HOME/Documents")/Reader notes/$4.md"',
+                              "sh", helper, book.dir, JSON.stringify(progress[bookId] ?? {}), name];
+        exportProc.running = true;
+    }
+    function say(text) { notice = text; noticeTimer.restart(); }
+    Process {
+        id: exportProc
+        stdout: SplitParser {
+            onRead: line => {
+                try {
+                    const d = JSON.parse(line);
+                    r.say(d.error ? d.error : "Bookmarks saved to " + String(d.path).replace(r.home + "/", "~/"));
+                } catch (e) {
+                    r.say("Couldn't export the bookmarks.");
+                }
+            }
+        }
+    }
+    Timer {
+        id: noticeTimer
+        interval: 6000
+        onTriggered: r.notice = ""
     }
 
     // A moment after the last page turn, so holding → doesn't write the file on every page.

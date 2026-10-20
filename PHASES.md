@@ -109,7 +109,7 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 ## Phase 4: E-reader continue reading, bookmark export, converter leftovers
 
-**Status:** in progress
+**Status:** done
 
 **Model:** Opus 5.5, medium effort (`book.py`'s sanitizer is easy to break in ways the fixtures only partly catch).
 
@@ -118,17 +118,22 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 **Read first:** `tools/eReader/Reader.qml` (405: progress, bookmarks, IPC), `tools/launcher/CommandsProvider.qml` (44), `tools/eReader/README.md`. `ReaderPanel.qml` (316) for the export button. `book.py` only around `Sanitizer.handle_starttag` and `file_meta`, plus `tests/test_book.py`.
 
 **Tasks:**
-- [ ] Progress gets an `opened` time per book when it's opened (if it isn't stored already). `reader` IPC: `continue()` opens the most recently opened book that still exists, at its position.
-- [ ] Launcher: "Continue reading <title>" in `CommandsProvider` while `reader` is on and there's a last book; it calls the reader directly (both live in the shell), not through `qs ipc`.
-- [ ] Export: a button (and key) in the bookmarks panel writes `<xdg-user-dir DOCUMENTS>/Reader notes/<title>.md`: title, author, and each bookmark as chapter title + the bookmark's text. Written by `book.py export <bookdir> <progress entry as JSON> <out>`, not in QML; the status line says where it went. Phase 5 adds highlights to the same file, so keep the format easy to extend.
-- [ ] `book.py`: a block element starting inside an open `<p>` closes that `<p>` first (sloppy HTML made nested paragraphs; see the `Epub2.test_sloppy_html` fixture). A Markdown book's title is its first `# ` heading, else the file name. Bump `VERSION`.
-- [ ] Tests in `tools/eReader/tests/test_book.py` for both fixes and for `export`; README: Files, "How it works", "Running it by hand".
+- [x] Progress gets an `opened` time per book when it's opened (if it isn't stored already). `reader` IPC: `continue()` opens the most recently opened book that still exists, at its position.
+- [x] Launcher: "Continue reading <title>" in `CommandsProvider` while `reader` is on and there's a last book; it calls the reader directly (both live in the shell), not through `qs ipc`.
+- [x] Export: a button (and key) in the bookmarks panel writes `<xdg-user-dir DOCUMENTS>/Reader notes/<title>.md`: title, author, and each bookmark as chapter title + the bookmark's text. Written by `book.py export <bookdir> <progress entry as JSON> <out>`, not in QML; the status line says where it went. Phase 5 adds highlights to the same file, so keep the format easy to extend.
+- [x] `book.py`: a block element starting inside an open `<p>` closes that `<p>` first (sloppy HTML made nested paragraphs; see the `Epub2.test_sloppy_html` fixture). A Markdown book's title is its first `# ` heading, else the file name. Bump `VERSION`.
+- [x] Tests in `tools/eReader/tests/test_book.py` for both fixes and for `export`; README: Files, "How it works", "Running it by hand".
 
 **Done when:** `scotchos test` passes; opening a book, closing the reader, then "Continue reading" from the launcher reopens it at the same page; the exported file has every bookmark; the EPUB 2 fixture's output has no `<p>` inside a `<p>`.
 
 **Not in this phase:** highlights (phase 5), syncing positions anywhere.
 
 **Handoff:**
+- IPC call is `continueReading` (`continue` is a reserved word), also `scotchos reader continue`; `shell.qml` exposes the loaded `Reader` as `root.reader` (null while off), which `CommandsProvider` calls directly. `opened` was already stamped by `touch()`.
+- Export: `book.py export <bookdir> <entry JSON> <out>` writes `# title`, `*author*`, then `## Bookmarks` with `### where · %` + `> text` per bookmark; phase 5 adds a `## Highlights` section in `export()`. The status line shows `reader.notice` for 6 s.
+- `book.py` VERSION 4 (every cached book reconverts once): a block in an open `<p>` closes it (not across td/th/caption/table); Markdown title = first `# ` heading. 31 tests pass.
+- Checked live: continue reopened Empire of Silence at chapter 61, pages 11–12, position unchanged after close; export run on its real entry. Not clicked by hand: the launcher row and the panel's E / icon. Quickshell 253 MB, same as before.
+- Seen, not fixed: in that screenshot the two-page layout showed the same text on both pages right after opening (maybe the right page not yet laid out).
 
 ---
 

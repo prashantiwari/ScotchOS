@@ -162,7 +162,10 @@ ShellRoot {
     }
 
     // ---- E-reader: `scotchos reader` / the "E-reader" launcher entry opens its window ----
+    // `reader` is null while it's off; the launcher's "Continue reading" calls it.
+    readonly property var reader: readerLoader.item
     LazyLoader {
+        id: readerLoader
         active: root.enabled("reader")
         Reader { core: root }
     }

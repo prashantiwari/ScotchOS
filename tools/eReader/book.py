@@ -6,6 +6,8 @@
                                            were moved or renamed: {"moved": {new id: id in progress.json}}
   book.py open <file> <cache_dir>          converts once into <cache_dir>/<id>/, prints {"dir": ...}
   book.py search <book_dir> <query>        finds the query in a converted book, prints {"results": [...]}
+  book.py export <book_dir> <entry> <out>  writes the bookmarks in <entry> (the book's progress.json entry, as
+                                           JSON) to the Markdown file <out>, prints {"path": out}
 
 Errors are printed as {"error": "..."} with exit code 0, so the shell can show them.
 Stdlib only; MOBI/AZW3 text needs the `mobi` package (AUR python-mobi, or `pipx install mobi`).
@@ -27,7 +29,7 @@ import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import unquote, urlsplit
 
-VERSION = 3                     # bump to rebuild every cached book after a converter change
+VERSION = 4                     # bump to rebuild every cached book after a converter change
 KEEP_DAYS = 90                  # a converted book that's gone from the library is kept this long after its last open
 SPLIT = 100_000                 # a chapter over this many bytes of HTML is split between blocks
 MARK = "\u2060"                 # invisible marker standing where an element id was (QML finds anchors by it)
@@ -53,9 +55,13 @@ def stamp(path):
 
 
 def write_json(path, data):
+    write_text(path, json.dumps(data, ensure_ascii=False))
+
+
+def write_text(path, text):
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
+        f.write(text)
     os.replace(tmp, path)
 
 
@@ -113,6 +119,10 @@ TAGS = {"p": "p", "div": "div", "h1": "h1", "h2": "h2", "h3": "h3", "h4": "h4", 
         "header": "div", "footer": "div", "center": "div", "nav": "div", "main": "div", "tt": "code",
         "kbd": "code", "samp": "code", "q": None, "span": None, "abbr": None, "font": None, "body": None}
 SKIP = {"head", "script", "style", "title", "noscript", "template", "math"}
+# A block starting inside an open <p> closes it, as browsers do (sloppy books leave every <p> open), unless the
+# <p> is outside the table cell or caption the block is in. Rows and cells don't close it.
+P_CLOSERS = BLOCKS - {"tr", "td", "th", "thead", "tbody", "tfoot", "caption"}
+P_SCOPE = {"table", "td", "th", "caption"}
 VOID = {"br", "hr", "img", "image", "meta", "link", "input", "col", "wbr", "area", "base", "source"}
 
 
@@ -158,6 +168,8 @@ class Sanitizer(HTMLParser):
         if tag == "mbp:pagebreak":
             self.breaks.append(self.size)
             return
+        if tag in P_CLOSERS:
+            self.close_p()
         if tag in BLOCKS and self.depth == 0:
             self.cuts.append(self.size)
         ident = a.get("id") or (a.get("name") if tag == "a" else None)
@@ -202,6 +214,14 @@ class Sanitizer(HTMLParser):
             self._heading = [self.size, int(tag[1]), [], ident]
         if ident:
             self.mark(ident)
+
+    def close_p(self):
+        for t, _, _ in reversed(self.stack):
+            if t == "p":
+                self.handle_endtag("p")
+                return
+            if t in P_SCOPE:
+                return
 
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
@@ -909,6 +929,19 @@ def md_to_html(text):
     return "\n".join(out)
 
 
+def md_title(path):
+    """The first `# ` heading outside code fences, as plain text ("" if there's none)."""
+    fence = False
+    for line in read_text(path).split("\n"):
+        if line.strip().startswith("```"):
+            fence = not fence
+        elif not fence:
+            m = re.match(r"^#[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$", line)
+            if m:
+                return html.unescape(re.sub(r"<[^>]+>", "", md_inline(m.group(1)))).strip()
+    return ""
+
+
 def md_build(path, outdir, meta):
     b = Builder(outdir)
     base = os.path.dirname(os.path.realpath(path))
@@ -960,6 +993,8 @@ def file_meta(path):
         t = re.search(r"^Title:[ \t]*(.+)$", head, re.M)
         a = re.search(r"^Author:[ \t]*(.+)$", head, re.M)
         meta, cover = {"title": t.group(1).strip() if t else "", "author": a.group(1).strip() if a else ""}, None
+    elif f in (".md", ".markdown"):
+        meta, cover = {"title": md_title(path), "author": ""}, None
     else:
         meta, cover = {"title": "", "author": ""}, None
     meta["title"] = meta.get("title") or name
@@ -1166,8 +1201,30 @@ def search(bookdir, query):
     return {"results": results, "total": total}
 
 
+# ---- Export (bookmarks to Markdown) ----
+
+def export(bookdir, entry, out):
+    """One `## ` section per kind of note (only bookmarks so far), each note a `### ` heading and a quote."""
+    with open(os.path.join(bookdir, "book.json"), encoding="utf-8") as f:
+        meta = json.load(f)
+    chapters = meta.get("chapters", [])
+    lines = ["# " + (meta.get("title") or entry.get("title") or "Untitled"), ""]
+    if meta.get("author"):
+        lines += ["*" + meta["author"] + "*", ""]
+    marks = entry.get("bookmarks") or []
+    lines += ["## Bookmarks", ""] + ([] if marks else ["None.", ""])
+    for b in marks:
+        c = b.get("chapter", 0)
+        where = b.get("where") or (chapters[c].get("title") if 0 <= c < len(chapters) else "") or f"Chapter {c + 1}"
+        text = " ".join(str(b.get("text") or "").split()) or "(page without text)"
+        lines += [f"### {where} · {round(b.get('percent', 0))}%", "", "> " + text, ""]
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    write_text(out, "\n".join(lines))
+    return out
+
+
 def main(argv):
-    if not (len(argv) == 4 and argv[1] in ("scan", "open", "search") or len(argv) == 5 and argv[1] == "scan"):
+    if not (len(argv) == 4 and argv[1] in ("scan", "open", "search") or len(argv) == 5 and argv[1] in ("scan", "export")):
         print(__doc__, file=sys.stderr)
         return 2
     try:
@@ -1177,6 +1234,8 @@ def main(argv):
                              ensure_ascii=False))
         elif argv[1] == "open":
             print(json.dumps({"dir": open_book(argv[2], argv[3])}, ensure_ascii=False))
+        elif argv[1] == "export":
+            print(json.dumps({"path": export(argv[2], json.loads(argv[3]), argv[4])}, ensure_ascii=False))
         else:
             print(json.dumps(search(argv[2], argv[3]), ensure_ascii=False))
     except BookError as e:

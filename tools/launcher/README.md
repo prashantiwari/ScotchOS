@@ -19,7 +19,7 @@ Apps are found by name, by initials (`vsc` → Visual Studio Code, `lo` → Libr
 
 With nothing typed it shows the apps you have launched as square icons, most launched first, up to 18; they wrap onto a new row when the card is full (nine per row), the picked one's name is underneath. Arrow keys (or Ctrl + J / K) move through them, Enter starts it.
 
-Commands: open settings, restart ScotchOS, open Daily Theory and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
+Commands: open settings, restart ScotchOS, open Daily Theory, open the E-reader or "Continue reading <title>" (the book read last, at your place) and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
 
 Switch it off with `scotchos disable launcher`: the keybind stays but does nothing.
 

@@ -126,12 +126,12 @@ Item {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 18; bottomMargin: 10 }
             horizontalAlignment: Text.AlignHCenter
             readonly property var b: c.reader.book
-            text: !b ? "" : (bookView.paged ? bookView.page + 1 + (bookView.hasRight ? "–" + (bookView.page + 2) : "") + " / " + bookView.pageCount : Math.round(bookView.frac * 100) + "%")
+            text: c.reader.notice ? c.reader.notice : !b ? "" : (bookView.paged ? bookView.page + 1 + (bookView.hasRight ? "–" + (bookView.page + 2) : "") + " / " + bookView.pageCount : Math.round(bookView.frac * 100) + "%")
                   + "   ·   chapter " + (c.reader.chapter + 1) + " / " + b.chapters.length
                   + "   ·   " + Math.round(c.reader.percentAt(c.reader.chapter, bookView.frac)) + "% of the book"
                   + (c.reader.timeLeft ? "   ·   " + c.reader.duration(c.reader.minutesLeft(bookView.frac, false)) + " left in chapter, "
                                          + c.reader.duration(c.reader.minutesLeft(bookView.frac, true)) + " in book" : "")
-            color: c.core.dim
+            color: c.reader.notice ? c.core.accent : c.core.dim
             font.family: c.core.font
             font.pixelSize: 10
         }
