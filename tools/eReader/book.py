@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """ScotchOS e-reader helper: lists the library and converts books into theme-free HTML chapters.
 
-  book.py scan <library_dir> <cache_dir>   JSON list of books (metadata and covers cached)
+  book.py scan <library_dir> <cache_dir> [progress.json]
+                                           JSON list of books (metadata and covers cached), plus the books that
+                                           were moved or renamed: {"moved": {new id: id in progress.json}}
   book.py open <file> <cache_dir>          converts once into <cache_dir>/<id>/, prints {"dir": ...}
   book.py search <book_dir> <query>        finds the query in a converted book, prints {"results": [...]}
 
@@ -19,12 +21,14 @@ import shutil
 import struct
 import sys
 import tempfile
+import time
 import zipfile
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import unquote, urlsplit
 
 VERSION = 3                     # bump to rebuild every cached book after a converter change
+KEEP_DAYS = 90                  # a converted book that's gone from the library is kept this long after its last open
 SPLIT = 100_000                 # a chapter over this many bytes of HTML is split between blocks
 MARK = "\u2060"                 # invisible marker standing where an element id was (QML finds anchors by it)
 FORMATS = (".epub", ".mobi", ".azw3", ".azw", ".fb2", ".fb2.zip", ".txt", ".md", ".markdown")
@@ -614,7 +618,7 @@ def mobi_build(path, outdir):
             if re.match(r"^[a-z]+:", src, re.I):
                 return None
             p = os.path.normpath(os.path.join(base, unquote(src)))
-            if not p.startswith(tmp) or not os.path.isfile(p):
+            if not p.startswith(tmp + os.sep) or not os.path.isfile(p):
                 return None
             with open(p, "rb") as f:
                 return b.image(p, f.read())
@@ -906,11 +910,12 @@ def md_build(path, outdir, meta):
     b = Builder(outdir)
     base = os.path.dirname(os.path.realpath(path))
 
+    # Only images in the book's folder: `![](../../.ssh/id_rsa)` would otherwise be copied into the cache.
     def img(src):
         if re.match(r"^[a-z]+:", src, re.I):
             return None
-        p = os.path.normpath(os.path.join(base, unquote(src)))
-        if not os.path.isfile(p):
+        p = os.path.realpath(os.path.join(base, unquote(src)))
+        if not p.startswith(base + os.sep) or not os.path.isfile(p):
             return None
         with open(p, "rb") as f:
             return b.image(p, f.read())
@@ -969,8 +974,17 @@ def scan(library, cache):
             index = json.load(f)
     except (OSError, ValueError):
         index = {}
-    books, fresh = [], {}
+    books, fresh, seen = [], {}, set()
     for dirpath, dirnames, files in os.walk(library, followlinks=True):
+        # Symlinks are followed, so a link back up the tree would loop: each real folder is walked once.
+        try:
+            st = os.stat(dirpath)
+        except OSError:
+            continue
+        if (st.st_dev, st.st_ino) in seen:
+            dirnames[:] = []
+            continue
+        seen.add((st.st_dev, st.st_ino))
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for name in files:
             if name.startswith(".") or not fmt_of(name):
@@ -998,11 +1012,56 @@ def scan(library, cache):
                         f.write(cover)
                 entry = {"stamp": st, "title": meta["title"], "author": meta.get("author", ""), "cover": cover_path}
             fresh[bid] = entry
-            books.append({"id": bid, "path": path, "format": fmt_of(name).lstrip(".").split(".")[0],
+            books.append({"id": bid, "path": path, "format": fmt_of(name).lstrip(".").split(".")[0], "size": st[0],
                           "title": entry["title"], "author": entry["author"], "cover": entry["cover"]})
     write_json(index_path, fresh)
+    prune(cache, fresh)
     books.sort(key=lambda b: b["title"].lower())
     return books
+
+
+def prune(cache, fresh):
+    """Covers of books gone from the library, and their converted copies once unopened for KEEP_DAYS
+    (a book opened from outside the library, or a library on an unplugged disk, keeps its copy a while)."""
+    covers = os.path.join(cache, "covers")
+    for name in os.listdir(covers):
+        if name[:16] not in fresh:
+            os.remove(os.path.join(covers, name))
+    now = time.time()
+    for name in os.listdir(cache):
+        p = os.path.join(cache, name)
+        try:
+            age = now - os.stat(p).st_mtime
+        except OSError:
+            continue
+        if re.fullmatch(r"[0-9a-f]{16}", name) and name not in fresh and age > KEEP_DAYS * 86400:
+            shutil.rmtree(p, ignore_errors=True)
+        elif name.startswith(".build-") and age > 86400:      # left by a conversion that was killed
+            shutil.rmtree(p, ignore_errors=True)
+
+
+def moved(books, progress_path):
+    """Positions are keyed by the book's path, so a moved or renamed book would start over. A book with no
+    position takes over the one of a book whose file is gone, with the same title and size (or, for positions
+    saved before sizes were, the same file name)."""
+    try:
+        with open(progress_path, encoding="utf-8") as f:
+            progress = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    gone = {k: e for k, e in progress.items()
+            if isinstance(e, dict) and e.get("path") and not os.path.exists(e["path"])}
+    out = {}
+    for b in books:
+        if b["id"] in progress:
+            continue
+        for k, e in gone.items():
+            if k not in out.values() and e.get("title") == b["title"] and (
+                    e["size"] == b["size"] if "size" in e
+                    else os.path.basename(e["path"]) == os.path.basename(b["path"])):
+                out[b["id"]] = k
+                break
+    return out
 
 
 def open_book(path, cache):
@@ -1013,6 +1072,7 @@ def open_book(path, cache):
     try:
         with open(os.path.join(outdir, "book.json"), encoding="utf-8") as f:
             if json.load(f).get("stamp") == st:
+                os.utime(outdir)        # last opened, for prune()
                 return outdir
     except (OSError, ValueError):
         pass
@@ -1104,12 +1164,14 @@ def search(bookdir, query):
 
 
 def main(argv):
-    if len(argv) != 4 or argv[1] not in ("scan", "open", "search"):
+    if not (len(argv) == 4 and argv[1] in ("scan", "open", "search") or len(argv) == 5 and argv[1] == "scan"):
         print(__doc__, file=sys.stderr)
         return 2
     try:
         if argv[1] == "scan":
-            print(json.dumps({"books": scan(argv[2], argv[3])}, ensure_ascii=False))
+            books = scan(argv[2], argv[3])
+            print(json.dumps({"books": books, "moved": moved(books, argv[4]) if len(argv) == 5 else {}},
+                             ensure_ascii=False))
         elif argv[1] == "open":
             print(json.dumps({"dir": open_book(argv[2], argv[3])}, ensure_ascii=False))
         else:

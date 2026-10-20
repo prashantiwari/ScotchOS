@@ -89,27 +89,44 @@ Scope {
     // ---- Library ----
     // Rescanned on every open; book.py caches metadata and covers, so only new or changed files are read.
     function scan() {
-        if (scanProc.running) return;
+        if (scanProc.running) { rescan = true; return; }
         scanning = true;
         scanProc.running = true;
     }
+    property bool rescan: false         // asked for while a scan was running (library_dir changed): run again after
+    onLibraryDirChanged: if (open) scan()
     Process {
         id: scanProc
         // mkdir: the state dir must exist before the first position is saved.
-        command: ["sh", "-c", 'mkdir -p "$1" && exec python3 "$2" scan "$3" "$4"', "sh",
-                  r.stateDir, r.helper, r.libraryDir, r.cacheDir]
+        command: ["sh", "-c", 'mkdir -p "$1" && exec python3 "$2" scan "$3" "$4" "$5"', "sh",
+                  r.stateDir, r.helper, r.libraryDir, r.cacheDir, progressFile.path]
         stdout: SplitParser {
             onRead: line => {
                 try {
                     const d = JSON.parse(line);
                     if (d.error) r.error = d.error;
-                    else r.books = d.books ?? [];
+                    else { r.books = d.books ?? []; r.adoptMoved(d.moved ?? {}); }
                 } catch (e) {
                     r.error = "Couldn't read the library.";
                 }
             }
         }
-        onExited: r.scanning = false
+        onExited: {
+            r.scanning = false;
+            if (r.rescan) { r.rescan = false; r.scan(); }
+        }
+    }
+    // A moved or renamed book gets a new id; book.py found the position it had under the old one.
+    function adoptMoved(moved) {
+        if (!progressLoaded) return;
+        let changed = false;
+        for (const [id, old] of Object.entries(moved)) {
+            if (progress[id] || !progress[old]) continue;
+            progress[id] = Object.assign({}, progress[old], { path: books.find(b => b.id === id)?.path ?? progress[old].path });
+            delete progress[old];
+            changed = true;
+        }
+        if (changed) { progressChanged(); saveProgress(); }
     }
 
     // ---- Opening a book: book.py converts it once into the cache, then book.json and one chapter are read ----
@@ -127,11 +144,13 @@ Scope {
         chapterHtml = "";
         bookId = b.id;
         openProc.path = b.path;
+        openProc.size = b.size ?? 0;
         openProc.running = true;
     }
     Process {
         id: openProc
         property string path
+        property real size                  // saved with the position, to know the book again once it's moved
         command: ["python3", r.helper, "open", path, r.cacheDir]
         stdout: SplitParser {
             onRead: line => {
@@ -295,7 +314,7 @@ Scope {
     }
     function touch() {
         const old = progress[bookId] ?? { chapter: 0, pos: 0, percent: 0 };
-        progress[bookId] = Object.assign({}, old, { path: openProc.path, title: book.title, opened: Date.now() });
+        progress[bookId] = Object.assign({}, old, { path: openProc.path, size: openProc.size, title: book.title, opened: Date.now() });
         progressChanged();
         saveTimer.restart();
     }

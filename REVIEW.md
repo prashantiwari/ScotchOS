@@ -21,13 +21,13 @@ Work through one phase per session. Start a fresh session with "do phase N of RE
 - [x] 1.4 Dashboard collector: restart backoff, and no restart when it was stopped on purpose
 - [x] 1.5 `scotchos enable/disable/toggle` reject names that aren't `[a-z][a-z0-9_]*`
 
-### Phase 2: e-reader data (`book.py`, `Reader.qml`; test with real books)
-- [ ] Prune the cache: converted books and covers whose id is gone from the library
-- [ ] Keep position and bookmarks when a book is moved or renamed
-- [ ] Guard `os.walk(followlinks=True)` against symlink cycles
-- [ ] Markdown images limited to the book's folder; `startswith(tmp + os.sep)` in `mobi_build`
-- [ ] Rescan when `library_dir` changes while the window is open
-- [ ] Re-layout on resize only rewrites image sizes when the chapter has images; debounce resizes
+### Phase 2: e-reader data (done 2026-10-21)
+- [x] Prune the cache: converted books and covers whose id is gone from the library
+- [x] Keep position and bookmarks when a book is moved or renamed
+- [x] Guard `os.walk(followlinks=True)` against symlink cycles
+- [x] Markdown images limited to the book's folder; `startswith(tmp + os.sep)` in `mobi_build`
+- [x] Rescan when `library_dir` changes while the window is open
+- [x] Re-layout on resize only rewrites image sizes when the chapter has images; debounce resizes
 
 ### Phase 3: small widget and tool fixes
 - [ ] Quote timer bound to `w.anyEmpty`

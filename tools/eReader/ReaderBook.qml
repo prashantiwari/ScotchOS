@@ -41,16 +41,31 @@ Item {
         hr { color: ${css(Qt.alpha(core.accent, 0.35))}; }
         td, th { padding: 4px; }
         </style>`
-    // Images keep their aspect ratio and fit inside the column and the page.
+    // Images keep their aspect ratio and fit inside the column and the page. Only chapters with images depend
+    // on the size, and only on the settled one: re-parsing a whole chapter on every step of a resize is slow.
     function fitImages(html) {
-        const maxW = te.width, maxH = Math.max(80, flick.height - 8);
+        const maxW = fitW || te.width, maxH = Math.max(80, (fitH || flick.height) - 8);
         return html.replace(/<img src="([^"]*)" width="(\d+)" height="(\d+)"/g, (m, src, w, h) => {
             const s = Math.min(1, maxW / w, maxH / h);
             return `<img src="${src}" width="${Math.floor(w * s)}" height="${Math.floor(h * s)}"`;
         });
     }
     readonly property string html: reader.chapterHtml
-        ? "<html><head>" + style + "</head><body>" + fitImages(reader.chapterHtml) + "</body></html>" : ""
+        ? "<html><head>" + style + "</head><body>"
+          + (reader.chapterHtml.includes("<img") ? fitImages(reader.chapterHtml) : reader.chapterHtml) + "</body></html>" : ""
+
+    // ---- Resizing: pages are counted again (and images fitted) once the size stops changing ----
+    property real fitW: 0
+    property real fitH: 0
+    Timer {
+        id: settle
+        interval: 150
+        onTriggered: {
+            v.fitW = te.width;
+            v.fitH = flick.height;
+            v.relayout();
+        }
+    }
 
     // ---- Laying out and placing the position ----
     // Every relayout (new chapter, size, font) recomputes the pages, then puts reader.pos (or the pending anchor,
@@ -210,15 +225,15 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         contentWidth: width
         contentHeight: te.height + (v.paged ? height : 0)
-        onHeightChanged: Qt.callLater(v.relayout)
+        onHeightChanged: settle.restart()
         onMovementEnded: if (!v.paged) v.scrolled()
 
         PageText {
             id: te
             width: flick.width
             onTextChanged: Qt.callLater(v.relayout)
-            onHeightChanged: Qt.callLater(v.relayout)
-            onWidthChanged: Qt.callLater(v.relayout)
+            onHeightChanged: settle.restart()
+            onWidthChanged: settle.restart()
         }
 
         // Scroll mode: at the end of the chapter, the way on.
