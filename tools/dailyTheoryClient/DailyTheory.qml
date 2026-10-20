@@ -89,6 +89,8 @@ Scope {
             const err = data?.error ?? (xhr.status === 0
                 ? { code: "network", message: "Couldn't reach " + t.server + " (offline, or it timed out)." }
                 : { code: "internal", message: "HTTP " + xhr.status });
+            // rate_limited carries Retry-After (seconds), which fail() turns into minutes.
+            if (err.code === "rate_limited") err.retry_after = parseInt(xhr.getResponseHeader("Retry-After")) || 0;
             if (err.code === "unauthorized" && t.token) t.forget();
             done(null, err);
         };
@@ -113,7 +115,8 @@ Scope {
             unauthorized: "The server didn't accept the saved token, so it was removed. Sign up again.",
             forbidden: "The server needs a registration key: set it in ScotchOS settings › Daily theory.",
             quota_exceeded: "You've had all " + (n ?? "your") + " for today.",
-            rate_limited: "Too many signups from here, try again later.",
+            rate_limited: "Too many signups from here, try again in "
+                          + (err.retry_after ? Math.max(1, Math.ceil(err.retry_after / 60)) + " min." : "a while."),
             generation_failed: "The server couldn't generate that right now.",
             upstream_unavailable: "The server's AI provider is busy or down.",
         })[err.code] ?? (err.code === "network" ? err.message : "Something went wrong (" + err.code + ").");

@@ -4,7 +4,7 @@ This is a handoff for anyone (or any AI chat) building a client app against the 
 Give it this file **and `docs/API.md`**. API.md is the authoritative contract: if this guide and API.md ever disagree, API.md wins.
 
 ## 1. What the server does
-dailyTheory serves short theories (≤200 words), each with sources and matched to the user's free-text interests. A user signs up with
+dailyTheory serves short theories (≤500 words), each with sources and matched to the user's free-text interests. A user signs up with
 interests plus a daily limit (1–10), gets a bearer token, and then asks for theories one at a time until the limit resets
 at 00:00 UTC. Theories never repeat, and the user can view their history.
 
@@ -12,10 +12,10 @@ at 00:00 UTC. Theories never repeat, and the user can view their history.
 | Endpoint | Available |
 |---|---|
 | `GET /healthz` | ✅ now (Phase 1) |
-| `GET /v1/topics`, `POST /v1/users`, `GET/PUT /v1/me`, `POST /v1/theories/next`, `GET /v1/theories` | ⏳ Phase 3 |
-| `429 rate_limited` on signup | ⏳ Phase 5 |
+| `GET /v1/topics`, `POST /v1/users`, `GET/PUT /v1/me`, `POST /v1/theories/next`, `GET /v1/theories` | ✅ Phase 3 |
+| `429 rate_limited` on signup (5 per hour per IP, `Retry-After` header) | ✅ Phase 5 |
 
-Until Phase 3 ships, build against a **mock** (§7). The shapes in API.md are frozen for v1. Any change will be recorded
+The mock (§7) is still handy for offline UI work. The shapes in API.md are frozen for v1. Any change will be recorded
 under "Contract changes" in `docs/PROGRESS.md`, so check that file when you sync.
 
 ## 3. Basics
@@ -46,7 +46,7 @@ type Source = { title: string; author: string; year: string; type: string }; // 
 type Reading = { title: string; author: string };
 type Theory = {
   id: string; title: string; originator: string; topic: string; subtopic: string;
-  theory: string;            // ≤200 words, plain text
+  theory: string;            // ≤500 words, plain text
   key_takeaway: string;
   sources: Source[];         // ≥1
   related: string[];
@@ -80,24 +80,33 @@ Every non-2xx response has the `ApiError` shape. Branch on `error.code`, not on 
 | `unauthorized` | Token invalid: clear it and go back to signup |
 | `forbidden` | Ask for, or fix, the registration key |
 | `quota_exceeded` | "You've had all N for today." Show a countdown to `resets_at` (converted to local time) |
-| `rate_limited` | "Too many signups, try again later" |
+| `rate_limited` | "Too many signups, try again in N minutes", with N from the `Retry-After` header (seconds) |
 | `generation_failed` / `upstream_unavailable` | "Couldn't generate right now," with a Retry button. **These don't use up quota** |
 | `internal`, network error, timeout | Generic error + Retry |
 
-## 7. Building before the server exists: the mock
-Use a mock that returns the example payloads from API.md. Options: a tiny local mock server (any language), MSW (web),
-or a fake `ApiClient` implementation behind an interface. Put a single `ApiClient` interface in the app, with one
-real implementation and one mock, so switching over is a config flag.
+## 7. Building before the server exists: the mock server
+The server repo includes `cmd/mockserver`, an in-memory fake of every endpoint in API.md. It needs only Go: no API key, no database, no network.
+```sh
+go run ./cmd/mockserver                          # :8080, ~3 s simulated LLM latency
+go run ./cmd/mockserver -addr :9000 -latency 0   # fast, for automated tests
+go run ./cmd/mockserver -fail-rate 0.3           # 30% of LLM-backed calls return 503 upstream_unavailable
+go run ./cmd/mockserver -registration-key secret # signup then requires X-Registration-Key: secret
+go run ./cmd/mockserver -cors=false              # match the real server (no CORS headers)
+```
+What it implements: the same validation rules (unknown fields → 400, 16 KiB limit, value ranges), JSON 404/405 responses with
+an `Allow` header, a real per-user quota with a UTC-midnight reset (failed calls don't count), history newest first,
+and theories that don't repeat (5 canned theories, then "(variant N)" titles). It derives the profile by splitting the interests on commas and "and".
+Restarting the mock wipes all users, so the app will then get `401` and should go back to signup.
 
-The mock should simulate:
-- 3–8 s of latency on `POST /v1/users`, `PUT /v1/me` (when interests change) and `POST /v1/theories/next`
-- the quota: count `/next` calls, return `429 quota_exceeded` with `resets_at` = next UTC midnight once `used == limit`
-- a different `title`/`id` on each `/next` call, with history returning the served theories newest first
-- occasional `503 upstream_unavailable`, to exercise the retry UI
-- `401` for a wrong token
+**Forcing any error:** send `X-Mock-Error: <code>` (e.g. `quota_exceeded`, `generation_failed`, `unauthorized`) on any request, and the mock
+returns that documented error with its proper status. Use it to build every error screen.
+
+Differences from the real server: CORS is **on** by default (the real one sends none), the content is canned, and no state is kept after exit.
+
+In the app, put a single `ApiClient` interface behind which both the mock and the real server sit; only the base URL changes.
 
 To check against the real server once Phase 3 lands: from the server repo, `scripts/with-server.sh` starts a
-throwaway server and exports `$SERVER`. You can also run `go run ./cmd/server`, which needs an OpenRouter key in its env.
+throwaway server and exports `$SERVER`. You can also run `go run ./cmd/server`, which needs a Gemini API key in its env.
 
 ## 8. Client requirements and tips
 - **Timeouts:** set ≥30 s for the three LLM-backed calls (the server's own LLM timeout is 60 s), 10 s for everything else.

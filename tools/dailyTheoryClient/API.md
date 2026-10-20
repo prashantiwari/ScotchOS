@@ -27,10 +27,11 @@ Every non-2xx response has this shape:
 | 405 | `method_not_allowed` | Wrong method on a known route |
 | 413 | `payload_too_large` | Body > 16 KiB |
 | 429 | `quota_exceeded` | Daily limit reached |
-| 429 | `rate_limited` | Too many requests from this IP (Phase 5, signup) |
+| 429 | `rate_limited` | Too many signups from this IP; `Retry-After` header gives the wait in seconds |
 | 502 | `generation_failed` | LLM answered but output unusable after retries |
-| 503 | `upstream_unavailable` | OpenRouter rate-limited/down/timeout after retries |
+| 503 | `upstream_unavailable` | Gemini API rate-limited/down/timeout after retries and model fallback |
 | 500 | `internal` | Anything else (details only in server logs) |
+| 499 | `client_closed` | Never seen by clients: logged when the client hung up before the answer |
 
 ---
 
@@ -77,7 +78,10 @@ Request:
   "updated_at": "2026-10-20T09:12:00Z"
 }
 ```
-Errors: `invalid_request`, `no_topics`, `forbidden`, `generation_failed`, `upstream_unavailable`.
+Errors: `invalid_request`, `no_topics`, `forbidden`, `rate_limited`, `generation_failed`, `upstream_unavailable`.
+
+Signups are limited to 5 per hour per client IP (every attempt counts, including rejected ones). Over the limit the
+answer is `429 rate_limited` with a `Retry-After` header (seconds until the next attempt is allowed).
 
 ## `GET /v1/me`
 Auth. Returns the user (without the token) plus the current quota.
@@ -114,7 +118,7 @@ Auth. No request body. Generates the next theory (~3–10s) and counts it agains
     "originator": "Epictetus",
     "topic": "Philosophy",
     "subtopic": "Stoicism",
-    "theory": "Epictetus, a former slave turned teacher, argued that ... (≤200 words)",
+    "theory": "Epictetus, a former slave turned teacher, argued that ... (≤500 words)",
     "key_takeaway": "Before reacting, ask: is this up to me? Put your energy only into what is.",
     "sources": [
       {"title": "Enchiridion", "author": "Epictetus (recorded by Arrian)", "year": "c. 125 CE", "type": "primary"},
@@ -123,7 +127,7 @@ Auth. No request body. Generates the next theory (~3–10s) and counts it agains
     "related": ["Amor fati", "Serenity Prayer", "Locus of control"],
     "further_reading": [{"title": "A Guide to the Good Life", "author": "William B. Irvine"}],
     "disclaimer": "AI-generated summary; verify sources before citing.",
-    "model": "provider/model-name:free",
+    "model": "gemini-3.5-flash-lite",
     "generated_at": "2026-10-20T09:15:31Z"
   },
   "quota": {"used": 3, "limit": 5, "resets_at": "2026-10-21T00:00:00Z"}

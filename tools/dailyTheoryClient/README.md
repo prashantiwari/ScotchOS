@@ -1,6 +1,6 @@
 # Daily Theory
 
-A window for a **dailyTheory** server, which serves short theories (≤ 200 words) with their sources, matched to interests you describe in your own words, up to a daily limit that resets at 00:00 UTC.
+A window for a **dailyTheory** server, which serves short theories (≤ 500 words) with their sources, matched to interests you describe in your own words, up to a daily limit that resets at 00:00 UTC.
 
 Open it from **rofi** (or any app launcher): type `theory` and pick **Daily Theory**. Or from a terminal: `scotchos theory` (toggles it). Esc closes it.
 
@@ -9,6 +9,7 @@ Open it from **rofi** (or any app launcher): type `theory` and pick **Daily Theo
 - **History**: every theory you've had, newest first. Click one to read it again.
 - **Interests**: change your interests or daily limit (changing interests keeps your history), see the profile the server derived from them, and **Forget token**, which is the "log out".
 - The sidebar shows today's quota (`used / limit`) and when it resets, in local time. Once it's used up, Next is disabled and a countdown shows instead.
+- Signup is limited by the server to 5 per hour per IP; over that, the banner says how many minutes to wait (from the `Retry-After` header).
 - When something fails, a banner says what happened. **Retry** appears where trying again can help (the server or its AI provider failing, or the network), and it never retries on its own: each try can cost the server's shared free-tier LLM quota.
 
 Switch it off with `scotchos disable dailytheory`: the window and its state are unloaded, and the launcher entry does nothing.
@@ -45,8 +46,8 @@ It also uses `Stepper.qml` from [`settings/`](../../settings/README.md) for the 
 | Hyprland | `hyprland` | 0.56.2 | Floats the window because it has a fixed size (min = max), no window rule needed |
 | coreutils, sh | `coreutils` | 9.12 | Writing the token file (`umask 077`, `mkdir`, `cat`, `mv`) and deleting it (`rm`) |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and icons |
-| A dailyTheory server | — | API v1 (mock server from the dailyTheory repo, 2026-10-20) | Everything shown |
-| Go (only to run the mock) | `go` | 1.27.1 | `go run ./cmd/mockserver` |
+| A dailyTheory server | — | API v1 (real server from the dailyTheory repo, 2026-10-20) | Everything shown |
+| Go (only to run the server or the mock) | `go` | 1.27.1 | `go run ./cmd/server`, `go run ./cmd/mockserver` |
 
 ## Changes made to the system
 
@@ -67,7 +68,14 @@ scotchos theory open                               # or: tools/dailyTheoryClient
 qs ipc -p ~/Projects/ScotchOS call dailytheory close
 ```
 
-A mock server to try it against, from the dailyTheory repo (in-memory, so restarting it forgets every user and the client goes back to signup):
+The server (needs a Gemini key in its `.env`, see the dailyTheory README), from the dailyTheory repo:
+
+```bash
+cd ~/Projects/dailyTheory
+go run ./cmd/server                                # :8080
+```
+
+For offline UI work there is also a mock (in-memory, so restarting it forgets every user and the client goes back to signup; stop it before starting the server, both use :8080):
 
 ```bash
 cd ~/Projects/dailyTheory
@@ -86,7 +94,7 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 | Token location | `tokenPath` in `DailyTheory.qml` | `~/.local/state/scotchos/dailytheory-token` |
 | Timeouts | `call()` in `DailyTheory.qml` | 65 s for signup, interest changes and Next (the server's own LLM timeout is 60 s); 10 s for the rest |
 | History length | `refresh()` in `DailyTheory.qml` (`/v1/theories?limit=`) | 50 (the API allows 1–100) |
-| Error wording | `fail()` in `DailyTheory.qml` | One line per API error code |
+| Error wording | `fail()` in `DailyTheory.qml` | One line per API error code (`rate_limited` adds the wait from `Retry-After`) |
 | Window size | `implicitWidth` / `implicitHeight` in `DailyTheoryWindow.qml` | 860 × 580 (fits the laptop's 1280 × 720) |
 | Launcher name, icon | `scotchos-dailytheory.desktop`, then re-run `install.sh` | Daily Theory, `accessories-dictionary` |
 
