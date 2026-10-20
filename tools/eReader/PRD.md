@@ -134,7 +134,7 @@ The position in the book survives all of these: it's stored as a character offse
 |---|---|---|
 | `quickshell` | The windows | yes |
 | `python` (3.x) | `book.py` | yes |
-| `python-mobi` (AUR) | MOBI / AZW3 text | only for those formats. Without it, opening one shows `yay -S python-mobi` |
+| `python-mobi` (AUR), or `pipx install mobi` (its venv is found in `~/.local/share/pipx`) | MOBI / AZW3 text | only for those formats. Without it, opening one shows how to install it |
 | A serif font (`ttf-dejavu`, `noto-fonts`…) | Book text | recommended |
 
 ## Acceptance criteria

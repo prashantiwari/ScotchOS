@@ -18,7 +18,7 @@ check rofi     rofi       "app launcher entries (optional)"
 check jq       jq         "launcher: YouTube search"
 check curl     curl       "launcher: YouTube first video"
 check brave    brave-bin  "launcher: YouTube search (AUR)"
-python3 -c "import mobi" 2>/dev/null || echo "  optional: python-mobi (AUR) for MOBI / AZW3 books in the e-reader"
+python3 -c "import mobi" 2>/dev/null || [[ -d ~/.local/share/pipx/venvs/mobi ]] || echo "  optional: python-mobi (AUR) for MOBI / AZW3 books in the e-reader"
 fc-list | grep -qi "JetBrainsMono Nerd" && ok "JetBrainsMono Nerd Font" ||
     { warn "JetBrainsMono Nerd Font missing"; missing+=(ttf-jetbrains-mono-nerd); }
 if ((${#missing[@]})); then

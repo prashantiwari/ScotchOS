@@ -5,7 +5,7 @@
   book.py open <file> <cache_dir>          converts once into <cache_dir>/<id>/, prints {"dir": ...}
 
 Errors are printed as {"error": "..."} with exit code 0, so the shell can show them.
-Stdlib only; MOBI/AZW3 text needs the `mobi` package (AUR python-mobi).
+Stdlib only; MOBI/AZW3 text needs the `mobi` package (AUR python-mobi, or `pipx install mobi`).
 """
 import base64
 import hashlib
@@ -23,7 +23,7 @@ import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import unquote, urlsplit
 
-VERSION = 2                     # bump to rebuild every cached book after a converter change
+VERSION = 3                     # bump to rebuild every cached book after a converter change
 SPLIT = 100_000                 # a chapter over this many bytes of HTML is split between blocks
 MARK = "\u2060"                 # invisible marker standing where an element id was (QML finds anchors by it)
 FORMATS = (".epub", ".mobi", ".azw3", ".azw", ".fb2", ".fb2.zip", ".txt", ".md", ".markdown")
@@ -510,23 +510,29 @@ def epub_build(path, outdir, meta_override=None):
         ncx = manifest.get(toc_id, {}).get("href") or next(
             (v["href"] for v in manifest.values() if v["type"] == "application/x-dtbncx+xml"), None)
         if not toc and ncx and zread(z, ncx):
-            base = posixpath.dirname(ncx)
-
-            def walk(node, level):
-                for e in node:
-                    if local(e.tag) != "navPoint":
-                        continue
-                    label = next((t.text or "" for t in e.iter() if local(t.tag) == "text"), "")
-                    src = next((c.get("src", "") for c in e if local(c.tag) == "content"), "")
-                    parts = urlsplit(src)
-                    toc.append((level, " ".join(label.split()),
-                                posixpath.normpath(posixpath.join(base, unquote(parts.path))), parts.fragment))
-                    walk(e, level + 1)
-
-            navmap = next((e for e in ET.fromstring(zread(z, ncx)).iter() if local(e.tag) == "navMap"), None)
-            if navmap is not None:
-                walk(navmap, 1)
+            toc = parse_ncx(zread(z, ncx), posixpath.dirname(ncx))
     b.finish(meta, toc)
+
+
+def parse_ncx(data, base):
+    """An NCX navMap as [(level, title, document path, fragment)]."""
+    toc = []
+
+    def walk(node, level):
+        for e in node:
+            if local(e.tag) != "navPoint":
+                continue
+            label = next((t.text or "" for t in e.iter() if local(t.tag) == "text"), "")
+            src = next((c.get("src", "") for c in e if local(c.tag) == "content"), "")
+            parts = urlsplit(src)
+            toc.append((level, " ".join(label.split()),
+                        posixpath.normpath(posixpath.join(base, unquote(parts.path))), parts.fragment))
+            walk(e, level + 1)
+
+    navmap = next((e for e in ET.fromstring(data).iter() if local(e.tag) == "navMap"), None)
+    if navmap is not None:
+        walk(navmap, 1)
+    return toc
 
 
 # ---- MOBI / AZW3 headers (stdlib): metadata, cover, DRM ----
@@ -569,14 +575,32 @@ def mobi_headers(path):
     return meta, cover, encrypted
 
 
+def import_mobi():
+    """The mobi package: installed for this Python, or in a pipx venv (`pipx install mobi`) built on the same version."""
+    try:
+        import mobi
+        return mobi
+    except ImportError:
+        pass
+    pipx = os.environ.get("PIPX_HOME") or os.path.expanduser("~/.local/share/pipx")
+    site = os.path.join(pipx, "venvs", "mobi", "lib", f"python{sys.version_info[0]}.{sys.version_info[1]}", "site-packages")
+    if not os.path.isdir(site):
+        return None
+    sys.path.append(site)
+    try:
+        import mobi
+        return mobi
+    except ImportError:
+        return None
+
+
 def mobi_build(path, outdir):
     meta, _, encrypted = mobi_headers(path)
     if encrypted:
         raise BookError("This book is DRM-protected.")
-    try:
-        import mobi
-    except ImportError:
-        raise BookError("MOBI/AZW3 needs the mobi library: yay -S python-mobi")
+    mobi = import_mobi()
+    if not mobi:
+        raise BookError("MOBI/AZW3 needs the mobi library: yay -S python-mobi (or pipx install mobi)")
     tmp, out = mobi.extract(path)
     try:
         if out.lower().endswith(".epub"):
@@ -601,7 +625,13 @@ def mobi_build(path, outdir):
 
         with open(out, "rb") as f:
             b.add("book", decode(f.read()), img, link)
-        b.finish(meta, [])
+        # KindleUnpack writes a toc.ncx beside it, pointing at book.html#filepos…
+        toc = []
+        ncx = os.path.join(base, "toc.ncx")
+        if os.path.isfile(ncx):
+            with open(ncx, "rb") as f:
+                toc = [(lv, t, "book", frag) for lv, t, _, frag in parse_ncx(f.read(), "")]
+        b.finish(meta, toc)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
