@@ -20,7 +20,7 @@ Keep context small: read only what these steps name.
    - `todo` or `in progress`: say that phase isn't finished and stop.
    - If **this** phase is already `done` or `approved`, say so and ask whether to redo or extend it before changing anything.
 
-3. **Start.** Set this phase's status to `in progress`. Read the previous phase's Handoff lines, then the files under "Read first", and no others until a task needs them.
+3. **Start.** If the phase's **Model** line names a different model from the one you are, tell the user in one line (they switch with `/model`) and ask whether to go on anyway. Mention its effort once too: you can't see the effort setting. Then set this phase's status to `in progress`. Read the previous phase's Handoff lines, then the files under "Read first", and no others until a task needs them.
 
 4. **Work** through the tasks in order. Tick each `- [ ]` as it's done. If a task turns out much bigger than the phase allows, or needs a decision the plan doesn't make, ask the user rather than guessing. Anything outside the repo: ask first (CLAUDE.md).
 

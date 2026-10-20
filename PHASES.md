@@ -11,20 +11,24 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 - **Resource rules** from CLAUDE.md apply to everything. For anything that runs while the desktop is shown, write down `scotchos status` and `top -p <pid>` before and after.
 - Anything outside the repo (Hyprland config, `~/.local/share/…`): ask first, as CLAUDE.md says.
 
-| Phase | What | Size |
-|---|---|---|
-| 1 | Launcher: remembers picks, matches commands and initials | S |
-| 2 | Dashboard: disk and battery | M |
-| 3 | Claude usage notification; settings window reset and open buttons | M |
-| 4 | E-reader: continue reading, bookmark export, converter leftovers | M |
-| 5 | E-reader: highlights and notes | L |
-| 6 | `scotchos doctor --fix`; `enable`/`disable` keep the comment column | S |
+| Phase | What | Size | Model | Effort |
+|---|---|---|---|---|
+| 1 | Launcher: remembers picks, matches commands and initials | S | Sonnet 5.5 | medium |
+| 2 | Dashboard: disk and battery | M | Sonnet 5.5 | medium |
+| 3 | Claude usage notification; settings window reset and open buttons | M | Sonnet 5.5 | medium |
+| 4 | E-reader: continue reading, bookmark export, converter leftovers | M | Opus 5.5 | medium |
+| 5 | E-reader: highlights and notes | L | Opus 5.5 | high |
+| 6 | `scotchos doctor --fix`; `enable`/`disable` keep the comment column | S | Sonnet 5.5 | medium |
+
+**Model and effort:** pick them with `/model` before typing `/start-phase N`. Sonnet is enough where the work is clear and the code is small; Opus is for `book.py`'s HTML handling (4) and the highlight design in Qt rich text (5), where a wrong choice costs a redo. Haiku isn't recommended: every phase touches several files that must stay in step (conf, settings window, README, doctor). Low effort tends to skip the docs and checks at the end of a phase, so none of the phases use it. If a phase stalls on a hard bug, switch up a step (Sonnet → Opus, or medium → high) in the same chat rather than starting over.
 
 ---
 
 ## Phase 1: Launcher remembers what you pick
 
 **Status:** todo
+
+**Model:** Sonnet 5.5, medium effort (small, clear task; the scoring is plain JS with tests).
 
 **Goal:** apps you launch often rise in the list; typing part of the command (`code`) or the initials (`vsc` → Visual Studio Code) finds an app.
 
@@ -50,6 +54,8 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 **Status:** todo
 
+**Model:** Sonnet 5.5, medium effort (`/sys` reads and a card layout; the care is in measuring CPU before and after).
+
 **Goal:** the system dashboard also shows root filesystem use, and on a laptop the battery level, charging state and power draw.
 
 **Read first:** `widgets/systemDashboard/stats.py` (247), `widgets/systemDashboard/DashboardWidget.qml` (103), `widgets/systemDashboard/README.md`. `Dashboard.qml` (398) for the layout once you know what data you have.
@@ -72,6 +78,8 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 **Status:** todo
 
+**Model:** Sonnet 5.5, medium effort (two small features following existing patterns (`setConf`, `Process`)).
+
 **Goal:** a desktop notification when a Claude usage limit crosses `warn` (the card is only seen on an empty workspace), and in the settings window a "Reset to default" button per setting and an "Open scotchos.conf" button.
 
 **Read first:** `widgets/claudeUsage/ClaudeUsageWidget.qml` (167), `common/conf.js`, `settings/SettingsWindow.qml` (326). READMEs of `widgets/claudeUsage` and `settings` when updating them.
@@ -93,6 +101,8 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 ## Phase 4: E-reader continue reading, bookmark export, converter leftovers
 
 **Status:** todo
+
+**Model:** Opus 5.5, medium effort (`book.py`'s sanitizer is easy to break in ways the fixtures only partly catch).
 
 **Goal:** a launcher entry "Continue reading <title>" that opens the last book where you left off; bookmarks exported to Markdown; two converter fixes left over from the review.
 
@@ -117,6 +127,8 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 
 **Status:** todo
 
+**Model:** Opus 5.5, high effort (the spike decides the design; selection, pagination and storage have to fit together).
+
 **Goal:** select text in a book, keep it as a highlight with an optional note, see the highlights in the text and in a side panel list, and jump to them. They're stored next to bookmarks and exported with them.
 
 **Read first:** phase 4's Handoff, `tools/eReader/ReaderBook.qml` (330: the read-only `TextEdit`, `selectByMouse: false`, pagination, how a search match is found again), `tools/eReader/Reader.qml` around the bookmarks (lines ~360–380). `ReaderPanel.qml` when adding the list.
@@ -139,6 +151,8 @@ The features picked from `REVIEW.md` section 6 (launcher providers and now-playi
 ## Phase 6: `scotchos doctor --fix`; enable/disable keep the comment column
 
 **Status:** todo
+
+**Model:** Sonnet 5.5, medium effort (shell and awk, with tests to check against).
 
 **Goal:** doctor fixes the mechanical gaps it finds itself; `scotchos enable/disable` keep a line's comment column like the settings window does.
 
