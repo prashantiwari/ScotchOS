@@ -6,7 +6,7 @@ It shows:
 
 - **The track:** album art (or a music note when there's none), title, artist and album, and which app is playing it, with a ▶ or ⏸ for its state.
 - **Progress:** a bar with the position and length. It hides itself for players that don't report a length, such as some live streams.
-- **Visualizer:** 32 bars from cava that move with the sound. They go flat and faded when the music pauses.
+- **Visualizer:** 32 translucent bars from cava behind the album art and text, moving with the sound. They go flat and faded when the music pauses.
 
 ## Where the music can come from
 
@@ -32,6 +32,8 @@ The `[nowplaying]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`
 | `position` | `top-left`, `top`, `top-right`, `left`, `center`, `right`, `bottom-left`, `bottom`, `bottom-right` | `right` |
 | `margin_x`, `margin_y` | Gap in px from the edges the card touches | `20` / `20` |
 | `show_paused` | `yes` keeps the card while paused, `no` shows it only while playing | `yes` |
+| `layout` | `card`: album art, track details, progress bar and visualizer; `radial`: only the album art in a wavy circle, with the visualizer as 64 rays around it (cava's 32 bars, mirrored left and right) | `card` |
+| `visualizer` | `middle`: bars mirrored around the middle of the art row; `bar`: bars rising from the top of the progress bar. Both sit behind the art and text, translucent. `card` layout only | `middle` |
 
 When nothing is playing or paused (no player, or a player with no track), the card disappears.
 
@@ -40,7 +42,8 @@ When nothing is playing or paused (no player, or a player with no track), the ca
 | File | What it does |
 |---|---|
 | `NowPlayingWidget.qml` | Reads `[nowplaying]`, picks the player, runs cava, and creates one desktop-layer panel per screen. |
-| `MediaCard.qml` | The card: header, album art, track details, progress bar and visualizer bars. |
+| `MediaCard.qml` | The `card` layout: header, album art, track details, progress bar and visualizer bars. |
+| `RadialCard.qml` | The `radial` layout: album art masked to a wavy circle, with the visualizer as rays around it. |
 | `cava.conf` | cava's settings: 32 bars, 30 frames per second, PipeWire input, raw text output. |
 | `README.md` | This file. |
 
@@ -87,7 +90,7 @@ Changes to `cava.conf` also apply the next time cava starts, which is whenever m
 | Number of bars | `bars` in `cava.conf` **and** `barCount` in `NowPlayingWidget.qml` (they must match) | 32 |
 | Visualizer smoothness | `framerate` in `cava.conf` | 30 fps |
 | Card width | `contentWidth` in `MediaCard.qml` | 340 px |
-| Visualizer height | the `viz` row's `height` in `MediaCard.qml` | 56 px |
+| Visualizer height | the `viz` row's `height` in `MediaCard.qml` | 88 px (`middle`) / 56 px (`bar`) |
 | Album art size | the `ClippingRectangle` in `MediaCard.qml` (`88`, also used for the text column's width) | 88 px |
 | Transparency | `Qt.alpha(shell.bg, 0.78)` in `MediaCard.qml` | 78 % opaque |
 | Which screens | `Variants { model: Quickshell.screens }` in `NowPlayingWidget.qml` | All screens |

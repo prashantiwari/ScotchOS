@@ -12,6 +12,10 @@ DesktopWidget {
     // ---- Settings ----
     readonly property string place: placeSetting("right")
     readonly property bool showPaused: flag("show_paused", true)
+    // card: art, details, progress and bars; radial: only the art in a wavy circle with rays around it.
+    readonly property string layout: str("layout", "card", ["card", "radial"])
+    // middle: bars mirrored around the art row; bar: bars rising from the progress bar.
+    readonly property string visualizer: str("visualizer", "middle", ["middle", "bar"])
 
     // ---- The player to show ----
     // The one playing right now; when it pauses, it stays the choice until another one plays
@@ -77,9 +81,12 @@ DesktopWidget {
             implicitWidth: card.width
             implicitHeight: card.height
 
-            MediaCard {
+            // The card for the current `layout`; the other one isn't created.
+            Loader {
                 id: card
-                shell: w
+                sourceComponent: w.layout === "radial" ? radialCard : mediaCard
+                Component { id: mediaCard; MediaCard { shell: w } }
+                Component { id: radialCard; RadialCard { shell: w } }
             }
         }
     }

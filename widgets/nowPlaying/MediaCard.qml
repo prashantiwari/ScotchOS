@@ -15,6 +15,36 @@ Rectangle {
     color: Qt.alpha(shell.bg, 0.78)
     border { width: 1; color: Qt.alpha(shell.accent, 0.35) }
 
+    // Visualizer: cava's bars behind the art and text, so it adds no height: mirrored around the middle of
+    // the art row (`middle`), or rising from the top of the progress bar (`bar`).
+    // Flat and faded while paused.
+    Row {
+        id: viz
+        readonly property bool middle: card.shell.visualizer === "middle"
+        readonly property real barWidth: (width - spacing * (card.shell.barCount - 1)) / card.shell.barCount
+        x: content.x
+        y: middle ? content.y + track.y + (track.height - height) / 2
+                  : content.y + (progress.visible ? progress.y : content.implicitHeight) - height
+        width: content.width
+        height: middle ? 88 : 56
+        spacing: 3
+        opacity: card.playing ? 0.45 : 0.2
+
+        // A fixed model, so the bars are reused and only their heights change each frame.
+        Repeater {
+            model: card.shell.barCount
+            Rectangle {
+                required property int index
+                readonly property real level: (card.shell.bars[index] ?? 0) / 100
+                y: viz.middle ? (viz.height - height) / 2 : viz.height - height
+                width: viz.barWidth
+                height: Math.max(3, viz.height * level)
+                radius: Math.min(2, width / 2)
+                color: Qt.alpha(card.shell.accent, 0.45 + 0.55 * level)
+            }
+        }
+    }
+
     Column {
         id: content
         x: 20; y: 20
@@ -40,6 +70,7 @@ Rectangle {
 
         // Album art and track details
         Row {
+            id: track
             width: parent.width
             spacing: 14
 
@@ -100,6 +131,7 @@ Rectangle {
 
         // Progress: hidden for players that don't report a length (some live streams)
         Column {
+            id: progress
             readonly property bool known: card.p !== null && card.p.lengthSupported && card.p.length > 0
             visible: known
             width: parent.width
@@ -133,28 +165,5 @@ Rectangle {
             }
         }
 
-        // Visualizer: cava's bars, growing up from the bottom. Flat and faded while paused.
-        Row {
-            id: viz
-            readonly property real barWidth: (width - spacing * (card.shell.barCount - 1)) / card.shell.barCount
-            width: parent.width
-            height: 56
-            spacing: 3
-            opacity: card.playing ? 1 : 0.35
-
-            // A fixed model, so the bars are reused and only their heights change each frame.
-            Repeater {
-                model: card.shell.barCount
-                Rectangle {
-                    required property int index
-                    readonly property real level: (card.shell.bars[index] ?? 0) / 100
-                    anchors.bottom: parent.bottom
-                    width: viz.barWidth
-                    height: Math.max(3, viz.height * level)
-                    radius: Math.min(2, width / 2)
-                    color: Qt.alpha(card.shell.accent, 0.45 + 0.55 * level)
-                }
-            }
-        }
     }
 }

@@ -28,6 +28,8 @@ FloatingWindow {
               { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
               { key: "show_paused", label: "Show while paused", type: "flag", def: "yes" },
+              { key: "layout", label: "Layout", type: "choice", options: ["card", "radial"], def: "card" },
+              { key: "visualizer", label: "Visualizer", type: "choice", options: ["middle", "bar"], def: "middle" },
           ] },
         { key: "quote", name: "Hourly quote", kind: "widget", icon: "\u{F027E}",
           about: "A new quote from the web at a set interval.",
