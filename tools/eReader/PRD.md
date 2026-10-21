@@ -11,7 +11,7 @@ Status: v1, 2026-10-20.
 - Text in the theme's colors, with the font, size, column width and line spacing adjustable live and remembered.
 - **Pages** (Kindle-style) or **continuous scroll**, a setting that a key also toggles.
 - A **table of contents** to jump around.
-- **Floating window** by default, **F** for a distraction-free fullscreen.
+- **A tiled window on an empty workspace** by default, **F** for a distraction-free fullscreen.
 - Remember the position in every book, and reopen where you left off.
 - Cost nothing while closed: no processes, no timers.
 
@@ -71,7 +71,7 @@ There's no keybind of its own (no change to `hyprland.lua`).
 | `W` | Page layout: one column → full width → two pages side by side (pages mode only) |
 | `A` | Fonts and text panel: the installed fonts, each shown in its own face, plus size, spacing and layout |
 | `J` | Justified ↔ ragged-right text |
-| `F` | Floating ↔ fullscreen |
+| `F` | Window ↔ fullscreen |
 
 The position in the book survives all of these: it's stored as a character offset, not a page number.
 
@@ -102,7 +102,7 @@ The position in the book survives all of these: it's stored as a character offse
 |---|---|
 | `book.py` (Python 3, stdlib only, plus `mobi` for MOBI text) | `scan`: library metadata and covers, cached. `open`: converts a book once into cleaned, theme-free HTML chapters plus a `book.json` (title, author, chapters, TOC, anchors) in the cache. `search`: matches in a converted book, as (chapter, n-th match in it, context). |
 | `Reader.qml` (Scope) | Loaded while `reader` is on. Holds the `reader` IPC target, the library list, the open book, the reading positions, and runs `book.py`. The window is a `LazyLoader` inside it. |
-| `ReaderWindow.qml` / `ReaderFullscreen.qml` | The floating `FloatingWindow` and the fullscreen overlay `PanelWindow` (exclusive keyboard focus). Both hold the same `ReaderContent`. |
+| `ReaderWindow.qml` / `ReaderFullscreen.qml` | The tiled `FloatingWindow` and the fullscreen overlay `PanelWindow` (exclusive keyboard focus). Both hold the same `ReaderContent`. |
 | `ReaderContent.qml` | Keys, and switching between library, book and TOC. |
 | `ReaderLibrary.qml`, `ReaderBook.qml`, `ReaderPanel.qml` | The library, the book, and the side panel (contents, bookmarks, search). |
 

@@ -2,6 +2,7 @@
 // it runs nothing until the window opens, and keeps the open book while the window switches to fullscreen and back.
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 
 Scope {
@@ -46,7 +47,17 @@ Scope {
     // `shown` follows `open` but only after `screen` is set, so the window never starts on the old one.
     property var screen: null
     property bool shown: false
-    function setFullscreen(on) { screen = core.focusedScreen(); fullscreen = on; }
+    function setFullscreen(on) {
+        if (!on) toEmptyWorkspace();
+        screen = core.focusedScreen();
+        fullscreen = on;
+    }
+    // The window opens on the focused workspace: when that one has windows, go to the next empty one on the same
+    // monitor first, so the reader gets a workspace of its own instead of squeezing in with them.
+    function toEmptyWorkspace() {
+        if ((Hyprland.focusedWorkspace?.toplevels.values.length ?? 0) > 0)
+            Hyprland.dispatch('hl.dsp.focus({workspace = "emptynm"})');
+    }
     property string view: "library"     // library / book
     property string panel: ""           // the side panel shown: "" (none), contents, bookmarks, highlights, search, text
     property var books: []
@@ -87,6 +98,7 @@ Scope {
 
     onOpenChanged: {
         if (open) {
+            toEmptyWorkspace();
             screen = core.focusedScreen();
             shown = true;
             scan();

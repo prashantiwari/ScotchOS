@@ -1,4 +1,4 @@
-// The floating reader window: ~70 % × 85 % of the focused screen. Created only while open and not fullscreen.
+// The reader window, tiled on its own workspace (Reader picks an empty one). Created only while open and not fullscreen.
 import QtQuick
 import Quickshell
 
@@ -7,11 +7,9 @@ FloatingWindow {
     required property var reader
     readonly property var scr: reader.screen
 
-    // A fixed size makes Hyprland float the window, like the settings window.
-    implicitWidth: Math.round(Math.max(760, scr.width * 0.7))
-    implicitHeight: Math.round(Math.max(540, scr.height * 0.85))
-    minimumSize: Qt.size(implicitWidth, implicitHeight)
-    maximumSize: Qt.size(implicitWidth, implicitHeight)
+    // No fixed size, so Hyprland tiles it: alone on its workspace, it fills the screen.
+    implicitWidth: Math.round(scr.width * 0.7)
+    implicitHeight: Math.round(scr.height * 0.85)
     title: "E-reader"
     color: reader.core.bg
     onClosed: if (!reader.fullscreen) reader.open = false
