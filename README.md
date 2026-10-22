@@ -8,6 +8,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 | [`nowplaying`](widgets/nowPlaying/README.md) | Widget | The current track (any MPRIS player) with album art, progress and a cava visualizer |
 | [`quote`](widgets/hourlyQuote/README.md) | Widget | A new quote from the web every hour |
 | [`claudeusage`](widgets/claudeUsage/README.md) | Widget | Claude plan usage: the 5-hour and 7-day limits with reset countdowns, fetched at login and every 30 min, plus the Claude Code sessions open in terminals |
+| [`weather`](widgets/weather/README.md) | Widget | Current weather, the next 24 hours as a temperature curve with rain chance, and the coming days, from Open-Meteo |
 | [`settings`](settings/README.md) | Window | `scotchos settings`: a floating window to switch everything on and off and change positions, margins and the rest |
 | [`launcher`](tools/launcher/README.md) | Tool | A Spotlight-style box: apps, YouTube search and ScotchOS commands in one input; Tab locks a keyword (`yt`, `>`) in as a chip |
 | [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their linked sources matched to your interests, a daily quota and history |

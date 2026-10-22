@@ -52,6 +52,18 @@ FloatingWindow {
               { key: "sessions", label: "Terminal sessions", type: "flag", def: "yes" },
               { key: "refresh", label: "Usage", type: "action", text: "Refresh now", action: "refresh" },
           ] },
+        { key: "weather", name: "Weather", kind: "widget", icon: "\u{F0590}",
+          about: "Current conditions, the next 24 hours and the coming days, from Open-Meteo (no key needed).",
+          settings: [
+              { key: "location", label: "Location", type: "text", def: "auto", placeholder: "auto, a city, or lat,lon" },
+              { key: "units", label: "Units", type: "choice", options: ["metric", "imperial"], def: "metric" },
+              { key: "days", label: "Days shown", type: "number", def: 5, min: 3, max: 7, step: 1, unit: "" },
+              { key: "show_hourly", label: "24-hour curve", type: "flag", def: "yes" },
+              { key: "position", label: "Position", type: "position", def: "top" },
+              { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "interval", label: "Fetch every", type: "number", def: 30, min: 10, max: 1440, step: 5, unit: "min" },
+          ] },
         { key: "launcher", name: "Launcher", kind: "tool", icon: "\u{F0349}",
           about: "One box for apps, YouTube search and ScotchOS commands. Type a keyword (yt, >) and press Tab to lock it in, or just type to search apps.",
           settings: [
