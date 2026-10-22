@@ -34,6 +34,7 @@ The `[nowplaying]` section of `~/.config/scotchos/scotchos.conf` (defaults in [`
 | `show_paused` | `yes` keeps the card while paused, `no` shows it only while playing | `yes` |
 | `layout` | `card`: album art, track details, progress bar and visualizer; `radial`: only the album art in a wavy circle, with the visualizer as 64 rays around it (cava's 32 bars, mirrored left and right) | `card` |
 | `visualizer` | `middle`: bars mirrored around the middle of the art row; `bar`: bars rising from the top of the progress bar. Both sit behind the art and text, translucent. `card` layout only | `middle` |
+| `radial_size` | Size of the `radial` layout in % of its base size (310 px across, art 180 px): 50 – 160. Everything scales together; a slider in `scotchos settings` | `100` |
 
 When nothing is playing or paused (no player, or a player with no track), the card disappears.
 

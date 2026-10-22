@@ -9,15 +9,17 @@ Item {
     readonly property var p: shell.player
     readonly property bool playing: shell.isPlaying
 
-    // ---- Geometry ----
-    readonly property real artRadius: 90
-    readonly property real waveDepth: 5         // how far the edge bumps in and out
+    // ---- Geometry (base sizes times the radial_size setting) ----
+    readonly property real k: shell.radialScale
+    readonly property real artRadius: 90 * k
+    readonly property real waveDepth: 5 * k     // how far the edge bumps in and out
     readonly property int waves: 10             // bumps around the edge
-    readonly property real rayGap: 10           // between the edge's outermost bump and the rays
-    readonly property real rayMin: 6
-    readonly property real rayMax: 46
+    readonly property real rayGap: 10 * k       // between the edge's outermost bump and the rays
+    readonly property real rayMin: 6 * k
+    readonly property real rayMax: 46 * k
+    readonly property real rayWidth: Math.max(2, 3 * k)
     readonly property int rays: shell.barCount * 2   // cava's bars on the right, mirrored on the left
-    readonly property real center: artRadius + waveDepth + rayGap + rayMax + 4
+    readonly property real center: artRadius + waveDepth + rayGap + rayMax + 4 * k
 
     width: center * 2
     height: center * 2
@@ -44,9 +46,9 @@ Item {
             opacity: card.playing ? 1 : 0.35
 
             Rectangle {
-                width: 3
+                width: card.rayWidth
                 height: card.rayMin + (card.rayMax - card.rayMin) * parent.level
-                radius: 1.5
+                radius: width / 2
                 x: card.center - width / 2
                 y: card.center - card.artRadius - card.waveDepth - card.rayGap - height
                 color: Qt.alpha(card.shell.accent, 0.55 + 0.45 * parent.level)
@@ -76,7 +78,7 @@ Item {
             visible: art.status !== Image.Ready
             text: ""
             color: card.shell.dim
-            font { family: card.shell.font; pixelSize: 48 }
+            font { family: card.shell.font; pixelSize: Math.round(48 * card.k) }
         }
 
         Image {
@@ -84,7 +86,8 @@ Item {
             anchors.fill: parent
             visible: false   // drawn through the mask below
             source: card.p ? card.p.trackArtUrl : ""
-            sourceSize { width: 380; height: 380 }   // 2x, sharp on scaled screens without holding a full-size cover
+            // 2x, sharp on scaled screens without holding a full-size cover.
+            sourceSize { width: Math.round(blob.width * 2); height: Math.round(blob.width * 2) }
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
         }

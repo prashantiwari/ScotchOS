@@ -2,14 +2,13 @@
 // written to ~/.config/scotchos/scotchos.conf right away, so the desktop widgets update while you click.
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 FloatingWindow {
     id: win
     required property var core
 
     // ---- What can be set, per widget / tool ----
-    // Each setting: key in the item's [section], label, type (choice / position / number / flag / text), default.
+    // Each setting: key in the item's [section], label, type (choice / position / number / slider / flag / text), default.
     readonly property var items: [
         { key: "dashboard", name: "Dashboard", kind: "widget", icon: "\u{F056E}",
           about: "CPU, RAM and temperature rings, 60 s graphs, GPU, disk, battery and top processes.",
@@ -30,6 +29,7 @@ FloatingWindow {
               { key: "show_paused", label: "Show while paused", type: "flag", def: "yes" },
               { key: "layout", label: "Layout", type: "choice", options: ["card", "radial"], def: "card" },
               { key: "visualizer", label: "Visualizer", type: "choice", options: ["middle", "bar"], def: "middle" },
+              { key: "radial_size", label: "Radial size", type: "slider", def: 100, min: 50, max: 160, step: 5, unit: "%" },
           ] },
         { key: "quote", name: "Hourly quote", kind: "widget", icon: "\u{F027E}",
           about: "A new quote from the web at a set interval.",
@@ -92,6 +92,12 @@ FloatingWindow {
         function onSettingsKeyChanged() { win.takeKey() }
     }
     readonly property var item: items.find(i => i.key === selected)
+    // A new item's settings start at the top, and its row scrolls into view (rows are 48 px + 6 spacing).
+    onSelectedChanged: {
+        details.contentY = 0;
+        const y = items.findIndex(i => i.key === selected) * 54;
+        list.contentY = Math.max(Math.min(list.contentY, y), y + 48 - list.height);
+    }
 
     function value(section, s) { return core.conf[section]?.[s.key] ?? String(s.def) }
 
@@ -116,119 +122,119 @@ FloatingWindow {
             height: parent.height
             color: Qt.alpha(win.core.fg, 0.04)
 
-            Column {
-                anchors.fill: parent
+            Text {
+                id: brand
+                anchors.left: parent.left
+                anchors.top: parent.top
                 anchors.margins: 16
-                spacing: 6
+                text: "\u{F0493}  SCOTCHOS"
+                color: win.core.accent
+                font.family: win.core.font
+                font.pixelSize: 14
+                font.bold: true
+            }
 
-                Text {
-                    text: "\u{F0493}  SCOTCHOS"
-                    color: win.core.accent
-                    font.family: win.core.font
-                    font.pixelSize: 14
-                    font.bold: true
-                    bottomPadding: 10
-                }
+            // Scrolls once the list outgrows the window; the header stays put.
+            Flickable {
+                id: list
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: brand.bottom
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                anchors.topMargin: 16
+                anchors.bottomMargin: 16
+                contentHeight: rows.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
 
-                Repeater {
-                    model: win.items
+                Column {
+                    id: rows
+                    width: parent.width
+                    spacing: 6
 
-                    Rectangle {
-                        id: row
-                        required property var modelData
-                        readonly property bool current: modelData.key === win.selected
-                        readonly property bool on: win.core.enabled(modelData.key)
-                        width: parent.width
-                        height: 48
-                        radius: 12
-                        color: current ? Qt.alpha(win.core.accent, 0.18) : (area.containsMouse ? Qt.alpha(win.core.fg, 0.06) : "transparent")
-                        border.width: current ? 1 : 0
-                        border.color: Qt.alpha(win.core.accent, 0.35)
+                    Repeater {
+                        model: win.items
 
-                        MouseArea {
-                            id: area
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: win.selected = row.modelData.key
-                        }
+                        Rectangle {
+                            id: row
+                            required property var modelData
+                            readonly property bool current: modelData.key === win.selected
+                            readonly property bool on: win.core.enabled(modelData.key)
+                            width: parent.width
+                            height: 48
+                            radius: 12
+                            color: current ? Qt.alpha(win.core.accent, 0.18) : (area.containsMouse ? Qt.alpha(win.core.fg, 0.06) : "transparent")
+                            border.width: current ? 1 : 0
+                            border.color: Qt.alpha(win.core.accent, 0.35)
 
-                        Text {
-                            id: icon
-                            anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 22
-                            text: row.modelData.icon
-                            color: row.on ? win.core.accent : win.core.dim
-                            font.family: win.core.font
-                            font.pixelSize: 18
-                        }
-                        Column {
-                            anchors.left: icon.right
-                            anchors.leftMargin: 8
-                            anchors.right: toggle.left
-                            anchors.rightMargin: 8
-                            anchors.verticalCenter: parent.verticalCenter
-                            Text {
-                                width: parent.width
-                                text: row.modelData.name
-                                elide: Text.ElideRight
-                                color: win.core.fg
-                                font.family: win.core.font
-                                font.pixelSize: 13
+                            MouseArea {
+                                id: area
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: win.selected = row.modelData.key
                             }
+
                             Text {
-                                text: row.modelData.kind + " · " + (row.on ? "on" : "off")
-                                color: win.core.dim
+                                id: icon
+                                anchors.left: parent.left
+                                anchors.leftMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 22
+                                text: row.modelData.icon
+                                color: row.on ? win.core.accent : win.core.dim
                                 font.family: win.core.font
-                                font.pixelSize: 10
+                                font.pixelSize: 18
                             }
-                        }
-                        Toggle {
-                            id: toggle
-                            anchors.right: parent.right
-                            anchors.rightMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            shell: win.core
-                            on: row.on
-                            onToggled: win.core.setConf("enabled", row.modelData.key, row.on ? "no" : "yes")
+                            Column {
+                                anchors.left: icon.right
+                                anchors.leftMargin: 8
+                                anchors.right: toggle.left
+                                anchors.rightMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text {
+                                    width: parent.width
+                                    text: row.modelData.name
+                                    elide: Text.ElideRight
+                                    color: win.core.fg
+                                    font.family: win.core.font
+                                    font.pixelSize: 13
+                                }
+                                Text {
+                                    text: row.modelData.kind + " · " + (row.on ? "on" : "off")
+                                    color: win.core.dim
+                                    font.family: win.core.font
+                                    font.pixelSize: 10
+                                }
+                            }
+                            Toggle {
+                                id: toggle
+                                anchors.right: parent.right
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                shell: win.core
+                                on: row.on
+                                onToggled: win.core.setConf("enabled", row.modelData.key, row.on ? "no" : "yes")
+                            }
                         }
                     }
                 }
             }
-
-            // Opens the file in the default editor, for what the window doesn't cover.
-            Choice {
-                anchors.left: parent.left
-                anchors.bottom: footer.top
-                anchors.leftMargin: 16
-                anchors.bottomMargin: 10
+            Scrollbar {
+                anchors.left: list.right
+                anchors.leftMargin: 6
+                anchors.top: list.top
+                anchors.bottom: list.bottom
                 shell: win.core
-                options: ["Open scotchos.conf"]
-                onPicked: openConf.running = true
-            }
-            Process {
-                id: openConf
-                command: ["xdg-open", win.core.confPath]
-            }
-
-            Text {
-                id: footer
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: 16
-                text: "Saved to " + win.core.confPath.replace(Quickshell.env("HOME"), "~") + " as you click.\nEsc closes."
-                wrapMode: Text.WordWrap
-                color: win.core.dim
-                font.family: win.core.font
-                font.pixelSize: 10
+                flick: list
             }
         }
 
         // ---- The selected item's settings ----
         Flickable {
+            id: details
             anchors.left: sidebar.right
             anchors.right: parent.right
             anchors.top: parent.top
@@ -313,7 +319,7 @@ FloatingWindow {
                             }
                         }
                         Loader {
-                            sourceComponent: ({ choice: choice, position: position, number: number, flag: flag, text: textField, action: action })[setting.modelData.type]
+                            sourceComponent: ({ choice: choice, position: position, number: number, slider: slider, flag: flag, text: textField, action: action })[setting.modelData.type]
 
                             Component {
                                 id: choice
@@ -337,6 +343,18 @@ FloatingWindow {
                             Component {
                                 id: number
                                 Stepper {
+                                    shell: win.core
+                                    value: parseInt(setting.current) || 0
+                                    min: setting.modelData.min
+                                    max: setting.modelData.max
+                                    step: setting.modelData.step
+                                    unit: setting.modelData.unit
+                                    onEdited: v => setting.save(v)
+                                }
+                            }
+                            Component {
+                                id: slider
+                                Slider {
                                     shell: win.core
                                     value: parseInt(setting.current) || 0
                                     min: setting.modelData.min
@@ -377,6 +395,14 @@ FloatingWindow {
                     }
                 }
             }
+        }
+        Scrollbar {
+            anchors.left: details.right
+            anchors.leftMargin: 10
+            anchors.top: details.top
+            anchors.bottom: details.bottom
+            shell: win.core
+            flick: details
         }
     }
 }

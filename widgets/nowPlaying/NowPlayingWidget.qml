@@ -16,6 +16,8 @@ DesktopWidget {
     readonly property string layout: str("layout", "card", ["card", "radial"])
     // middle: bars mirrored around the art row; bar: bars rising from the progress bar.
     readonly property string visualizer: str("visualizer", "middle", ["middle", "bar"])
+    // Radial layout's scale in percent of its base size (art 180 px across), kept to what fits a 720 px screen.
+    readonly property real radialScale: Math.max(50, Math.min(160, num("radial_size", 100))) / 100
 
     // ---- The player to show ----
     // The one playing right now; when it pauses, it stays the choice until another one plays

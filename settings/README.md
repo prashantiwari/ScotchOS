@@ -14,10 +14,7 @@ Esc or closing the window (Super+Q, etc.) closes it too.
 
 It has none of its own and no switch in `[enabled]`: it's always available, and costs nothing while closed (it's only created when opened). What it shows for each widget and tool is the `items` list at the top of `SettingsWindow.qml`.
 
-Two buttons besides the settings themselves:
-
-- **reset** next to a setting's name, shown only when `scotchos.conf` has that key with a value different from the default. It removes the line (`removeConf` in `shell.qml`), so the widget's own fallback applies.
-- **Open scotchos.conf** in the sidebar: `xdg-open` on the file, for what the window doesn't cover.
+Besides the settings themselves, **reset** next to a setting's name, shown only when `scotchos.conf` has that key with a value different from the default. It removes the line (`removeConf` in `shell.qml`), so the widget's own fallback applies.
 
 ## Files in this folder
 
@@ -28,7 +25,9 @@ Two buttons besides the settings themselves:
 | `Choice.qml` | A row of buttons, one per option. |
 | `PositionGrid.qml` | The 3 × 3 position picker (plus `auto` for the dashboard). |
 | `Stepper.qml` | A number with − / + buttons; you can also type it and press Enter. |
+| `Slider.qml` | A number on a track (drag or click), snapped to `step`; saved on each step while dragging, so the widget resizes live. |
 | `Field.qml` | A line of text (a URL, a key), saved on Enter or when it loses focus; `secret` hides it while not being edited. |
+| `Scrollbar.qml` | Thin draggable scrollbar for the sidebar list and the settings pane, shown only when they overflow. |
 | `scotchos-settings.desktop` | The app launcher entry; `install.sh` copies it to `~/.local/share/applications/` with the real path in `Exec`. |
 | `README.md` | This file. |
 
@@ -41,7 +40,6 @@ Writing the conf is done by `setConf()` in [`shell.qml`](../shell.qml).
 | Quickshell | `quickshell` | 0.3.2 | The window (`FloatingWindow`), `qs ipc` to open it |
 | Hyprland | `hyprland` | 0.56.2 | Floats the window because it has a fixed size (min = max), no window rule needed |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Font and icons |
-| xdg-utils | `xdg-utils` | 1.2.1-2 | `xdg-open`, for the Open scotchos.conf button |
 
 ## Changes made to the system
 
