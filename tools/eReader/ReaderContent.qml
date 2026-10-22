@@ -7,6 +7,12 @@ Item {
     required property var reader
     readonly property var core: reader.core
     focus: true
+    property bool peek: false               // the panel was opened by the mouse on the left edge (see Sidebar)
+    property bool keysShown: false          // the list of keys (? or F1)
+    Connections {
+        target: c.reader
+        function onPanelChanged() { if (c.reader.panel === "") c.peek = false }
+    }
 
     // ---- Keys ----
     Keys.onPressed: event => event.accepted = handle(event)
@@ -14,6 +20,9 @@ Item {
     function handle(event) {
         const r = reader;
         const k = event.key;
+        // The list of keys: any key closes it; F1 opens it anywhere, ? in the book (elsewhere it's typed).
+        if (keysShown) { keysShown = false; return true; }
+        if (k === Qt.Key_F1 && r.noting < 0) { keysShown = true; return true; }
         if (k === Qt.Key_Q && r.view === "book" && !r.panel) { r.open = false; return true; }
         if (r.view === "library") {
             if (k === Qt.Key_Escape && !library.item?.filter) r.open = false;
@@ -22,6 +31,8 @@ Item {
             return true;
         }
         if (r.panel) {
+            // A key in a panel opened from the edge keeps it open after the mouse leaves.
+            c.peek = false;
             // A note being typed takes every key, Esc too.
             if (r.noting >= 0) return panelLoader.item?.key(event) ?? false;
             // T, M, Shift+H and A open their tab, or close the panel when it's already showing (in search and text they're typed).
@@ -52,6 +63,7 @@ Item {
         else if (k === Qt.Key_T) r.panel = "contents";
         else if (k === Qt.Key_M) r.panel = "bookmarks";
         else if (k === Qt.Key_B) r.toggleBookmark(bookView.snippet());
+        else if (k === Qt.Key_Question) keysShown = true;
         else if (k === Qt.Key_Slash) r.panel = "search";
         else if (k === Qt.Key_A) r.panel = "text";
         else if (k === Qt.Key_W) r.cyclePageLayout(shift ? -1 : 1);
@@ -158,5 +170,41 @@ Item {
             width: Math.min(360, parent.width - 24)
             sourceComponent: ReaderPanel { reader: c.reader }
         }
+
+        // ---- Sidebar: resting the mouse on the left edge shows the contents ----
+        // Opened this way, it closes again once the mouse has left it (and the edge) for a moment.
+        MouseArea {
+            id: edge
+            anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+            width: 16
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton    // clicks still turn pages and close the panel
+        }
+        // A short rest first, so the mouse passing over the edge doesn't open it.
+        Timer {
+            interval: 200
+            running: edge.containsMouse && c.reader.panel === "" && !c.reader.loading
+            onTriggered: { c.reader.panel = "contents"; c.peek = true }
+        }
+        Timer {
+            interval: 400
+            running: c.peek && !edge.containsMouse && !(panelLoader.item?.hovered ?? true)
+            onTriggered: c.reader.panel = ""
+        }
+    }
+
+    // ---- Keys: every key on one card, over the library or the book ----
+    MouseArea {
+        anchors.fill: parent
+        visible: c.keysShown
+        onClicked: c.keysShown = false
+        onWheel: wheel => wheel.accepted = true
+    }
+    Loader {
+        active: c.keysShown
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 48, 3 * 300 + 2 * 28 + 48)
+        height: Math.min(parent.height - 48, item?.implicitHeight ?? 0)
+        sourceComponent: ReaderKeys { core: c.core }
     }
 }

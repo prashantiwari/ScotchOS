@@ -181,6 +181,7 @@ ShellRoot {
 
     // ---- Settings window: `scotchos settings` (qs ipc call settings toggle); exists only while open ----
     property bool settingsOpen: false
+    property string settingsKey: ""     // item to show when it opens (or now, if open), e.g. the reader's "All settings"
     IpcHandler {
         target: "settings"
         function open(): void { root.settingsOpen = true }

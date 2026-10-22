@@ -1,5 +1,5 @@
-// The side panel over the left of the book: the contents (T), the bookmarks (M), the highlights (Shift+H), a search (/)
-// or the text look (A), Tab switches. Enter or a click jumps; in bookmarks and highlights, Delete (or the ×) removes
+// The side panel over the left of the book: the contents (T, or the mouse resting on the left edge), the bookmarks (M),
+// the highlights (Shift+H), a search (/) or the settings (A, the gear), Tab switches. Enter or a click jumps; in bookmarks and highlights, Delete (or the ×) removes
 // one and E (or the export icon) writes them all to a Markdown file, and in highlights N types the note (Enter keeps
 // it, Esc doesn't); in search, typing edits the query and Enter runs it; in text, typing filters the fonts and Enter
 // picks one. Esc closes it.
@@ -15,7 +15,7 @@ Rectangle {
         { mode: "bookmarks", label: "\u{F00C0}  BOOKMARKS" },
         { mode: "highlights", label: "\u{F0652}  HIGHLIGHTS" },
         { mode: "search", label: "\u{F0349}  SEARCH" },
-        { mode: "text", label: "Aa" }
+        { mode: "text", label: "\u{F0493}  SETTINGS" }
     ]
     readonly property bool searchMode: mode === "search"
     readonly property bool textMode: mode === "text"
@@ -55,6 +55,12 @@ Rectangle {
         : reader.searched ? "No matches."
         : "Type words to find, then Enter. Later, n and N go to the next and previous match."
     function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") }
+
+    // Over the panel or anything in it: ReaderContent closes a panel opened from the edge once the mouse leaves.
+    readonly property bool hovered: hover.hovered
+    HoverHandler { id: hover }
+    // Slides in from the left edge once, when opened.
+    NumberAnimation on x { from: -400; to: 0; duration: 140; easing.type: Easing.OutCubic }
 
     color: Qt.alpha(core.bg, 0.97)
     border.width: 1
@@ -186,7 +192,7 @@ Rectangle {
             Text {
                 required property var modelData
                 // Only the open tab shows its name, so all five fit.
-                text: modelData.mode === panel.mode || modelData.label.length < 4 ? modelData.label : modelData.label.split(" ")[0]
+                text: modelData.mode === panel.mode ? modelData.label : modelData.label.split(" ")[0]
                 color: modelData.mode === panel.mode ? panel.core.accent : panel.core.dim
                 font.family: panel.core.font
                 font.pixelSize: 11
@@ -275,6 +281,12 @@ Rectangle {
                     onPicked: panel.reader.set("page_layout", modelData.v)
                 }
             }
+        }
+        // What isn't here (library folder, time left…) is in the ScotchOS settings window.
+        Row {
+            spacing: 14
+            Caption { text: "MORE" }
+            Chip { text: "All settings  \u{F03CC}"; onPicked: panel.reader.openSettings() }
         }
         Text {
             width: parent.width

@@ -52,6 +52,14 @@ Scope {
         screen = core.focusedScreen();
         fullscreen = on;
     }
+    // "All settings" in the settings tab: the ScotchOS settings window on the E-reader. It's a normal window,
+    // which the fullscreen layer would cover, so fullscreen ends first.
+    function openSettings() {
+        if (fullscreen) setFullscreen(false);
+        panel = "";
+        core.settingsKey = "reader";
+        core.settingsOpen = true;
+    }
     // The window opens on the focused workspace: when that one has windows, go to the next empty one on the same
     // monitor first, so the reader gets a workspace of its own instead of squeezing in with them.
     function toEmptyWorkspace() {

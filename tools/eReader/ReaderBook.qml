@@ -1,5 +1,6 @@
 // The open chapter: one read-only TextEdit in a Flickable. In pages mode the Flickable doesn't move by itself:
-// contentY jumps to the top of the page and a curtain hides the line the page's bottom edge would cut.
+// contentY jumps to the top of the page (or a line further, with ↑ ↓) and a curtain hides the line the page's
+// bottom edge would cut.
 // Two pages side by side add a second TextEdit with the same text and width, showing the next page.
 import QtQuick
 
@@ -18,13 +19,22 @@ Item {
         : spread ? Math.min(reader.columnWidth, (width - gap) / 2) : Math.min(reader.columnWidth, width)
 
     // ---- Pagination ----
+    // `starts` cuts the chapter into whole pages: they give the page count and number, and jumps show one of them.
+    // The page shown starts at `pageTop`, which ↑ ↓ move a line at a time; ← → then turn whole pages from there.
     property var starts: [0]            // y of each page's first line
-    property int page: 0                // the page shown (with two pages: the left one, always even)
+    property real pageTop: 0            // y of the first line shown
+    property real leftEnd: 0            // where the page shown ends (and the right page starts)
+    property real rightEnd: 0           // where the right page ends (two pages)
+    // The page holding `pageTop` (with two pages: the left one, always even), or the last one once the end shows.
+    readonly property int page: {
+        let i = 0;
+        if ((spread ? rightEnd : leftEnd) >= te.height - 1) i = starts.length - 1;
+        else while (i + 1 < starts.length && starts[i + 1] <= pageTop + 1) i++;
+        return i - i % step;
+    }
     readonly property int pageCount: starts.length
     readonly property int step: spread ? 2 : 1
-    readonly property bool hasRight: spread && page + 1 < starts.length
-    function endOf(i) { return i + 1 < starts.length ? starts[i + 1] : te.height }
-    readonly property real pageEnd: endOf(page)
+    readonly property bool hasRight: spread && leftEnd < te.height - 1
     readonly property real frac: te.length ? reader.pos / te.length : 0
 
     // ---- Rich text: the chapter with a stylesheet made from the theme and the reader settings ----
@@ -118,8 +128,7 @@ Item {
         if (paged) {
             let i = 0;
             while (i + 1 < starts.length && starts[i + 1] <= y + 1) i++;
-            page = i - i % step;
-            flick.contentY = starts[page];      // the left page (with two pages, `i` may be the right one)
+            place(starts[i - i % step]);        // the left page (with two pages, `i` may be the right one)
             reader.probe = seen();
             if (report) reader.report(p, te.length ? p / te.length : 0, reader.probe);
         } else {
@@ -130,9 +139,9 @@ Item {
     }
     // After every move: the last character on screen (which bookmark is on this page), and the one in the middle.
     function seen() {
-        const top = flick.contentY, bottom = paged ? endOf(hasRight ? page + 1 : page) : top + flick.height;
+        const y = flick.contentY, bottom = paged ? (hasRight ? rightEnd : leftEnd) : y + flick.height;
         reader.posEnd = te.positionAt(te.width - 1, Math.min(te.height, bottom) - 1);
-        return te.positionAt(1, top + Math.min(bottom - top, flick.height) / 2);
+        return te.positionAt(1, y + Math.min(bottom - y, flick.height) / 2);
     }
     // The start of the first line shown, cut at a word, for a bookmark's label.
     function snippet() {
@@ -239,28 +248,60 @@ Item {
         return true;
     }
 
-    // The next page starts at the top of the line the bottom edge cuts; a line (or image) taller than the page
-    // is cut where the page ends.
+    // Where a page starting at y ends: the next page starts at the top of the line the bottom edge cuts; a line
+    // (or image) taller than the page is cut where the page ends.
+    function cut(y) {
+        const bottom = y + flick.height;
+        if (bottom >= te.height) return te.height;
+        const r = te.positionToRectangle(te.positionAt(1, bottom));
+        const next = r.y < bottom && r.y + r.height > bottom ? r.y : bottom;
+        return next <= y + 1 ? bottom : next;
+    }
     function paginate() {
-        const H = flick.height, total = te.height;
         const out = [0];
-        let y = 0;
-        while (y + H < total && out.length < 10000) {
-            const bottom = y + H;
-            const r = te.positionToRectangle(te.positionAt(1, bottom));
-            let next = r.y < bottom && r.y + r.height > bottom ? r.y : bottom;
-            if (next <= y + 1) next = bottom;
-            out.push(next);
-            y = next;
-        }
+        for (let y = 0; y + flick.height < te.height && out.length < 10000; out.push(y)) y = cut(y);
         starts = out;
     }
-    function setPage(i) {
-        page = Math.max(0, Math.min(starts.length - 1, i));
-        page -= page % step;
-        flick.contentY = starts[page];
-        const p = te.positionAt(1, starts[page] + 1);
+    // The top of the line after (or before) the one at y. Between paragraphs positionAt may answer with the line on
+    // either side of the gap, so they probe on, 2 px at a time, until the line changes.
+    function lineAfter(y) {
+        const r = te.positionToRectangle(te.positionAt(1, y + 1));
+        for (let probe = Math.max(y + 1, r.y + r.height); probe < te.height; probe += 2) {
+            const n = te.positionToRectangle(te.positionAt(1, probe)).y;
+            if (n > y + 0.5) return n;
+        }
+        return y;
+    }
+    function lineBefore(y) {
+        for (let probe = y - 1; probe > 0; probe -= 2) {
+            const n = te.positionToRectangle(te.positionAt(1, probe)).y;
+            if (n < y - 0.5) return Math.max(0, n);
+        }
+        return 0;
+    }
+    // The top of the page before the one at y: its first whole line at most a page above.
+    function pageBefore(y) {
+        const from = y - flick.height;
+        if (from <= 0) return 0;
+        const r = te.positionToRectangle(te.positionAt(1, from));
+        const t = r.y >= from - 0.5 ? r.y : lineAfter(r.y);
+        return t < y ? t : from;
+    }
+    // Shows the page starting at y (and the right page after it); setTop also saves it as the position.
+    function place(y) {
+        pageTop = y;
+        leftEnd = cut(y);
+        rightEnd = spread ? cut(leftEnd) : leftEnd;
+        flick.contentY = y;
+    }
+    function setTop(y) {
+        place(y);
+        const p = te.positionAt(1, y + 1);
         reader.report(p, te.length ? p / te.length : 0, seen());
+    }
+    function setPage(i) {
+        i = Math.max(0, Math.min(starts.length - 1, i));
+        setTop(starts[i - i % step]);
     }
     function scrolled() {
         const p = te.positionAt(1, flick.contentY + 1);
@@ -270,7 +311,8 @@ Item {
     function next() {
         deselect();
         if (paged) {
-            if (page + step < starts.length) setPage(page + step);
+            const end = spread ? rightEnd : leftEnd;
+            if (end < te.height - 1) setTop(end);
             else reader.nextChapter();
         } else if (flick.contentY + flick.height >= te.height - 2) {
             reader.nextChapter();
@@ -282,8 +324,11 @@ Item {
     function prev() {
         deselect();
         if (paged) {
-            if (page > 0) setPage(page - step);
-            else reader.prevChapter();
+            // On a page of `starts`, the one before it; after ↑ ↓, a page (or two) above the first line.
+            const i = starts.indexOf(pageTop);
+            if (pageTop <= 0) reader.prevChapter();
+            else if (i > 0) setPage(i - step);
+            else setTop(spread ? pageBefore(pageBefore(pageTop)) : pageBefore(pageTop));
         } else if (flick.contentY <= 0) {
             reader.prevChapter();
         } else {
@@ -291,10 +336,15 @@ Item {
             scrolled();
         }
     }
-    // Arrow keys in scroll mode: about two lines.
+    // Arrow keys in scroll mode: about two lines. In pages mode they move the page by one line, and stop at the
+    // chapter's ends (like scrolling): ← → and Space go on to the next chapter.
     function lineStep() { return Math.round(fs * reader.lineHeight / 100) * 2 }
     function scrollBy(dy) {
-        if (paged) return dy > 0 ? next() : prev();
+        if (paged) {
+            if (dy > 0 && (spread ? rightEnd : leftEnd) < te.height - 1) setTop(lineAfter(pageTop));
+            else if (dy < 0 && pageTop > 0) setTop(lineBefore(pageTop));
+            return;
+        }
         flick.contentY = Math.max(0, Math.min(Math.max(0, te.height - flick.height), flick.contentY + dy));
         scrolled();
     }
@@ -379,7 +429,7 @@ Item {
     Rectangle {
         visible: v.paged
         x: flick.x
-        y: v.pageEnd - v.starts[v.page]
+        y: v.leftEnd - v.pageTop
         width: flick.width
         height: Math.max(0, parent.height - y)
         color: v.core.bg
@@ -401,7 +451,7 @@ Item {
                 interactive: false
                 contentWidth: width
                 contentHeight: te2.height + height
-                contentY: v.hasRight ? v.starts[v.page + 1] : 0
+                contentY: v.hasRight ? v.leftEnd : 0
                 Boxes {}
                 PageText {
                     id: te2
@@ -410,7 +460,7 @@ Item {
             }
             Rectangle {
                 visible: v.hasRight
-                y: v.hasRight ? v.endOf(v.page + 1) - v.starts[v.page + 1] : 0
+                y: v.hasRight ? v.rightEnd - v.leftEnd : 0
                 width: parent.width
                 height: Math.max(0, parent.height - y)
                 color: v.core.bg
@@ -418,7 +468,7 @@ Item {
         }
     }
 
-    // ---- Mouse: links, page turns (click a side third, or the wheel), selecting (drag) ----
+    // ---- Mouse: links, page turns (click a side third), scrolling (the wheel), selecting (drag) ----
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -431,9 +481,10 @@ Item {
         function charAt(x, y) {
             const p = mapToItem(te, x, y);
             const left = !v.hasRight || p.x < te.width + v.gap / 2;
-            const t = left ? te : right.item.text, i = left ? v.page : v.page + 1;
+            const t = left ? te : right.item.text;
+            const from = left ? v.pageTop : v.leftEnd, to = left ? v.leftEnd : v.rightEnd;
             const q = left ? p : mapToItem(t, x, y);
-            const ty = v.paged ? Math.max(v.starts[i], Math.min(v.endOf(i) - 1, q.y)) : q.y;
+            const ty = v.paged ? Math.max(from, Math.min(to - 1, q.y)) : q.y;
             return t.positionAt(Math.max(0, Math.min(t.width - 1, q.x)), ty);
         }
         onPressed: mouse => {
@@ -443,10 +494,10 @@ Item {
         }
         // The link under the mouse on the left page (or the scrolled column), else on the right page.
         function linkAt(x, y) {
-            for (const [t, i] of [[te, v.page], [right.item?.text, v.page + 1]]) {
+            for (const [t, from, to] of [[te, v.pageTop, v.leftEnd], [right.item?.text, v.leftEnd, v.rightEnd]]) {
                 if (!t || (t !== te && !v.hasRight)) continue;
                 const p = mapToItem(t, x, y);
-                if (p.x >= 0 && p.x < t.width && (!v.paged || (p.y >= v.starts[i] && p.y < v.endOf(i)))) return t.linkAt(p.x, p.y);
+                if (p.x >= 0 && p.x < t.width && (!v.paged || (p.y >= from && p.y < to))) return t.linkAt(p.x, p.y);
             }
             return "";
         }
@@ -476,12 +527,9 @@ Item {
                 v.scrollBy(-wheel.angleDelta.y / 120 * v.lineStep() * 1.5);
                 return;
             }
-            // One page per notch; touchpads send many small deltas, so they're summed first.
+            // Three lines per notch, like scroll mode; touchpads send many small deltas, so they're summed first.
             wheelSum += wheel.angleDelta.y;
-            if (Math.abs(wheelSum) >= 120) {
-                wheelSum > 0 ? v.prev() : v.next();
-                wheelSum = 0;
-            }
+            for (; Math.abs(wheelSum) >= 40; wheelSum -= Math.sign(wheelSum) * 40) v.scrollBy(-wheelSum);
         }
     }
 }

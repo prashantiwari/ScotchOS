@@ -79,6 +79,17 @@ FloatingWindow {
           ] },
     ]
     property string selected: items[0].key
+    // Asked to show one item (core.settingsKey): select it, then clear the request so the next open starts as usual.
+    function takeKey() {
+        if (!core.settingsKey) return;
+        if (items.some(i => i.key === core.settingsKey)) selected = core.settingsKey;
+        core.settingsKey = "";
+    }
+    Component.onCompleted: takeKey()
+    Connections {
+        target: win.core
+        function onSettingsKeyChanged() { win.takeKey() }
+    }
     readonly property var item: items.find(i => i.key === selected)
 
     function value(section, s) { return core.conf[section]?.[s.key] ?? String(s.def) }
