@@ -1,5 +1,6 @@
 // ScotchOS Claude Usage: the Claude plan's 5-hour and 7-day limits, as /usage shows them, on every screen.
 import QtQuick
+import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Io
 import "../../common"
@@ -15,6 +16,7 @@ DesktopWidget {
     readonly property int intervalMin: Math.max(5, num("interval", 30))
     readonly property int warn: Math.min(100, Math.max(1, num("warn", 80)))
     readonly property bool notify: flag("notify", true)
+    readonly property bool showSessions: flag("sessions", true)
 
     // ---- Usage ----
     // { fiveHour: { pct, resetsAt }, sevenDay: { pct, resetsAt } }, resetsAt in ms since epoch. Kept in
@@ -180,13 +182,79 @@ DesktopWidget {
     onWarnChanged: checkNotify()
     onNotifyChanged: checkNotify()
 
+    // ---- Claude Code sessions open in terminals ----
+    // Each running Claude Code keeps ~/.claude/sessions/<pid>.json up to date (name, cwd, busy/idle) and
+    // deletes it on exit, so watching that folder needs no polling. Only `interactive` ones are terminals.
+    // [{ pid, name, cwd, status, since }], oldest first.
+    property var sessions: []
+    readonly property string home: Quickshell.env("HOME")
+    readonly property int busyCount: sessions.filter(s => s.status === "busy").length
+
+    function collectSessions() {
+        const list = [];
+        for (let i = 0; i < sessionViews.count; i++) {
+            const v = sessionViews.objectAt(i);
+            const s = v?.info;
+            if (!s || !v.alive || s.kind !== "interactive") continue;
+            list.push({ pid: s.pid, name: s.name || "claude", cwd: s.cwd ?? "", status: s.status ?? "",
+                        since: s.statusUpdatedAt ?? 0, startedAt: s.startedAt ?? 0 });
+        }
+        list.sort((a, b) => a.startedAt - b.startedAt);
+        if (JSON.stringify(list) !== JSON.stringify(sessions)) sessions = list;
+    }
+
+    FolderListModel {
+        id: sessionFiles
+        // Empty while hidden, so nothing is watched or parsed then.
+        folder: w.showSessions && w.anyEmpty ? "file://" + w.home + "/.claude/sessions" : ""
+        nameFilters: ["*.json"]
+        showDirs: false
+    }
+
+    Instantiator {
+        id: sessionViews
+        model: sessionFiles
+        onObjectAdded: w.collectSessions()
+        onObjectRemoved: w.collectSessions()
+
+        delegate: FileView {
+            id: sf
+            required property string filePath
+            property var info: null
+            // A crashed session leaves its file behind, and its pid may be reused: the process must exist
+            // and have the start time (field 22 of /proc/<pid>/stat) the file recorded.
+            property bool alive: false
+            readonly property FileView stat: FileView {
+                path: sf.info?.pid ? "/proc/" + sf.info.pid + "/stat" : ""
+                onLoaded: {
+                    const f = text().slice(text().lastIndexOf(")") + 2).split(" ");
+                    sf.alive = f[19] === String(sf.info.procStart);
+                    w.collectSessions();
+                }
+                onLoadFailed: { sf.alive = false; w.collectSessions(); }
+            }
+
+            path: filePath
+            watchChanges: true
+            onFileChanged: reload()
+            onLoaded: {
+                try { info = JSON.parse(text()); } catch (e) { info = null; }
+                w.collectSessions();
+            }
+        }
+    }
+
     // Checks once a minute instead of one long timer, so it also catches up right after a suspend.
     Timer {
         interval: 60000
         repeat: true
         running: w.anyEmpty
         triggeredOnStart: true
-        onTriggered: w.tick()
+        onTriggered: {
+            w.tick();
+            // Catches a session that was killed without deleting its file.
+            for (let i = 0; i < sessionViews.count; i++) sessionViews.objectAt(i)?.stat.reload();
+        }
     }
 
     // ---- One panel per screen, only where the workspace is empty ----

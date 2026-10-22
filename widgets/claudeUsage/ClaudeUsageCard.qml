@@ -104,5 +104,7 @@ Rectangle {
             wrapMode: Text.Wrap
             font { family: card.shell.font; pixelSize: 11 }
         }
+
+        ClaudeUsageSessions { width: parent.width; shell: card.shell }
     }
 }

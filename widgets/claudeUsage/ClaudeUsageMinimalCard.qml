@@ -1,4 +1,5 @@
-// The minimal card (size = minimal): the full card's title bar, then just the two percentages in large type.
+// The minimal card (size = minimal): the full card's title bar, then just the two percentages in large type, and
+// the terminal sessions under them.
 import QtQuick
 
 Rectangle {
@@ -67,5 +68,7 @@ Rectangle {
                 }
             }
         }
+
+        ClaudeUsageSessions { width: parent.width; shell: card.shell }
     }
 }

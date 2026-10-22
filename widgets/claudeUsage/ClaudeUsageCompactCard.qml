@@ -46,5 +46,12 @@ Rectangle {
                 }
             }
         }
+        // Claude Code sessions in terminals: busy / open.
+        Text {
+            visible: card.shell.showSessions && card.shell.sessions.length > 0
+            text: " " + card.shell.busyCount + "/" + card.shell.sessions.length
+            color: card.shell.busyCount ? card.shell.accent : card.shell.dim
+            font { family: card.shell.font; pixelSize: 12; bold: true }
+        }
     }
 }

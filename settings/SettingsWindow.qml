@@ -49,6 +49,7 @@ FloatingWindow {
               { key: "interval", label: "Fetch every", type: "number", def: 30, min: 5, max: 1440, step: 5, unit: "min" },
               { key: "warn", label: "Warn at", type: "number", def: 80, min: 1, max: 100, step: 5, unit: "%" },
               { key: "notify", label: "Notify at warn", type: "flag", def: "yes" },
+              { key: "sessions", label: "Terminal sessions", type: "flag", def: "yes" },
               { key: "refresh", label: "Usage", type: "action", text: "Refresh now", action: "refresh" },
           ] },
         { key: "launcher", name: "Launcher", kind: "tool", icon: "\u{F0349}",

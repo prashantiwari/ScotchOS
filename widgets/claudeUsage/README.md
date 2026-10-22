@@ -1,6 +1,6 @@
 # Claude Usage
 
-A card drawn **on the desktop**, in the top-right corner of **every screen**, showing how much of your Claude plan's usage limits you've used: the same numbers as `/usage` in Claude Code. It's in the same style as the other cards: above the wallpaper, below your windows, never takes keyboard focus, lets clicks pass through, and only appears on screens whose current workspace has no tiled windows.
+A card drawn **on the desktop**, in the top-right corner of **every screen**, showing how much of your Claude plan's usage limits you've used: the same numbers as `/usage` in Claude Code. Below them it lists the Claude Code sessions open in your terminals, each with its name, folder and whether it is busy or idle. It's in the same style as the other cards: above the wallpaper, below your windows, never takes keyboard focus, lets clicks pass through, and only appears on screens whose current workspace has no tiled windows.
 
 It shows:
 
@@ -46,6 +46,7 @@ The `[claudeusage]` section of `~/.config/scotchos/scotchos.conf` (defaults in [
 | `interval` | Minutes between fetches (at least 5) | `30` |
 | `warn` | Percentage at which a bar turns red (and at which `notify` fires) | `80` |
 | `notify` | `yes`: a desktop notification when a limit reaches `warn`, once per window (again only after it drops below `warn`); `no` to turn it off | `yes` |
+| `sessions` | `yes`: list the Claude Code sessions open in terminals (busy/idle, name, folder) under the bars; also on `minimal`; on `compact`, a busy/open count | `yes` |
 
 ## Files in this folder
 
@@ -55,6 +56,7 @@ The `[claudeusage]` section of `~/.config/scotchos/scotchos.conf` (defaults in [
 | `ClaudeUsageCard.qml` | The full card: header, a bar and countdown per limit, the status line. |
 | `ClaudeUsageCompactCard.qml` | The compact card: one line with the two percentages. |
 | `ClaudeUsageMinimalCard.qml` | The minimal card: title bar and the two percentages in large type. |
+| `ClaudeUsageSessions.qml` | The terminal sessions list (dot, name, folder), shared by the full and minimal cards. |
 | `README.md` | This file. |
 
 ## Requirements
@@ -113,8 +115,9 @@ curl -s https://api.anthropic.com/api/oauth/usage \
 3. **Manual refresh:** an `IpcHandler` (`claudeusage` → `refresh()`) for the command, and the shell root's `action` signal for the settings button. Both call the same `refresh()`, which applies the cooldown.
 4. **Fetching:** QML's `XMLHttpRequest` (15 s timeout). No helper process runs for it.
 5. **Notifying:** after each fetch, a limit at or above `warn` that isn't in `notified` is announced with one `notify-send` (one `Process`, running only then), and added to `notified`. A limit below `warn` is removed from it, which re-arms it. `notified` is saved in `claude-usage.json` in the cache with the reading, so a restart doesn't repeat a notification; lowering `warn` below the current usage notifies once right away.
-6. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
-7. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
+6. **Sessions:** a `FolderListModel` watches `~/.claude/sessions/`, where every running Claude Code keeps `<pid>.json` (name, cwd, `status` busy/idle) and deletes it on exit; one `FileView` per file re-reads it when it changes (inotify, no polling). Only `kind: interactive` (a terminal) counts, and only while `/proc/<pid>/stat` exists with the `procStart` the file recorded, so a crashed session's leftover file or a reused pid isn't shown; that check repeats on the one-minute tick. The folder is unwatched while no empty workspace is shown or `sessions = no`. The rows are a `Repeater` over the session count, so a status change reuses them.
+7. **Drawing:** a `Loader` creates only the card for the current `size`. Fixed rows, no animations, so the panel only redraws when a number or a countdown changes.
+8. **Panel:** a layer-shell surface on the **bottom** layer, with an exclusive zone of `0` and an empty input `mask`, like the other cards.
 
 On the laptop screen (1280 × 720 logical) the full card is about 170 px tall (minimal about 120 px, compact about 36 px) and sits above the now playing card on the right.
 
