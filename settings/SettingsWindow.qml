@@ -71,6 +71,9 @@ FloatingWindow {
               { key: "browser_class", label: "Browser window class", type: "text", def: "brave-browser", placeholder: "brave-browser" },
               { key: "workspace", label: "Opens on workspace", type: "text", def: "1", placeholder: "1" },
           ] },
+        { key: "keybinds", name: "Keybinds", kind: "tool", icon: "\u{F030C}",
+          about: "Every Hyprland bind in one window: search them, change a bind's keys, command, name or flags, switch one off, or add your own. Open it with Super + Ctrl + / or `scotchos keybinds`. Changes go to ~/.config/hypr/scotchos-binds.lua; HyDE's files aren't touched.",
+          settings: [] },
         { key: "dailytheory", name: "Daily theory", kind: "tool", icon: "\u{F0335}",
           about: "Short theories with sources, matched to your interests, from a dailyTheory server. Open it from the app launcher (Daily Theory) or `scotchos theory`.",
           settings: [

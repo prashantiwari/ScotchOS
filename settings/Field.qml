@@ -7,6 +7,7 @@ Rectangle {
     property string value: ""
     property string placeholder: ""
     property bool secret: false
+    property bool plain: false      // not a conf value (a command, Lua): any text but a newline
     signal edited(string value)
 
     width: 360
@@ -30,7 +31,7 @@ Rectangle {
         font.family: f.shell.font
         font.pixelSize: 12
         // "#" at the start or after a space starts a comment in scotchos.conf, and a newline would end the line.
-        validator: RegularExpressionValidator { regularExpression: /(?!#)(?![^\n]*\s#)[^\n]*/ }
+        validator: RegularExpressionValidator { regularExpression: f.plain ? /[^\n]*/ : /(?!#)(?![^\n]*\s#)[^\n]*/ }
         onEditingFinished: {
             const v = text.trim();
             if (v !== f.value) f.edited(v);

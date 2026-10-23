@@ -14,6 +14,7 @@ import "settings"
 import "tools/dailyTheoryClient"
 import "tools/launcher"
 import "tools/eReader"
+import "tools/keybinds"
 import "common/conf.js" as Conf
 
 ShellRoot {
@@ -179,6 +180,12 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("launcher")
         Launcher { core: root }
+    }
+
+    // ---- Keybinds: `scotchos keybinds` (Super + Ctrl + /) opens its window ----
+    LazyLoader {
+        active: root.enabled("keybinds")
+        Keybinds { core: root }
     }
 
     // ---- Buttons in the settings window (type "action"): widgets react to their own section's actions ----

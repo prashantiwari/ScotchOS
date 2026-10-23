@@ -18,6 +18,7 @@ Usage: scotchos <command>
   settings [open|close]      the settings window (toggles it by default)
   theory [open|close]        the dailyTheory window (toggles it by default)
   launcher [open|close]      the launcher (toggles it by default)
+  keybinds [open|close]      the keybinds window (toggles it by default)
   reader [open|close]        the e-reader window (toggles it by default)
   reader continue            the book read last, where you left off
   claude refresh             fetch the Claude usage now (30 s cooldown)
@@ -30,7 +31,7 @@ Usage: scotchos <command>
   enabled <name>             exit 0 if it's on (for scripts)
   get <section> <key> [def]  print a setting from ~/.config/scotchos/scotchos.conf
   doctor [--fix]             check every widget and tool is wired in (default conf, shell.qml, settings, READMEs); --fix adds the conf lines it lacks
-  test                       run the tests: book.py on its fixtures, the conf parser, the launcher's scoring, the dailyTheory notes (the last three need node)
+  test                       run the tests: book.py on its fixtures, keybinds.py, the conf parser, the launcher's scoring, the dailyTheory notes, the keybinds' keys.js (the last four need node)
 EOF
 }
 
@@ -88,6 +89,7 @@ case "$1" in
     settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     theory)  qs ipc -p "$root" call dailytheory "${2:-toggle}" ;;
     launcher) qs ipc -p "$root" call launcher "${2:-toggle}" ;;
+    keybinds) qs ipc -p "$root" call keybinds "${2:-toggle}" ;;
     reader)  a=${2:-toggle}; [ "$a" = continue ] && a=continueReading; qs ipc -p "$root" call reader "$a" ;;
     claude)
         "$0" enabled claudeusage || { echo "claudeusage is off (scotchos enable claudeusage)" >&2; exit 1; }
@@ -114,7 +116,9 @@ case "$1" in
         ok=0
         echo "book.py (tools/eReader/tests)"
         python3 -m unittest discover -s "$root/tools/eReader/tests" || ok=1
-        for suite in common/tests tools/launcher/tests tools/dailyTheoryClient/tests; do
+        echo "keybinds.py (tools/keybinds/tests)"
+        python3 -m unittest discover -s "$root/tools/keybinds/tests" || ok=1
+        for suite in common/tests tools/launcher/tests tools/dailyTheoryClient/tests tools/keybinds/tests; do
             echo "$suite"
             if command -v node >/dev/null; then
                 node --test "$root/$suite/" || ok=1

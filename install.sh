@@ -12,11 +12,11 @@ check() {   # check <command> <package> <what for>
     if command -v "$1" >/dev/null; then ok "$1"; else warn "$1 missing ($3)"; missing+=("$2"); fi
 }
 check qs       quickshell "every widget"
-check python3  python     "system dashboard, e-reader"
+check python3  python     "system dashboard, e-reader, keybinds"
 check cava     cava       "now playing visualizer (optional)"
 check rofi     rofi       "app launcher entries (optional)"
 check jq       jq         "launcher: YouTube search"
-check hyprctl  hyprland   "launcher: YouTube search (opens the browser on its workspace)"
+check hyprctl  hyprland   "launcher: YouTube search (opens the browser on its workspace), keybinds"
 check curl     curl       "launcher: YouTube first video"
 check brave    brave-bin  "launcher: YouTube search (AUR)"
 python3 -c "import mobi" 2>/dev/null || [[ -d ~/.local/share/pipx/venvs/mobi ]] || echo "  optional: python-mobi (AUR) for MOBI / AZW3 books in the e-reader"
@@ -73,12 +73,18 @@ Add to Hyprland
       hl.exec_cmd("$root/bin/scotchos start")
   the launcher bind:
       hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("$root/tools/launcher/launcher.sh"))
+  the keybinds window bind, and at the very end of the file the loader for its edits:
+      hl.bind("SUPER + CTRL + slash", hl.dsp.exec_cmd("$root/tools/keybinds/keybinds.sh"))
+      local scotchos_binds = os.getenv("HOME") .. "/.config/hypr/scotchos-binds.lua"
+      local scotchos_file = io.open(scotchos_binds, "r")
+      if scotchos_file then scotchos_file:close(); dofile(scotchos_binds) end
   and, optional, the workspace the YouTube search opens on pinned to one screen:
       hl.workspace_rule({ workspace = "1", monitor = "${monitor:-<monitor name>}" })
 
   Old-style config (hyprland.conf):
       exec-once = $root/bin/scotchos start
       bind = SUPER, SPACE, exec, $root/tools/launcher/launcher.sh
+      (the keybinds window's edits need the Lua config)
       workspace = 1, monitor:${monitor:-<monitor name>}
 
 Then start it now with:  scotchos start

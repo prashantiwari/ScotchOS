@@ -12,6 +12,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 | [`settings`](settings/README.md) | Window | `scotchos settings`: a floating window to switch everything on and off and change positions, margins and the rest |
 | [`launcher`](tools/launcher/README.md) | Tool | A Spotlight-style box: apps, YouTube search and ScotchOS commands in one input; Tab locks a keyword (`yt`, `>`) in as a chip |
 | [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their linked sources matched to your interests, a daily quota, history, and saved theories and highlights |
+| [`keybinds`](tools/keybinds/README.md) | Tool | Every Hyprland keybind in one window (Super + Ctrl + /): search them, change a bind's keys, command, name or flags, switch one off or add your own; saved to a file `hyprland.lua` loads last, HyDE's files untouched |
 | [`reader`](tools/eReader/README.md) | Tool | **E-reader** in the app launcher: a minimalist reader for EPUB, MOBI, AZW3, FB2, TXT and Markdown in the theme's colors, with a cover library, pages or scroll, one column, full width or two pages side by side, a font picker, contents and fullscreen |
 
 Widgets are cards drawn on the desktop (above the wallpaper, below windows) on every screen. They only appear on screens showing a workspace with no tiled windows, and are not drawn at all otherwise. They take their colors from HyDE's wallbash, so they follow your wallpaper and theme.
@@ -29,6 +30,7 @@ claudeusage = yes
 launcher   = yes
 dailytheory = yes
 reader     = yes
+keybinds   = yes
 
 [dashboard]
 layout   = square
@@ -47,12 +49,13 @@ scotchos toggle nowplaying
 scotchos settings           # the settings window
 scotchos theory             # the dailyTheory window
 scotchos reader             # the e-reader window
+scotchos keybinds           # the keybinds window
 scotchos claude refresh     # fetch the Claude usage now
 scotchos status             # running? memory use?
 scotchos restart | log
 scotchos doctor             # is every widget and tool wired in everywhere?
 scotchos doctor --fix       # also add the [enabled] lines and conf sections it finds missing (conf files only)
-scotchos test               # book.py on its fixtures, the conf parser, launcher ranking, dailyTheory notes (node)
+scotchos test               # book.py on its fixtures, keybinds.py, the conf parser, launcher ranking, dailyTheory notes, keys.js (node)
 ```
 
 `scotchos toggle <name>` also works as a Hyprland bind.
