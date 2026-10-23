@@ -91,7 +91,7 @@ On this machine, `~/.config/hypr/hyprland.lua` has:
 hl.exec_cmd("qs -n -d -p " .. projects .. "/ScotchOS")
 
 -- Launcher (apps, YouTube search, ScotchOS commands)
-hl.bind("SUPER + Y", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/launcher/launcher.sh"), { … })
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/launcher/launcher.sh"), { … })
 ```
 
 These replaced three separate `qs` lines, one per widget. The config before that change is saved as `~/.config/hypr/hyprland.lua.bak-before-scotchos-unify`. The tool also needs `hl.workspace_rule({ workspace = "1", monitor = "eDP-1" })` (see its README).

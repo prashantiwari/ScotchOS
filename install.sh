@@ -72,13 +72,13 @@ Add to Hyprland
   Lua config (~/.config/hypr/hyprland.lua), inside hl.on("hyprland.start", function() … end):
       hl.exec_cmd("$root/bin/scotchos start")
   the launcher bind:
-      hl.bind("SUPER + Y", hl.dsp.exec_cmd("$root/tools/launcher/launcher.sh"))
+      hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("$root/tools/launcher/launcher.sh"))
   and, optional, the workspace the YouTube search opens on pinned to one screen:
       hl.workspace_rule({ workspace = "1", monitor = "${monitor:-<monitor name>}" })
 
   Old-style config (hyprland.conf):
       exec-once = $root/bin/scotchos start
-      bind = SUPER, Y, exec, $root/tools/launcher/launcher.sh
+      bind = SUPER, SPACE, exec, $root/tools/launcher/launcher.sh
       workspace = 1, monitor:${monitor:-<monitor name>}
 
 Then start it now with:  scotchos start

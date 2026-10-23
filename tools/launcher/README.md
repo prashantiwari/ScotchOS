@@ -76,12 +76,19 @@ paru -S brave-bin   # or: yay -S brave-bin
 
 ```lua
 -- ScotchOS launcher (apps, YouTube search, ScotchOS commands)
-hl.bind("SUPER + Y", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/launcher/launcher.sh"), {
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/launcher/launcher.sh"), {
         description = "[Launcher|ScotchOS] launcher",
 })
 ```
 
-This replaced the old `SUPER + Y` YouTube search bind. HyDE's default binds don't use Super+Y (only Super+**Shift**+Y).
+This first went on `SUPER + Y` (replacing the old YouTube search bind), then swapped with HyDE's rofi app finder: the launcher is on `SUPER + SPACE` and the rofi app finder moved to `SUPER + Y`:
+
+```lua
+-- Application Launcher
+hl.bind("SUPER + Y", hl.dsp.exec_cmd(hyde.sh.menu.apps()), {
+        description = "[Launcher|Rofi menus] application finder",
+})
+```
 
 ### 2. `~/.config/hypr/hyprland.lua`: workspace 1 pinned to the laptop screen
 
@@ -93,7 +100,7 @@ hl.workspace_rule({ workspace = "1", monitor = "eDP-1" })
 
 ### 3. Backup
 
-The config before the bind change is `~/.config/hypr/hyprland.lua.bak-before-launcher`. Apply with `hyprctl reload`.
+The config before the bind change is `~/.config/hypr/hyprland.lua.bak-before-launcher`, and before the Y/Space swap `~/.config/hypr/hyprland.lua.bak-before-swap-y-space`. Apply with `hyprctl reload`.
 
 ## Running it by hand
 
@@ -113,7 +120,7 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 | Keywords | each provider's `keywords` | `>`/`sos`, `yt`/`youtube`, `app` |
 | Order Tab steps through | `Launcher.qml`, `providers` | Commands, YouTube, Apps |
 | Browser, window class, workspace | `[launcher]` in `scotchos.conf` (see Settings) | Brave, workspace 1 |
-| Old-style config (`hyprland.conf`) | — | `bind = SUPER, Y, exec, <path>/launcher.sh`; in `yt-open.sh` use `hyprctl dispatch workspace N` |
+| Old-style config (`hyprland.conf`) | — | `bind = SUPER, SPACE, exec, <path>/launcher.sh`; in `yt-open.sh` use `hyprctl dispatch workspace N` |
 
 **A new source** is one file: a `Provider { name; glyph; keywords; search: q => [rows] }` (copy `YouTubeProvider.qml`), then add it to the `providers` list in `Launcher.qml`. A row is `{ title, subtitle, glyph or iconName, run(), alt() }`.
 
