@@ -56,7 +56,7 @@ Rectangle {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: item.l ? Math.round(item.l.pct) + "%" : "–"
-                        color: item.l && item.l.pct >= card.shell.warn ? "#ff6b6b" : card.shell.fg
+                        color: item.l && item.l.pct >= card.shell.warn ? "#ff6b6b" : card.shell.accent
                         font { family: card.shell.font; pixelSize: 36; bold: true }
                     }
                     Text {

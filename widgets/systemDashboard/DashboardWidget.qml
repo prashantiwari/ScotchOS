@@ -10,7 +10,7 @@ DesktopWidget {
 
     function tempColor(t) {
         if (t === null || t === undefined) return dim;
-        return t < 60 ? "#7ee787" : t < 80 ? "#f0b429" : "#ff6b6b";
+        return accent;
     }
 
     // ---- Settings ----

@@ -13,7 +13,7 @@ Rectangle {
     border { width: 1; color: Qt.alpha(shell.accent, 0.35) }
 
     function pct(l) { return l ? Math.round(l.pct) + "%" : "–" }
-    function tint(l) { return l && l.pct >= shell.warn ? "#ff6b6b" : shell.fg }
+    function tint(l) { return l && l.pct >= shell.warn ? "#ff6b6b" : shell.accent }
 
     Row {
         id: line

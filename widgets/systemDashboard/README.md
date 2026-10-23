@@ -33,7 +33,7 @@ In the square layout a clock sits beside the rings: the time in 24-hour format, 
 
 All layouts show exactly the same things. The horizontal one is about 1220 px wide, so it fits a 1280 px (logical) screen. The square one is about 600 × 470 px. If the file is missing or the value isn't recognized, the vertical layout is used.
 
-Temperatures are **green** below 60 °C, **amber** below 80 °C and **red** above. All other colors come from HyDE's wallbash, so the panel follows your wallpaper and theme changes without a restart.
+All colors, temperatures included, come from HyDE's wallbash, so the panel follows your wallpaper and theme changes without a restart.
 
 ## Files in this folder
 
@@ -90,7 +90,7 @@ Changes to `stats.py` need `scotchos restart` (or a disable / enable).
 | What | Where | Current value |
 |---|---|---|
 | CPU temperature sensor | `stats.py`, the `SENSORS` dict (the first one present is used) | `coretemp`, `k10temp`, `zenpower`, `cpu_thermal`. List yours with `cat /sys/class/hwmon/hwmon*/name`. If it isn't found, the ring shows `--`. |
-| Temperature colors | `DashboardWidget.qml`, `tempColor()` | < 60 green, < 80 amber, else red |
+| Temperature colors | `DashboardWidget.qml`, `tempColor()` | the theme's accent (dim when there's no reading) |
 | Temp ring range | `Dashboard.qml`, the TEMP `Ring` (`(t - 30) / 70`) and the temperature `Graph` (`min`/`max`) | 30–100 °C |
 | Which screens | `DashboardWidget.qml`, `Variants { model: Quickshell.screens }` | All screens. To show it on one screen only, use `Quickshell.screens.filter(s => s.name === "HDMI-A-1")` |
 | Disk path | `stats.py`, `disk()` (default argument) | `/` |
