@@ -30,7 +30,7 @@ Usage: scotchos <command>
   enabled <name>             exit 0 if it's on (for scripts)
   get <section> <key> [def]  print a setting from ~/.config/scotchos/scotchos.conf
   doctor [--fix]             check every widget and tool is wired in (default conf, shell.qml, settings, READMEs); --fix adds the conf lines it lacks
-  test                       run the tests: book.py on its fixtures, the conf parser, the launcher's scoring (the last two need node)
+  test                       run the tests: book.py on its fixtures, the conf parser, the launcher's scoring, the dailyTheory notes (the last three need node)
 EOF
 }
 
@@ -114,7 +114,7 @@ case "$1" in
         ok=0
         echo "book.py (tools/eReader/tests)"
         python3 -m unittest discover -s "$root/tools/eReader/tests" || ok=1
-        for suite in common/tests tools/launcher/tests; do
+        for suite in common/tests tools/launcher/tests tools/dailyTheoryClient/tests; do
             echo "$suite"
             if command -v node >/dev/null; then
                 node --test "$root/$suite/" || ok=1

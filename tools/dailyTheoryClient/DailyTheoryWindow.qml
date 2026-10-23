@@ -54,6 +54,24 @@ FloatingWindow {
                ?? (host.endsWith("wikipedia.org") ? "Wikipedia" : host);
     }
 
+    // ---- Highlights ----
+    // The theory as rich text with its saved highlights marked. Everything from the server is escaped first, so a "<"
+    // in it still can't become markup; \x01/\x02 mark highlights until then, so a match can't land inside a tag.
+    readonly property string markColor: String(Qt.tint(core.bg, Qt.alpha(core.accent, 0.35)))
+    function marked(text, id) {
+        let s = String(text ?? "");
+        for (const h of client.highlights) {
+            if (h.theory_id !== id) continue;
+            for (const part of h.text.split(/\n+/).map(p => p.trim()).filter(p => p)) {
+                const at = s.indexOf(part);
+                if (at >= 0) s = s.slice(0, at) + "\x01" + part + "\x02" + s.slice(at + part.length);
+            }
+        }
+        s = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+             .replace(/\x01/g, "<span style=\"background-color:" + markColor + "\">").replace(/\x02/g, "</span>");
+        return s.split(/\n\s*\n/).map(p => "<p style=\"margin:0 0 14px 0; line-height:120%\">" + p.replace(/\n/g, "<br>") + "</p>").join("");
+    }
+
     // ---- Small parts ----
     component Label: Text {
         color: win.core.accent
@@ -165,6 +183,69 @@ FloatingWindow {
             onClicked: win.client.openLink(lr.url)
         }
     }
+    // A saved highlight: the quote, and on the Saved page the theory it's from (a click opens it there). × removes it.
+    component HighlightRow: Rectangle {
+        id: hr
+        property var hl
+        property bool showTitle: false
+        readonly property var th: showTitle ? win.client.theoryById(hl.theory_id) : null
+        width: parent.width
+        height: hlCol.implicitHeight + 20
+        radius: 12
+        color: hrArea.containsMouse && showTitle ? Qt.alpha(win.core.fg, 0.08) : Qt.alpha(win.core.fg, 0.04)
+        Rectangle {
+            x: 0
+            y: 10
+            width: 3
+            height: parent.height - 20
+            radius: 1.5
+            color: win.core.accent
+        }
+        MouseArea {
+            id: hrArea
+            anchors.fill: parent
+            enabled: hr.showTitle && !!hr.th
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: win.client.show(hr.hl.theory_id)
+        }
+        Column {
+            id: hlCol
+            anchors.left: parent.left
+            anchors.right: remove.left
+            anchors.leftMargin: 14
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+            Body { text: hr.hl.text }
+            Text {
+                width: parent.width
+                elide: Text.ElideRight
+                text: (hr.showTitle ? (hr.th?.title ?? "theory no longer available") + "  ·  " : "") + win.day(hr.hl.saved_at)
+                color: win.core.dim
+                font.family: win.core.font
+                font.pixelSize: 10
+            }
+        }
+        Text {
+            id: remove
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 10
+            text: "\u{F0156}"
+            color: removeArea.containsMouse ? win.core.accent : win.core.dim
+            font.family: win.core.font
+            font.pixelSize: 14
+            MouseArea {
+                id: removeArea
+                anchors.fill: parent
+                anchors.margins: -4
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: win.client.removeHighlight(hr.hl.id)
+            }
+        }
+    }
     // Multi-line text box for the interests (3-1000 characters).
     component InterestsBox: Rectangle {
         property alias text: edit.text
@@ -256,6 +337,7 @@ FloatingWindow {
                     model: win.client.signedIn ? [
                         { key: "theory", name: "Theory", icon: "\u{F0335}" },
                         { key: "history", name: "History", icon: "\u{F02DA}" },
+                        { key: "saved", name: "Saved", icon: "\u{F00C0}" },
                         { key: "profile", name: "Interests", icon: "\u{F0004}" },
                     ] : [{ key: "theory", name: "Sign up", icon: "\u{F0013}" }]
 
@@ -395,7 +477,7 @@ FloatingWindow {
                 height: parent.height - y
                 sourceComponent: !win.client.tokenRead ? null
                     : !win.client.signedIn ? signupPage
-                    : ({ theory: theoryPage, history: historyPage, profile: profilePage })[win.client.view]
+                    : ({ theory: theoryPage, history: historyPage, saved: savedPage, profile: profilePage })[win.client.view]
             }
         }
     }
@@ -464,12 +546,20 @@ FloatingWindow {
                     enabled: !win.client.busy && !win.client.outOfQuota
                     onClicked: win.client.next()
                 }
+                Btn {
+                    readonly property bool isSaved: !!theoryRoot.th && win.client.saved.some(s => s.id === theoryRoot.th.id)
+                    visible: !!theoryRoot.th
+                    label: isSaved ? "\u{F00C0}  Saved" : "\u{F00C3}  Save"
+                    enabled: win.client.savedLoaded
+                    onClicked: win.client.toggleSaved(theoryRoot.th)
+                }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: win.client.busy === "next" ? "usually 4–12 s"
                         : win.client.outOfQuota && !win.client.error ? "All done for today, next in " + win.until(win.client.quota.resets_at)
-                        : theoryRoot.th && theoryRoot.th.id !== win.client.history[0]?.id ? "From history · " + win.day(theoryRoot.th.generated_at)
-                        : ""
+                        : theoryRoot.th && theoryRoot.th.id !== win.client.history[0]?.id
+                          ? (win.client.history.some(h => h.id === theoryRoot.th.id) ? "From history · " : "Saved · ") + win.day(theoryRoot.th.generated_at)
+                        : "Select text to save a highlight"
                     color: win.core.dim
                     font.family: win.core.font
                     font.pixelSize: 11
@@ -528,10 +618,47 @@ FloatingWindow {
                             font.pixelSize: 12
                         }
                     }
-                    Body {
-                        text: card.th.theory ?? ""
+                    // Selectable (Ctrl+C copies); a selection gets a "Save highlight" button under it, or Ctrl+S.
+                    TextEdit {
+                        id: body
+                        width: parent.width
+                        readOnly: true
+                        selectByMouse: true
+                        wrapMode: TextEdit.Wrap
+                        textFormat: TextEdit.RichText
+                        text: win.marked(card.th.theory, card.th.id)
+                        color: win.core.fg
+                        selectionColor: win.core.accentDim
+                        selectedTextColor: win.core.fg
+                        font.family: win.core.font
                         font.pixelSize: 13
-                        lineHeight: 1.2
+                        readonly property bool hasSelection: selectedText.trim() !== ""
+                        function saveSelection() {
+                            if (!hasSelection) return;
+                            win.client.addHighlight(theoryRoot.th, selectedText);
+                            deselect();
+                        }
+                        Keys.onPressed: e => {
+                            if (e.key === Qt.Key_S && (e.modifiers & Qt.ControlModifier)) { saveSelection(); e.accepted = true; }
+                        }
+                        Btn {
+                            readonly property rect end: body.positionToRectangle(body.selectionEnd)
+                            visible: body.hasSelection
+                            z: 1
+                            x: Math.max(0, Math.min(end.x - width / 2, body.width - width))
+                            y: end.y + end.height + 4
+                            primary: true
+                            label: "\u{F0652}  Save highlight"
+                            enabled: win.client.savedLoaded
+                            onClicked: body.saveSelection()
+                        }
+                    }
+
+                    Label { visible: hlRepeater.count > 0; text: "YOUR HIGHLIGHTS"; topPadding: 4 }
+                    Repeater {
+                        id: hlRepeater
+                        model: win.client.highlights.filter(h => h.theory_id === card.th.id)
+                        HighlightRow { required property var modelData; hl: modelData }
                     }
                     Rectangle {
                         visible: !!card.th.key_takeaway
@@ -675,6 +802,118 @@ FloatingWindow {
                         font.pixelSize: 10
                     }
                 }
+            }
+        }
+    }
+
+    // ---- Saved theories and highlights ----
+    Component {
+        id: savedPage
+        Flickable {
+            contentHeight: savedCol.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: savedCol
+                width: parent.width
+                spacing: 6
+
+                Row {
+                    width: parent.width
+                    spacing: 12
+                    bottomPadding: 8
+                    Btn { label: "\u{F024B}  Open folder"; onClicked: win.client.openNotes() }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - x
+                        elide: Text.ElideMiddle
+                        text: "One Markdown note per theory, highlights inside: "
+                              + win.client.notesDir.replace(Quickshell.env("HOME"), "~")
+                        color: win.core.dim
+                        font.family: win.core.font
+                        font.pixelSize: 11
+                    }
+                }
+                Label { text: "SAVED THEORIES  (" + win.client.saved.length + ")" }
+                Body {
+                    visible: win.client.saved.length === 0
+                    text: "Nothing saved yet. Press \u{F00C3} Save on a theory to keep it here."
+                    color: win.core.dim
+                    bottomPadding: 4
+                }
+                Repeater {
+                    model: win.client.saved
+                    Rectangle {
+                        id: sv
+                        required property var modelData
+                        readonly property var th: win.client.theoryById(modelData.id) ?? ({})
+                        width: savedCol.width
+                        height: 56
+                        radius: 12
+                        color: svArea.containsMouse ? Qt.alpha(win.core.fg, 0.08) : Qt.alpha(win.core.fg, 0.04)
+                        MouseArea {
+                            id: svArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: win.client.show(sv.modelData.id)
+                        }
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: unsave.left
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: sv.th.title ?? ""
+                                color: win.core.fg
+                                font.family: win.core.font
+                                font.pixelSize: 13
+                            }
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: (sv.th.topic ?? "") + "  ›  " + (sv.th.subtopic ?? "") + "  ·  saved " + win.day(sv.modelData.saved_at)
+                                color: win.core.dim
+                                font.family: win.core.font
+                                font.pixelSize: 10
+                            }
+                        }
+                        Text {
+                            id: unsave
+                            anchors.right: parent.right
+                            anchors.rightMargin: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "\u{F0156}"
+                            color: unsaveArea.containsMouse ? win.core.accent : win.core.dim
+                            font.family: win.core.font
+                            font.pixelSize: 14
+                            MouseArea {
+                                id: unsaveArea
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: win.client.toggleSaved({ id: sv.modelData.id })
+                            }
+                        }
+                    }
+                }
+
+                Label { text: "HIGHLIGHTS  (" + win.client.highlights.length + ")"; topPadding: 12 }
+                Body {
+                    visible: win.client.highlights.length === 0
+                    text: "No highlights yet. Select text in a theory and press Save highlight (or Ctrl+S)."
+                    color: win.core.dim
+                }
+                Repeater {
+                    model: win.client.highlights
+                    HighlightRow { required property var modelData; hl: modelData; showTitle: true; width: savedCol.width }
+                }
+                Item { width: 1; height: 8 }
             }
         }
     }

@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../common/http.js" as Http
+import "notes.js" as Notes
 
 Scope {
     id: t
@@ -16,7 +17,7 @@ Scope {
     readonly property bool insecure: /^http:\/\//i.test(server)
                                      && !/^http:\/\/(localhost|127\.\d+\.\d+\.\d+|\[::1\])(:\d+)?(\/|$)/i.test(server)
     onInsecureChanged: if (insecure) console.warn("dailytheory:", server, "is plain http to another host: the token crosses the network unencrypted")
-    Component.onCompleted: insecureChanged()
+    Component.onCompleted: { insecureChanged(); loadNotes(); }
 
     // ---- State ----
     property bool open: false
@@ -75,11 +76,142 @@ Scope {
         saveToken.stdinEnabled = true;
         saveToken.running = true;
     }
-    // "Log out": v1 has no logout endpoint, so the token is just deleted here.
+    // "Log out": v1 has no logout endpoint, so the token is just deleted here. Saved theories and highlights stay.
     function forget() {
         token = ""; me = null; quota = null; history = []; current = null; view = "theory";
         removeToken.running = true;
         loadTopics();
+    }
+
+    // ---- Saved theories and highlights: one Markdown note per theory in ~/Documents/DailyTheory ----
+    // API v1 has no bookmarks, so they're kept here, as notes you can read and edit anywhere (notes.js writes and parses
+    // them). Each holds the whole theory, so it still opens once it's out of the 50-theory history.
+    readonly property string notesDir: (Quickshell.env("XDG_DOCUMENTS_DIR") || Quickshell.env("HOME") + "/Documents") + "/DailyTheory"
+    property var savedTheories: ({})    // id → theory, from the notes
+    property var files: ({})            // id → its file name in notesDir
+    property var otherFiles: []         // .md files there that aren't saved theories: never written over
+    property var saved: []              // { id, saved_at }, newest first
+    property var highlights: []         // { id, theory_id, text, saved_at }, newest first
+    property bool savedLoaded: false
+    property int hlSeq: 0
+
+    // Read when the shell starts and each time the window opens, so notes edited or deleted elsewhere show up.
+    // Each file is printed after a \036 (record separator) line holding its name.
+    Process {
+        id: readNotes
+        command: ["sh", "-c", 'cd "$1" 2>/dev/null || exit 0; for f in *.md; do [ -f "$f" ] && printf "\\036%s\\n" "$f" && cat "$f"; done',
+                  "sh", t.notesDir]
+        stdout: StdioCollector { onStreamFinished: t.parseNotes(text) }
+    }
+    property bool readAfterWrites: false
+    function loadNotes() {
+        // A read racing a write could bring back the old file: read once the writes are done.
+        if (writer.running || writeQueue.length) readAfterWrites = true;
+        else if (!readNotes.running) readNotes.running = true;
+    }
+    function parseNotes(out) {
+        if (writer.running || writeQueue.length) return loadNotes();
+        const theories = {}, names = {}, others = [], marks = [];
+        let keep = [];
+        for (const chunk of out.split(String.fromCharCode(30)).slice(1)) {
+            const nl = chunk.indexOf("\n");
+            const name = chunk.slice(0, nl), n = Notes.fromMarkdown(chunk.slice(nl + 1));
+            if (!n || theories[n.theory.id]) { others.push(name); continue; }
+            theories[n.theory.id] = n.theory;
+            names[n.theory.id] = name;
+            if (n.note.saved) keep.push({ id: n.theory.id, saved_at: n.note.saved_at });
+            for (const h of n.note.highlights)
+                marks.push({ id: "hl_" + (++hlSeq), theory_id: n.theory.id, text: h.text, saved_at: h.saved_at });
+        }
+        const newest = (a, b) => a.saved_at < b.saved_at ? 1 : a.saved_at > b.saved_at ? -1 : 0;
+        savedTheories = theories; files = names; otherFiles = others;
+        saved = keep.sort(newest); highlights = marks.sort(newest);
+        savedLoaded = true;
+    }
+
+    // Writes go one at a time, each to a temp file then renamed, so a note is never half-written.
+    property var writeQueue: []         // { name, text }; an empty text deletes the file
+    Process {
+        id: writer
+        property string text
+        onStarted: { if (text) write(text); stdinEnabled = false; }
+        onExited: code => {
+            if (code !== 0) console.warn("dailytheory: couldn't write", command[command.length - 1]);
+            Qt.callLater(t.nextWrite);
+        }
+    }
+    function nextWrite() {
+        if (writer.running) return;
+        if (!writeQueue.length) {
+            if (readAfterWrites) { readAfterWrites = false; loadNotes(); }
+            return;
+        }
+        const job = writeQueue[0];
+        writeQueue = writeQueue.slice(1);
+        const path = notesDir + "/" + job.name;
+        writer.text = job.text;
+        writer.command = job.text ? ["sh", "-c", 'mkdir -p "${1%/*}" && cat > "$1.tmp" && mv -f "$1.tmp" "$1"', "sh", path]
+                                  : ["rm", "-f", path];
+        writer.stdinEnabled = !!job.text;
+        writer.running = true;
+    }
+    // Rewrites a theory's note from the state here, or deletes it once it's neither saved nor highlighted.
+    function writeNote(id) {
+        const th = savedTheories[id];
+        if (!th) return;
+        const note = { saved: isSaved(id), saved_at: saved.find(s => s.id === id)?.saved_at,
+                       highlights: highlights.filter(h => h.theory_id === id) };
+        let name = files[id];
+        if (!note.saved && !note.highlights.length) {
+            const all = Object.assign({}, savedTheories), names = Object.assign({}, files);
+            delete all[id]; delete names[id];
+            savedTheories = all; files = names;
+            if (name) writeQueue = writeQueue.concat([{ name: name, text: "" }]);
+        } else {
+            if (!name) {
+                name = Notes.fileName(th, Object.values(files).concat(otherFiles));
+                const names = Object.assign({}, files);
+                names[id] = name;
+                files = names;
+            }
+            writeQueue = writeQueue.concat([{ name: name, text: Notes.toMarkdown(th, note) }]);
+        }
+        nextWrite();
+    }
+    function keepCopy(th) {
+        const all = Object.assign({}, savedTheories);
+        all[th.id] = th;
+        savedTheories = all;
+    }
+    function isSaved(id) { return saved.some(s => s.id === id) }
+    function toggleSaved(th) {
+        if (!th?.id || !savedLoaded) return;
+        if (isSaved(th.id)) saved = saved.filter(s => s.id !== th.id);
+        else { keepCopy(th); saved = [{ id: th.id, saved_at: new Date().toISOString() }].concat(saved); }
+        writeNote(th.id);
+    }
+    function addHighlight(th, text) {
+        text = String(text ?? "").split(String.fromCharCode(0x2029)).join("\n\n").replace(/[ \t]+\n/g, "\n").trim();
+        if (!th?.id || !text || !savedLoaded) return;
+        if (highlights.some(h => h.theory_id === th.id && h.text === text)) return;
+        keepCopy(th);
+        highlights = [{ id: "hl_" + (++hlSeq), theory_id: th.id, text: text, saved_at: new Date().toISOString() }]
+                     .concat(highlights);
+        writeNote(th.id);
+    }
+    function removeHighlight(id) {
+        const h = highlights.find(x => x.id === id);
+        if (!h) return;
+        highlights = highlights.filter(x => x.id !== id);
+        writeNote(h.theory_id);
+    }
+    function openNotes() { Qt.openUrlExternally("file://" + notesDir) }
+    // The server's copy when it's in history (it may have gained fields), else the one saved here.
+    function theoryById(id) { return history.find(h => h.id === id) ?? savedTheories[id] ?? null }
+    function show(id) {
+        const th = theoryById(id);
+        if (!th) return;
+        current = th; view = "theory"; error = null;
     }
 
     // ---- HTTP ----
@@ -138,6 +270,7 @@ Scope {
     function refresh() {
         if (!tokenRead) return;     // the FileView calls back once it has read the token
         error = null;
+        loadNotes();
         if (!signedIn) return loadTopics();
         call("GET", "/v1/me", null, false, (data, err) => {
             if (err) return fail(err, refresh);
