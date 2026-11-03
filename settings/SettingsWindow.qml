@@ -52,6 +52,14 @@ FloatingWindow {
               { key: "sessions", label: "Terminal sessions", type: "flag", def: "yes" },
               { key: "refresh", label: "Usage", type: "action", text: "Refresh now", action: "refresh" },
           ] },
+        { key: "dancingcat", name: "Dancing cat", kind: "widget", icon: "\u{F011B}",
+          about: "A 3D ASCII cat dancing on the desktop.",
+          settings: [
+              { key: "position", label: "Position", type: "position", def: "bottom" },
+              { key: "margin_x", label: "Margin X", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "margin_y", label: "Margin Y", type: "number", def: 20, min: 0, max: 600, step: 5, unit: "px" },
+              { key: "bpm", label: "Tempo", type: "slider", def: 120, min: 30, max: 240, step: 10, unit: "BPM" },
+          ] },
         { key: "weather", name: "Weather", kind: "widget", icon: "\u{F0590}",
           about: "Current conditions, the next 24 hours and the coming days, from Open-Meteo (no key needed).",
           settings: [

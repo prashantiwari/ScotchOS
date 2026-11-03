@@ -10,6 +10,7 @@ import "widgets/nowPlaying"
 import "widgets/hourlyQuote"
 import "widgets/claudeUsage"
 import "widgets/weather"
+import "widgets/dancingCat"
 import "settings"
 import "tools/dailyTheoryClient"
 import "tools/launcher"
@@ -159,6 +160,10 @@ ShellRoot {
     LazyLoader {
         active: root.enabled("weather")
         WeatherWidget { core: root }
+    }
+    LazyLoader {
+        active: root.enabled("dancingcat")
+        CatWidget { core: root }
     }
 
     // ---- dailyTheory client: `scotchos theory` / the "Daily Theory" launcher entry opens its window ----
