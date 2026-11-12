@@ -32,6 +32,9 @@ if [[ -d ~/.config/hyde/wallbash ]]; then
     mkdir -p ~/.config/hyde/wallbash/always
     cp "$root/wallbash/scotchos.dcol" ~/.config/hyde/wallbash/always/   # a copy: HyDE skips symlinked templates
     ok "template copied to ~/.config/hyde/wallbash/always/"
+    # The Obsidian theme's template runs obsidian-theme.sh, so it names this folder.
+    sed "s|@DIR@|$root/tools/obsidianTheme|" "$root/tools/obsidianTheme/obsidian.dcol" > ~/.config/hyde/wallbash/always/obsidian.dcol &&
+        ok "Obsidian theme template copied (applies on the next wallpaper change, or: scotchos enable obsidian)"
     if [[ -x ~/.local/lib/hyde/color.set.sh ]]; then
         ~/.local/lib/hyde/color.set.sh --single ~/.config/hyde/wallbash/always/scotchos.dcol >/dev/null 2>&1 &&
             ok "colors rendered" || warn "couldn't render now; they appear on the next wallpaper change"

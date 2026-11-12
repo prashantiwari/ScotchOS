@@ -1,0 +1,183 @@
+${cacheDir}/wallbash/obsidian.css|"@DIR@/obsidian-theme.sh" sync
+/* scotchos-obsidian-theme
+   ScotchOS look for Obsidian, in HyDE's wallbash colors. Rendered from ScotchOS/tools/obsidianTheme/obsidian.dcol
+   on every wallpaper or theme change and copied into each vault by obsidian-theme.sh: edits here are overwritten. */
+
+/* ---- Colors: the four the ScotchOS widgets use, and shades mixed from them ---- */
+/* Set for both Obsidian modes, so the colors follow HyDE's dark/light and not Obsidian's own setting. */
+body.theme-dark, body.theme-light {
+  color-scheme: <wallbash_mode>;
+  --sc-bg: #<wallbash_pry1>;
+  --sc-fg: #<wallbash_txt1>;
+  --sc-accent: #<wallbash_1xa7>;
+  --sc-accent-dim: #<wallbash_1xa3>;
+  --sc-accent-hover: #<wallbash_1xa8>;
+  --sc-font: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+
+  /* The widgets' card: the background at 78 %, a 1 px accent border at 35 %, radius 18. Over the solid
+     "desktop" (no wallpaper) the card is the background with a little accent mixed in, so the two differ. */
+  --sc-desktop: var(--sc-bg);
+  --sc-card: color-mix(in srgb, var(--sc-bg) 92%, var(--sc-accent));
+  --sc-card-alt: color-mix(in srgb, var(--sc-bg) 86%, var(--sc-accent));
+  --sc-pane: var(--sc-card);   /* the panes; see-through over the wallpaper when that's on */
+  --sc-border: color-mix(in srgb, var(--sc-accent) 35%, transparent);
+  --sc-dim: color-mix(in srgb, var(--sc-fg) 60%, transparent);
+
+  --background-primary: var(--sc-card);
+  --background-primary-alt: var(--sc-card-alt);
+  --background-secondary: var(--sc-card);
+  --background-secondary-alt: var(--sc-card-alt);
+  --background-modifier-border: var(--sc-border);
+  --background-modifier-border-hover: color-mix(in srgb, var(--sc-accent) 55%, transparent);
+  --background-modifier-border-focus: var(--sc-accent);
+  --background-modifier-hover: color-mix(in srgb, var(--sc-accent) 12%, transparent);
+  --background-modifier-active-hover: color-mix(in srgb, var(--sc-accent) 20%, transparent);
+  --background-modifier-form-field: color-mix(in srgb, var(--sc-bg) 80%, var(--sc-fg));
+  --background-modifier-cover: color-mix(in srgb, var(--sc-bg) 70%, transparent);
+  --divider-color: var(--sc-border);
+  --titlebar-background: transparent;
+  --titlebar-background-focused: transparent;
+  --tab-container-background: transparent;
+  --ribbon-background: transparent;
+  --ribbon-background-collapsed: transparent;
+  --status-bar-background: var(--sc-card);
+  --status-bar-border-color: var(--sc-border);
+
+  --text-normal: var(--sc-fg);
+  --text-muted: var(--sc-dim);
+  --text-faint: color-mix(in srgb, var(--sc-fg) 40%, transparent);
+  --text-accent: var(--sc-accent);
+  --text-accent-hover: var(--sc-accent-hover);
+  --text-on-accent: var(--sc-bg);
+  --text-on-accent-inverted: var(--sc-fg);
+  --text-selection: color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  --text-highlight-bg: color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  --text-highlight-bg-active: color-mix(in srgb, var(--sc-accent) 45%, transparent);
+
+  --color-accent: var(--sc-accent);
+  --color-accent-1: var(--sc-accent-hover);
+  --color-accent-2: var(--sc-accent-hover);
+  --interactive-accent: var(--sc-accent);
+  --interactive-accent-hover: var(--sc-accent-hover);
+  --interactive-normal: var(--sc-card-alt);
+  --interactive-hover: color-mix(in srgb, var(--sc-bg) 76%, var(--sc-accent));
+  --checkbox-color: var(--sc-accent);
+  --checkbox-color-hover: var(--sc-accent-hover);
+  --checkbox-marker-color: var(--sc-bg);
+  --nav-item-background-active: color-mix(in srgb, var(--sc-accent) 20%, transparent);
+  --nav-item-color-active: var(--sc-fg);
+  --tag-color: var(--sc-accent);
+  --tag-background: color-mix(in srgb, var(--sc-accent) 14%, transparent);
+  --tag-background-hover: color-mix(in srgb, var(--sc-accent) 24%, transparent);
+  --code-background: color-mix(in srgb, var(--sc-bg) 70%, transparent);
+  --blockquote-border-color: var(--sc-accent);
+  --hr-color: var(--sc-border);
+  --table-border-color: var(--sc-border);
+  --table-header-background: color-mix(in srgb, var(--sc-accent) 10%, transparent);
+  --scrollbar-thumb-bg: color-mix(in srgb, var(--sc-accent) 30%, transparent);
+  --scrollbar-active-thumb-bg: color-mix(in srgb, var(--sc-accent) 50%, transparent);
+  --graph-node: var(--sc-dim);
+  --graph-node-focused: var(--sc-accent);
+  --graph-line: var(--sc-border);
+
+  /* Links lean a quarter of the way to the text color: a dark accent on a dark wallpaper stays readable. */
+  --link-color: color-mix(in srgb, var(--sc-accent) 75%, var(--sc-fg));
+  --link-color-hover: var(--sc-accent-hover);
+  --link-unresolved-color: var(--sc-dim);
+  --link-external-color: var(--link-color);
+  --link-external-color-hover: var(--sc-accent-hover);
+  --h1-color: var(--sc-accent);
+  /* Plain and note callouts in the accent; tip, warning, error and the rest keep their meaning colors */
+  --callout-default: var(--sc-accent);
+  --callout-note: var(--sc-accent);
+
+  /* ---- Shape and font: the widgets' radius 18 on panes and dialogs, smaller on controls ---- */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 18px;
+  --radius-xl: 18px;
+  --modal-radius: 18px;
+  --tab-radius-active: 10px;
+  --font-interface-theme: var(--sc-font);
+  --font-monospace-theme: var(--sc-font);
+  --h1-font: var(--sc-font);
+  --h2-font: var(--sc-font);
+  --h3-font: var(--sc-font);
+  --inline-title-font: var(--sc-font);
+  --inline-title-color: var(--sc-accent);
+}
+
+/* ---- The desktop behind the cards: the solid background, or the blurred wallpaper (setting `wallpaper`) ---- */
+body .app-container,
+body .workspace {
+  background: var(--sc-desktop);
+}
+/* @wallpaper@ */
+
+/* ---- Panes as floating cards ---- */
+body .workspace-split.mod-root,
+body .workspace-split.mod-sidedock,
+body .workspace-split.mod-root .workspace-tab-header-container,
+body .workspace-split.mod-sidedock .workspace-tab-header-container,
+body .workspace-sidedock-vault-profile,
+body .workspace-ribbon,
+body .titlebar {
+  background: transparent;
+  border: none;
+}
+.workspace-split.mod-root .workspace-leaf,
+.workspace-split.mod-sidedock .workspace-tab-container {
+  background: var(--sc-pane);
+  border: 1px solid var(--sc-border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.workspace-split.mod-root .workspace-tab-container { padding: 0 8px 8px 8px; }
+.workspace-split.mod-sidedock .workspace-tab-container { margin: 0 4px 8px 4px; }
+/* Inside a pane, what Obsidian paints in the page color is the card showing through (the card has the color). */
+.workspace-split.mod-root .workspace-leaf,
+.workspace-split.mod-sidedock {
+  --background-primary: transparent;
+  --background-secondary: transparent;
+}
+/* Split panes are separate cards already; the dividers between them only add a line. */
+.workspace-split.mod-root .workspace-leaf-resize-handle,
+.workspace-split.mod-sidedock > .workspace-leaf-resize-handle { border-color: transparent; }
+
+/* Tabs: the active one is a small card of its own instead of a tab joined to the pane */
+.workspace-tab-header.is-active::before,
+.workspace-tab-header.is-active::after { display: none; }
+.workspace-tab-header.is-active {
+  background: var(--sc-pane);
+  box-shadow: inset 0 0 0 1px var(--sc-border);
+  border-radius: 10px;
+}
+.workspace-tab-header-container { padding-bottom: 4px; }
+
+/* ---- Dialogs, menus, the command palette and the status bar: the card again ---- */
+.modal, .prompt, .menu, .suggestion-container, .popover, .notice {
+  background: var(--sc-card);
+  border: 1px solid var(--sc-border);
+}
+.modal, .prompt, .popover { border-radius: 18px; }
+.status-bar {
+  border: 1px solid var(--sc-border);
+  border-radius: 18px;
+  bottom: 14px;
+  right: 18px;
+  font-family: var(--sc-font);
+}
+
+/* ---- Section titles like the widgets' headers: accent, bold, uppercase, spaced out ---- */
+.vertical-tab-header-group-title,
+.setting-item-heading .setting-item-name,
+.workspace-drawer-vault-name,
+.prompt-instructions {
+  color: var(--sc-accent);
+  font-family: var(--sc-font);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: var(--font-ui-smaller);
+}
+/* @mono_text@ */

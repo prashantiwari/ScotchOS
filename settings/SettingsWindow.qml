@@ -88,6 +88,13 @@ FloatingWindow {
               { key: "server", label: "Server", type: "text", def: "http://localhost:8080", placeholder: "http://localhost:8080" },
               { key: "registration_key", label: "Registration key", type: "text", def: "", secret: true, placeholder: "only if the server needs one" },
           ] },
+        { key: "obsidian", name: "Obsidian theme", kind: "tool", icon: "\u{F03D8}",
+          about: "Obsidian in the ScotchOS look and HyDE's colors: panes as cards over the blurred wallpaper, accent headings, JetBrainsMono for the interface. Follows every wallpaper and theme change. Off takes it out of every vault. A vault already open in Obsidian applies it the first time after Ctrl+R; after that, changes show at once.",
+          settings: [
+              { key: "vaults", label: "Vaults (auto or paths, comma-separated)", type: "text", def: "auto", placeholder: "auto" },
+              { key: "wallpaper", label: "Blurred wallpaper behind the panes", type: "flag", def: "yes" },
+              { key: "mono_text", label: "JetBrainsMono for note text too", type: "flag", def: "no" },
+          ] },
         { key: "reader", name: "E-reader", kind: "tool", icon: "\u{F00BA}",
           about: "A minimalist e-book reader in the theme's colors: EPUB, MOBI, AZW3, FB2, TXT and Markdown from one folder. Open it from the app launcher (E-reader) or `scotchos reader`. In a book: T contents, B bookmark, M bookmarks, / search, A fonts and text, W column / full width / two pages, F fullscreen, S pages/scroll, + - [ ] , . adjust.",
           settings: [

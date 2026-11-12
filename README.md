@@ -14,6 +14,7 @@ Desktop widgets and small tools for Hyprland, built on CachyOS + Hyprland + HyDE
 | [`launcher`](tools/launcher/README.md) | Tool | A Spotlight-style box: apps, YouTube search and ScotchOS commands in one input; Tab locks a keyword (`yt`, `>`) in as a chip |
 | [`dailytheory`](tools/dailyTheoryClient/README.md) | Tool | **Daily Theory** in rofi: a window for a dailyTheory server, with short theories and their linked sources matched to your interests, a daily quota, history, and saved theories and highlights |
 | [`keybinds`](tools/keybinds/README.md) | Tool | Every Hyprland keybind in one window (Super + Ctrl + /): search them, change a bind's keys, command, name or flags, switch one off or add your own; saved to a file `hyprland.lua` loads last, HyDE's files untouched |
+| [`obsidian`](tools/obsidianTheme/README.md) | Tool | Obsidian in the ScotchOS look: panes as cards over the blurred wallpaper, in HyDE's colors, changing with every wallpaper; a CSS snippet in each vault, switched off everywhere at once |
 | [`reader`](tools/eReader/README.md) | Tool | **E-reader** in the app launcher: a minimalist reader for EPUB, MOBI, AZW3, FB2, TXT and Markdown in the theme's colors, with a cover library, pages or scroll, one column, full width or two pages side by side, a font picker, contents and fullscreen |
 
 Widgets are cards drawn on the desktop (above the wallpaper, below windows) on every screen. They only appear on screens showing a workspace with no tiled windows, and are not drawn at all otherwise. They take their colors from HyDE's wallbash, so they follow your wallpaper and theme.
@@ -32,6 +33,7 @@ launcher   = yes
 dailytheory = yes
 reader     = yes
 keybinds   = yes
+obsidian   = yes
 
 [dashboard]
 layout   = square
@@ -71,7 +73,7 @@ ScotchOS/
 ├── common/             Shared QML: DesktopWidget (base for every widget), DesktopPanel (the desktop-layer window), http.js, conf.js (+ tests/)
 ├── widgets/<name>/     One folder per widget: <Name>Widget.qml (state + panels), the card, helpers, README
 ├── tools/<name>/       Scripts started by keybinds or the app launcher; each checks its switch with `scotchos enabled <name>`
-├── wallbash/           HyDE template that exports the colors the widgets use
+├── wallbash/           HyDE template that exports the colors the widgets use (tools/obsidianTheme has its own)
 ├── bin/scotchos        The control command
 └── install.sh          Setup on a new machine
 ```
@@ -83,7 +85,7 @@ git clone https://github.com/prashantiwari/ScotchOS.git ~/Projects/ScotchOS
 ~/Projects/ScotchOS/install.sh
 ```
 
-`install.sh` checks dependencies, copies the default settings to `~/.config/scotchos/scotchos.conf` (if it isn't there yet), copies the wallbash template into HyDE, links `scotchos` into `~/.local/bin`, adds **ScotchOS Settings** to the app launcher, and prints the Hyprland lines to add. It doesn't edit your Hyprland config.
+`install.sh` checks dependencies, copies the default settings to `~/.config/scotchos/scotchos.conf` (if it isn't there yet), copies the wallbash templates into HyDE (the widgets' colors and the Obsidian theme), links `scotchos` into `~/.local/bin`, adds **ScotchOS Settings** to the app launcher, and prints the Hyprland lines to add. It doesn't edit your Hyprland config.
 
 ## Hyprland
 

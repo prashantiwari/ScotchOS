@@ -193,6 +193,12 @@ ShellRoot {
         Keybinds { core: root }
     }
 
+    // ---- Obsidian theme: tools/obsidianTheme/obsidian-theme.sh puts HyDE's colors into the vaults ----
+    // HyDE runs it after every wallpaper or theme change; this runs it when the switch or one of its
+    // settings changes (and once at start), so those apply right away too. "render" with the switch off removes it.
+    readonly property string obsidianState: enabled("obsidian") ? JSON.stringify(conf.obsidian ?? {}) : "off"
+    onObsidianStateChanged: if (confText) Quickshell.execDetached([Quickshell.shellDir + "/tools/obsidianTheme/obsidian-theme.sh", "render"])
+
     // ---- Buttons in the settings window (type "action"): widgets react to their own section's actions ----
     signal action(string section, string name)
 
