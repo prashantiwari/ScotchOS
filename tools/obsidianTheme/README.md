@@ -1,6 +1,6 @@
 # Obsidian theme
 
-Obsidian in the ScotchOS look, in HyDE's wallbash colors: the panes are the widgets' cards (the background at 78 %, a thin accent border, radius 18) floating over HyDE's blurred wallpaper. Headings, inline titles and section titles are in the accent and JetBrainsMono Nerd Font, and so are the interface and code, while note text keeps a proportional font. Links, tags, checkboxes, callouts, selections and scrollbars are tinted with the accent. Dialogs, menus, the command palette and the status bar are cards too.
+Obsidian in the ScotchOS look, in HyDE's wallbash colors: the panes are the widgets' cards (the background at 78 %, a thin accent border, rounded corners) floating over HyDE's blurred wallpaper. Headings, inline titles and section titles are in the accent and JetBrainsMono Nerd Font, and so are the interface and code, while note text keeps a proportional font. Links, tags, checkboxes, callouts, selections and scrollbars are tinted with the accent. Dialogs, menus, the command palette and the status bar are cards too.
 
 It's a CSS snippet named `scotchos`, put into every vault. HyDE writes it again on every wallpaper or theme change, and Obsidian reloads a changed snippet right away, so Obsidian changes color along with the desktop. The colors are set for both of Obsidian's modes, so Obsidian follows HyDE's dark/light, whatever its own setting says.
 
@@ -72,7 +72,7 @@ scotchos enable obsidian
 | Colors | `obsidian.dcol`, the `--sc-*` variables | `pry1` background, `txt1` text, `1xa7` accent, `1xa8` hover |
 | Card see-through | `obsidian-theme.sh`, `--sc-pane` in the wallpaper rule | 78 % |
 | Card tint without the wallpaper | `obsidian.dcol`, `--sc-card` | 8 % accent |
-| Radius | `obsidian.dcol`, `--radius-l` and the card rules | 18 px (panes, dialogs), 10 px (tabs, menus) |
+| Radius | `obsidian.dcol`, `--radius-l` and the card rules | 12 px (panes, dialogs), 8 px (tabs, menus) |
 | Fonts | `obsidian.dcol`, `--sc-font`, `--h1-font` … | JetBrainsMono Nerd Font |
 | Snippet name | `obsidian-theme.sh`, `name` | `scotchos` |
 

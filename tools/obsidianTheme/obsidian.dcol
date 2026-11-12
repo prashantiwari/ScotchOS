@@ -14,7 +14,7 @@ body.theme-dark, body.theme-light {
   --sc-accent-hover: #<wallbash_1xa8>;
   --sc-font: "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
 
-  /* The widgets' card: the background at 78 %, a 1 px accent border at 35 %, radius 18. Over the solid
+  /* The widgets' card: the background at 78 %, a 1 px accent border at 35 %, radius 18 (12 here). Over the solid
      "desktop" (no wallpaper) the card is the background with a little accent mixed in, so the two differ. */
   --sc-desktop: var(--sc-bg);
   --sc-card: color-mix(in srgb, var(--sc-bg) 92%, var(--sc-accent));
@@ -91,13 +91,13 @@ body.theme-dark, body.theme-light {
   --callout-default: var(--sc-accent);
   --callout-note: var(--sc-accent);
 
-  /* ---- Shape and font: the widgets' radius 18 on panes and dialogs, smaller on controls ---- */
+  /* ---- Shape and font: 12 px on panes and dialogs (a little less round than the widgets' 18), 8 px on controls ---- */
   --radius-s: 6px;
-  --radius-m: 10px;
-  --radius-l: 18px;
-  --radius-xl: 18px;
-  --modal-radius: 18px;
-  --tab-radius-active: 10px;
+  --radius-m: 8px;
+  --radius-l: 12px;
+  --radius-xl: 12px;
+  --modal-radius: 12px;
+  --tab-radius-active: 8px;
   --font-interface-theme: var(--sc-font);
   --font-monospace-theme: var(--sc-font);
   --h1-font: var(--sc-font);
@@ -129,7 +129,7 @@ body .titlebar {
 .workspace-split.mod-sidedock .workspace-tab-container {
   background: var(--sc-pane);
   border: 1px solid var(--sc-border);
-  border-radius: 18px;
+  border-radius: 12px;
   overflow: hidden;
 }
 .workspace-split.mod-root .workspace-tab-container { padding: 0 8px 8px 8px; }
@@ -150,7 +150,7 @@ body .titlebar {
 .workspace-tab-header.is-active {
   background: var(--sc-pane);
   box-shadow: inset 0 0 0 1px var(--sc-border);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 .workspace-tab-header-container { padding-bottom: 4px; }
 
@@ -159,10 +159,10 @@ body .titlebar {
   background: var(--sc-card);
   border: 1px solid var(--sc-border);
 }
-.modal, .prompt, .popover { border-radius: 18px; }
+.modal, .prompt, .popover { border-radius: 12px; }
 .status-bar {
   border: 1px solid var(--sc-border);
-  border-radius: 18px;
+  border-radius: 12px;
   bottom: 14px;
   right: 18px;
   font-family: var(--sc-font);
