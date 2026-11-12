@@ -36,14 +36,25 @@ put() {   # put <file>  (content on stdin)
     cat >"$tmp" && chmod 644 "$tmp" && mv -f "$tmp" "$1" || { rm -f "$tmp"; return 1; }
 }
 
+# ---- HyDE's small blurred copy of the current wallpaper ----
+# Found by the wallpaper's hash, the name HyDE caches it under: on a wallpaper change HyDE re-points the
+# wall.blur link only after it has rendered the templates, so during sync that link is still the old one.
+# wall.set is re-pointed first. wall.blur is the fallback (a hash other than sha1 in HyDE's config).
+wall_blur() {
+    local hash
+    hash=$(sha1sum "$cache/wall.set" 2>/dev/null | cut -d' ' -f1)
+    if [[ -n "$hash" && -s "$cache/thumbs/$hash.blur" ]]; then echo "$cache/thumbs/$hash.blur"; else echo "$cache/wall.blur"; fi
+}
+
 # ---- The snippet with the settings filled in ----
 build() {
-    local out wall_rule="" mono_rule=""
+    local out wall_rule="" mono_rule="" blur
     out=$(<"$css")
-    if [[ "$(get wallpaper yes)" =~ ^(yes|on|true|1)$ && -s "$cache/wall.blur" ]]; then
-        # HyDE's small blurred copy of the wallpaper, inline: snippets can't load files from disk.
+    blur=$(wall_blur)
+    if [[ "$(get wallpaper yes)" =~ ^(yes|on|true|1)$ && -s "$blur" ]]; then
+        # Inline, as a data: URL: snippets can't load files from disk.
         # The panes become the widgets' card again: the background at 78 % over the wallpaper.
-        wall_rule="body .app-container { background: var(--sc-bg) url(\"data:image/png;base64,$(base64 -w0 "$cache/wall.blur")\") center / cover no-repeat; }
+        wall_rule="body .app-container { background: var(--sc-bg) url(\"data:image/png;base64,$(base64 -w0 "$blur")\") center / cover no-repeat; }
 body .workspace { background: transparent; }
 body.theme-dark, body.theme-light { --sc-pane: color-mix(in srgb, var(--sc-bg) 78%, transparent); }"
     fi
