@@ -28,7 +28,14 @@ DesktopWidget {
     property string error: ""       // why the last fetch failed, "" when it worked
     property real now: Date.now()   // for the countdowns, moved once a minute
     readonly property int retryMs: 10 * 60 * 1000
-    readonly property bool stale: fetchedAt > 0 && now - fetchedAt > 2 * intervalMin * 60000
+    readonly property bool stale: fetchedAt > 0 && ago(fetchedAt, now) > 2 * intervalMin * 60000
+
+    // Time since `t`. A `t` in the future means the clock went back (NTP fixing an RTC kept in local time,
+    // just after boot): count it as long ago, or the cooldowns would block every fetch until the clock catches up.
+    function ago(t, at) {
+        const d = (at ?? Date.now()) - t;
+        return d < 0 ? Infinity : d;
+    }
 
     // Clock time the 5-hour window resets, shown in the title. "-" while no window is running: the API gives no
     // reset (or one a full 5 h away, within 10 min) until the first message of a window.
@@ -118,11 +125,11 @@ DesktopWidget {
         now = Date.now();
         // Before the credentials are read, the startup fetch hasn't happened yet.
         if (!startedUp || loading) return;
-        const since = now - lastTry;
+        const since = ago(lastTry, now);
         if (error && since < retryMs) return;
         // Also refetch once a window has reset, so the card doesn't keep showing the old percentage.
         const reset = usage && [usage.fiveHour, usage.sevenDay].some(l => l?.resetsAt && l.resetsAt < now);
-        if (now - fetchedAt >= intervalMin * 60000 || (reset && since >= retryMs))
+        if (ago(fetchedAt, now) >= intervalMin * 60000 || (reset && since >= retryMs))
             fetchUsage();
     }
 
@@ -131,8 +138,8 @@ DesktopWidget {
     readonly property int cooldownMs: 30000
     function refresh() {
         if (loading) return "already fetching";
-        const ago = Date.now() - lastTry;
-        if (ago < cooldownMs) return "skipped: last fetch " + Math.round(ago / 1000) + " s ago (30 s cooldown)";
+        const since = ago(lastTry);
+        if (since < cooldownMs) return "skipped: last fetch " + Math.round(since / 1000) + " s ago (30 s cooldown)";
         fetchUsage();
         return error && !loading ? error : "fetching";
     }
