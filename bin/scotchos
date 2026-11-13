@@ -88,7 +88,7 @@ case "$1" in
     log)     qs log -p "$root" ;;
     settings) qs ipc -p "$root" call settings "${2:-toggle}" ;;
     theory)  qs ipc -p "$root" call dailytheory "${2:-toggle}" ;;
-    launcher) qs ipc -p "$root" call launcher "${2:-toggle}" ;;
+    launcher) a=${2:-toggle}; [ "$a" = private ] && a=privateSearch; qs ipc -p "$root" call launcher "$a" ;;
     keybinds) qs ipc -p "$root" call keybinds "${2:-toggle}" ;;
     reader)  a=${2:-toggle}; [ "$a" = continue ] && a=continueReading; qs ipc -p "$root" call reader "$a" ;;
     claude)

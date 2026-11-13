@@ -1,4 +1,4 @@
-// Launcher: one input over several providers (apps, YouTube, ScotchOS commands). Loaded while `launcher` is on;
+// Launcher: one input over several providers (apps, YouTube, private search, ScotchOS commands). Loaded while `launcher` is on;
 // it runs nothing until the window opens, and the window exists only while open.
 import QtQuick
 import Quickshell
@@ -15,19 +15,24 @@ Scope {
     property bool shown: false
     onOpenChanged: { if (open) screen = core.focusedScreen(); shown = open; }
 
-    // `scotchos launcher` (qs ipc call launcher toggle), which the keybind runs.
+    // The chip the window starts with (read once when it's created); null opens it plain.
+    property var startMode: null
+
+    // `scotchos launcher` (qs ipc call launcher toggle), which the keybind runs; `scotchos launcher private` opens it on the Private chip.
     IpcHandler {
         target: "launcher"
-        function open(): void { l.open = true }
+        function open(): void { l.startMode = null; l.open = true }
         function close(): void { l.open = false }
-        function toggle(): void { l.open = !l.open }
+        function toggle(): void { l.startMode = null; l.open = !l.open }
+        function privateSearch(): void { l.startMode = priv; l.open = !l.open }
     }
 
     // ---- Providers: the order is the order Tab cycles through them ----
     CommandsProvider { id: commands; core: l.core }
     YouTubeProvider { id: youtube; core: l.core }
+    PrivateProvider { id: priv; core: l.core }
     AppsProvider { id: apps; core: l.core }
-    readonly property var providers: [commands, youtube, apps]
+    readonly property var providers: [commands, youtube, priv, apps]
 
     LazyLoader {
         active: l.shown

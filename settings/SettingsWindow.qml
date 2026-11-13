@@ -76,7 +76,7 @@ FloatingWindow {
         { key: "launcher", name: "Launcher", kind: "tool", icon: "\u{F0349}",
           about: "One box for apps, YouTube search and ScotchOS commands. Type a keyword (yt, >) and press Tab to lock it in, or just type to search apps.",
           settings: [
-              { key: "browser", label: "Browser (YouTube)", type: "text", def: "brave --incognito --new-window", placeholder: "brave --incognito --new-window" },
+              { key: "browser", label: "Browser (YouTube, private window)", type: "text", def: "brave --incognito --new-window", placeholder: "brave --incognito --new-window" },
               { key: "browser_class", label: "Browser window class", type: "text", def: "brave-browser", placeholder: "brave-browser" },
               { key: "workspace", label: "Opens on workspace", type: "text", def: "1", placeholder: "1" },
           ] },

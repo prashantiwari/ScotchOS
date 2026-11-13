@@ -20,7 +20,7 @@ PanelWindow {
     color: Qt.alpha("black", 0.25)
 
     // ---- State ----
-    property var mode: null         // the provider locked in as a chip, or null
+    property var mode: launcher.startMode   // the provider locked in as a chip, or null
     property int sel: 0
     readonly property int maxRows: 9            // rows on screen; a longer list scrolls through them
     readonly property int maxResults: 300
@@ -37,7 +37,7 @@ PanelWindow {
             for (const k of p.keywords) {
                 const symbol = !/\w/.test(k);
                 if (raw.startsWith(k + " ") || (symbol && raw.startsWith(k)) || (tab && raw === k))
-                    return { provider: p, query: raw.slice(k.length).trimStart() };
+                    return { provider: p, query: raw.slice(k.length).replace(/^\s+/, "") };     // no trimStart() in QML's JS
             }
         }
         return { provider: null, query: raw };

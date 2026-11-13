@@ -8,24 +8,25 @@ Keywords aim the box at one source (a *provider*):
 |---|---|---|---|
 | plain text | apps and commands that match, then "Search YouTube for …" | runs the row | the row's alternative, if it has one |
 | `yt cats` | YouTube only | results page in a private browser window (Brave, workspace 1 by default) | plays the first video |
+| `private cats` | Private search only | a private browser window on workspace 7, searching with its default engine, and you go there with it (`private` alone: an empty window). **SUPER + I** opens the launcher already on this chip. Closing that window takes you back to the workspace you came from | — |
 | `> restart` or `sos restart` | ScotchOS commands only | runs it | — |
 | `app firefox` | applications only | starts it | — |
 
 A keyword or chip lists every match (up to 300), nine rows at a time: ↑ / ↓ and the mouse wheel scroll the rest into view. (`app` + Tab with nothing typed lists every installed app.)
 
-**Tab** turns a typed keyword into a chip (`yt` + Tab → a *YouTube* chip, the rest of the line is the query). With no keyword typed, Tab steps through the chips (Commands, YouTube, Apps, none); **Shift + Tab** goes back. **Backspace** on an empty line removes the chip. **Esc**, a click outside the box, or the keybind again closes it. **↑ / ↓** or **Ctrl + J / K** move the highlight.
+**Tab** turns a typed keyword into a chip (`yt` + Tab → a *YouTube* chip, the rest of the line is the query). With no keyword typed, Tab steps through the chips (Commands, YouTube, Private, Apps, none); **Shift + Tab** goes back. **Backspace** on an empty line removes the chip. **Esc**, a click outside the box, or the keybind again closes it. **↑ / ↓** or **Ctrl + J / K** move the highlight.
 
 Apps are found by name, by initials (`vsc` → Visual Studio Code, `lo` → LibreOffice), by the command they run (`code`) and by generic name or keywords. Apps you launch often rise: with nothing typed the most launched come first, and among apps that match equally well the more launched wins.
 
 With nothing typed it shows the apps you have launched as square icons, most launched first, up to 18; they wrap onto a new row when the card is full (nine per row), the picked one's name is underneath. Arrow keys (or Ctrl + J / K) move through them, Enter starts it.
 
-Commands: open settings, restart ScotchOS, open Daily Theory, open the E-reader or "Continue reading <title>" (the book read last, at your place) and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
+Commands: open settings, restart ScotchOS, "Private window" (an empty one, see `private` above), open Daily Theory, open the E-reader or "Continue reading <title>" (the book read last, at your place) and refresh Claude usage (while those are on), and "Switch on / off <name>" for every widget and tool.
 
 Switch it off with `scotchos disable launcher`: the keybind stays but does nothing.
 
 ## Settings
 
-`[launcher]` in `scotchos.conf`, also in the settings window. They only affect the YouTube search (`yt-open.sh` reads them on each search).
+`[launcher]` in `scotchos.conf`, also in the settings window. They affect the YouTube search (`yt-open.sh` reads them on each search); `private` uses `browser` only. Its search terms are passed as `"? terms"`, which Chromium browsers (Brave, Chrome) understand; other browsers may not.
 
 | Key | Default | What it does |
 |---|---|---|
@@ -39,7 +40,7 @@ Which keyword picks which provider is in each provider file (`keywords`).
 
 | File | What it does |
 |---|---|
-| `launcher.sh` | What the keybind runs. Exits if `launcher` is off, else `scotchos launcher` (toggle). |
+| `launcher.sh` | What the keybinds run. Exits if `launcher` is off, else `scotchos launcher` (toggle; `launcher.sh private` starts on the Private chip). |
 | `Launcher.qml` | Loaded by `shell.qml` while `launcher` is on. The `launcher` IPC target, the provider list, and the window's loader. |
 | `LauncherWindow.qml` | The window: chip, input, result rows, keys. Exists only while open. |
 | `Provider.qml` | The shape of a provider (keywords, `search`, `fallback`). |
@@ -47,8 +48,10 @@ Which keyword picks which provider is in each provider file (`keywords`).
 | `score.js` | Ranks the apps for a query (pure JS, also run by the tests). |
 | `tests/score.test.mjs` | Tests for `score.js` (`scotchos test`, needs node). |
 | `YouTubeProvider.qml` | The "Search YouTube" rows. |
+| `PrivateProvider.qml` | The `private` keyword's row. |
 | `CommandsProvider.qml` | ScotchOS commands and the on/off switches. |
 | `yt-open.sh` | Opens the search (or the first video) in the browser on the `[launcher]` workspace, then restores focus. |
+| `private-open.sh` | Focuses workspace 7 and opens a private browser window there, with the search if one was typed; when that window closes, focuses the workspace you came from. |
 | `README.md` | This file. |
 
 ## Requirements
@@ -58,8 +61,9 @@ The versions are the ones this was built and tested with, on CachyOS + Hyprland 
 | Requirement | Package (Arch/CachyOS) | Tested version | Used for |
 |---|---|---|---|
 | Quickshell | `quickshell` | 0.3.2 | The window, desktop entries, `execDetached` |
-| Hyprland with **Lua config** | `hyprland` | 0.56.2 | The keybind, the focused monitor, `hyprctl dispatch 'hl.dsp.…'` in `yt-open.sh` |
-| Brave | `brave-bin` | 1.97.59 | YouTube results (`--incognito --new-window`) |
+| Hyprland with **Lua config** | `hyprland` | 0.56.2 | The keybind, the focused monitor, `hyprctl dispatch 'hl.dsp.…'` in `yt-open.sh` and `private-open.sh` |
+| socat, jq | `socat`, `jq` | 1.8.1.3, 1.8.2 | `private-open.sh` reads Hyprland's event socket (`.socket2.sock`) to see the private window close |
+| Brave | `brave-bin` | 1.97.59 | YouTube results and the private window (`--incognito --new-window`) |
 | jq | `jq` | 1.8.2 | URL-encoding the query, reading `hyprctl … -j` |
 | curl | `curl` | 8.23.0 | Finding the first video (Shift + Enter on a YouTube row) |
 | setsid | `util-linux` | 2.42 | Detaching Brave from the script |
@@ -90,7 +94,17 @@ hl.bind("SUPER + Y", hl.dsp.exec_cmd(hyde.sh.menu.apps()), {
 })
 ```
 
-### 2. `~/.config/hypr/hyprland.lua`: workspace 1 pinned to the laptop screen
+### 2. `~/.config/hypr/hyprland.lua`: private search bind
+
+Under the launcher bind, `SUPER + I` opens the launcher already on the Private chip:
+
+```lua
+hl.bind("SUPER + I", hl.dsp.exec_cmd(os.getenv("HOME") .. "/Projects/ScotchOS/tools/launcher/launcher.sh private"), {
+        description = "[Launcher|ScotchOS] private search",
+})
+```
+
+### 3. `~/.config/hypr/hyprland.lua`: workspace 1 pinned to the laptop screen
 
 Above the workspace 2 and 3 rules (it was added for the old YouTube tool; `yt-open.sh` opens Brave on workspace 1):
 
@@ -98,14 +112,15 @@ Above the workspace 2 and 3 rules (it was added for the old YouTube tool; `yt-op
 hl.workspace_rule({ workspace = "1", monitor = "eDP-1" })
 ```
 
-### 3. Backup
+### 4. Backup
 
-The config before the bind change is `~/.config/hypr/hyprland.lua.bak-before-launcher`, and before the Y/Space swap `~/.config/hypr/hyprland.lua.bak-before-swap-y-space`. Apply with `hyprctl reload`.
+The config before the bind change is `~/.config/hypr/hyprland.lua.bak-before-launcher`, before the Y/Space swap `~/.config/hypr/hyprland.lua.bak-before-swap-y-space`, and before the SUPER + I bind `~/.config/hypr/hyprland.lua.bak-before-private-bind`. Apply with `hyprctl reload`.
 
 ## Running it by hand
 
 ```bash
 scotchos launcher          # toggle   (also: open, close)
+scotchos launcher private  # toggle, starting on the Private chip
 ~/Projects/ScotchOS/tools/launcher/launcher.sh
 ```
 
@@ -117,9 +132,10 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 |---|---|---|
 | Keybind | `hyprland.lua` | see above |
 | Where the box sits | `LauncherWindow.qml`, `card` (`y: parent.height * 0.2`, `width: 640`) | 20 % from the top, 640 px |
-| Keywords | each provider's `keywords` | `>`/`sos`, `yt`/`youtube`, `app` |
-| Order Tab steps through | `Launcher.qml`, `providers` | Commands, YouTube, Apps |
+| Keywords | each provider's `keywords` | `>`/`sos`, `yt`/`youtube`, `private`, `app` |
+| Order Tab steps through | `Launcher.qml`, `providers` | Commands, YouTube, Private, Apps |
 | Browser, window class, workspace | `[launcher]` in `scotchos.conf` (see Settings) | Brave, workspace 1 |
+| "Private window" workspace | `private-open.sh`, the `hl.dsp.focus` line | 7 |
 | Old-style config (`hyprland.conf`) | — | `bind = SUPER, SPACE, exec, <path>/launcher.sh`; in `yt-open.sh` use `hyprctl dispatch workspace N` |
 
 **A new source** is one file: a `Provider { name; glyph; keywords; search: q => [rows] }` (copy `YouTubeProvider.qml`), then add it to the `providers` list in `Launcher.qml`. A row is `{ title, subtitle, glyph or iconName, run(), alt() }`.
@@ -132,6 +148,7 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 4. The rows are a fixed set of nine delegates that show or hide, so typing doesn't create or destroy anything. App icons are decoded at 28 px.
 5. Running a row calls its `run()`. For an app that also adds one to its count in `launcher-counts.json` (in Quickshell's cache folder, `{ desktop id: launches }`, written only then, atomically; ids no longer installed are dropped). Programs are started with `Quickshell.execDetached`, so they outlive the window.
 6. YouTube: `yt-open.sh` URL-encodes the query, optionally fetches the first video id, reads `[launcher]` with `scotchos get`, focuses that workspace, starts the browser, waits for it to appear and returns to your workspace.
+7. Private window: `private-open.sh` focuses workspace 7 and starts the browser, adding `"? terms"` if a search was typed. A window from a running browser opens on the focused workspace, so focus goes first. Before starting the browser it connects to Hyprland's event socket with `socat`, takes the first `openwindow` on workspace 7 as the private window (20 s at most), then blocks until that window's `closewindow` (no CPU while waiting) and focuses the workspace you were on, if you're still on 7. `scotchos launcher private` sets `startMode` to the Private provider before opening, and the window's `mode` starts from it.
 
 ### Ranking
 
@@ -141,5 +158,5 @@ With `scotchos disable launcher` the script exits at once with 0 and opens nothi
 
 To only switch it off: `scotchos disable launcher`. To remove it:
 
-1. Remove the launcher bind from `~/.config/hypr/hyprland.lua` and `hyprctl reload`.
+1. Remove the launcher binds (SUPER + SPACE, SUPER + I) from `~/.config/hypr/hyprland.lua` and `hyprctl reload`.
 2. Delete this folder, its `LazyLoader` and import in `shell.qml`, the `launcher` line in `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`, its entry in `settings/SettingsWindow.qml`, and the `launcher` command in `bin/scotchos`.

@@ -1,4 +1,4 @@
-// ScotchOS commands: the settings window, the dailyTheory, e-reader and keybinds windows (and the last book), a restart, and a switch for every widget and tool.
+// ScotchOS commands: the settings window, a private browser window, the dailyTheory, e-reader and keybinds windows (and the last book), a restart, and a switch for every widget and tool.
 import Quickshell
 
 Provider {
@@ -17,6 +17,7 @@ Provider {
         const rows = [
             { title: "Open settings", run: () => { core.settingsOpen = true } },
             { title: "Restart ScotchOS", subtitle: "the widget shell", run: () => Quickshell.execDetached([bin, "restart"]) },
+            { title: "Private window", subtitle: "browser on workspace 7", run: () => Quickshell.execDetached([Quickshell.shellDir + "/tools/launcher/private-open.sh"]) },
         ];
         if (isOn("dailytheory"))
             rows.push({ title: "Open Daily Theory", run: () => Quickshell.execDetached([bin, "theory", "open"]) });
