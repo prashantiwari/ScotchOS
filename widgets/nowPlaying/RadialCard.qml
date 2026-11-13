@@ -8,13 +8,17 @@ Item {
     required property var shell
     readonly property var p: shell.player
     readonly property bool playing: shell.isPlaying
+    // Largest side the screen has room for; a big radial_size stops there instead of running off the screen.
+    property real fit: Infinity
 
-    // ---- Geometry (base sizes times the radial_size setting) ----
-    readonly property real k: shell.radialScale
+    // ---- Geometry (base sizes times the radial_size setting; 310 px across at 100 %) ----
+    readonly property real k: Math.min(shell.radialScale, fit / 310)
     readonly property real artRadius: 90 * k
     readonly property real waveDepth: 5 * k     // how far the edge bumps in and out
     readonly property int waves: 10             // bumps around the edge
-    readonly property real rayGap: 10 * k       // between the edge's outermost bump and the rays
+    readonly property real artBorder: shell.artBorder * k
+    // Between the border's outer edge and the rays (the line is centered on the wavy edge, so half of it sticks out).
+    readonly property real rayGap: 10 * k + artBorder / 2
     readonly property real rayMin: 6 * k
     readonly property real rayMax: 46 * k
     readonly property real rayWidth: Math.max(2, 3 * k)
@@ -111,6 +115,18 @@ Item {
             maskSource: mask
             maskThresholdMin: 0.5
             maskSpreadAtMin: 1.0
+        }
+        // The same border line as the other cards, on top so the cover doesn't hide its inner half.
+        Shape {
+            anchors.fill: parent
+            visible: card.artBorder > 0
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: Qt.alpha(card.shell.accent, 0.35)
+                strokeWidth: card.artBorder
+                PathPolyline { path: card.outline }
+            }
         }
     }
 }

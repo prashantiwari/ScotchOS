@@ -16,8 +16,10 @@ DesktopWidget {
     readonly property string layout: str("layout", "card", ["card", "radial"])
     // middle: bars mirrored around the art row; bar: bars rising from the progress bar.
     readonly property string visualizer: str("visualizer", "middle", ["middle", "bar"])
-    // Radial layout's scale in percent of its base size (art 180 px across), kept to what fits a 720 px screen.
-    readonly property real radialScale: Math.max(50, Math.min(160, num("radial_size", 100))) / 100
+    // Radial layout's scale in percent of its base size (art 180 px across); each screen shrinks it further to fit (RadialCard.fit).
+    readonly property real radialScale: Math.max(50, Math.min(400, num("radial_size", 100))) / 100
+    // Width of the line around the album art, in px (scaled with the radial layout); 0 for none.
+    readonly property real artBorder: Math.max(0, Math.min(12, num("art_border", 1)))
 
     // ---- The player to show ----
     // The one playing right now; when it pauses, it stays the choice until another one plays
@@ -75,6 +77,7 @@ DesktopWidget {
         model: Quickshell.screens
 
         DesktopPanel {
+            id: panel
             layerName: "scotchos-nowplaying"
             visible: w.shown && w.workspaceEmpty(modelData)
             place: w.place
@@ -88,7 +91,10 @@ DesktopWidget {
                 id: card
                 sourceComponent: w.layout === "radial" ? radialCard : mediaCard
                 Component { id: mediaCard; MediaCard { shell: w } }
-                Component { id: radialCard; RadialCard { shell: w } }
+                Component { id: radialCard; RadialCard {
+                    shell: w
+                    fit: Math.min(panel.modelData.width - 2 * w.marginX, panel.modelData.height - 2 * w.marginY)
+                } }
             }
         }
     }

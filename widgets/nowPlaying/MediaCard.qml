@@ -78,6 +78,7 @@ Rectangle {
                 width: 88; height: 88
                 radius: 12
                 color: Qt.alpha(card.shell.accentDim, 0.5)
+                border { width: card.shell.artBorder; color: Qt.alpha(card.shell.accent, 0.35) }
 
                 Text {
                     anchors.centerIn: parent
