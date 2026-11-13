@@ -19,7 +19,7 @@ Status: v1, 2026-10-20.
 
 - DRM-protected books (detected and reported, never decrypted).
 - PDF, CBZ/CBR comics, DjVu: they are page images, not reflowable text, and would need a different renderer.
-- Highlights, notes, dictionary lookup, text-to-speech.
+- Text-to-speech. (Highlights, notes and an offline dictionary lookup were added after v1: see the README.)
 - The book's own CSS: fonts, colors and layout are replaced by the theme. Structure (headings, emphasis, lists, quotes, tables, images, links) is kept.
 - Syncing, a store, metadata editing, several library folders.
 

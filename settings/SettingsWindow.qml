@@ -108,6 +108,7 @@ FloatingWindow {
               { key: "line_height", label: "Line spacing", type: "number", def: 150, min: 100, max: 220, step: 10, unit: "%" },
               { key: "justify", label: "Justify text", type: "flag", def: "no" },
               { key: "time_left", label: "Time left", type: "flag", def: "yes" },
+              { key: "dictionary", label: "Dictionary", type: "flag", def: "yes" },
           ] },
     ]
     property string selected: items[0].key

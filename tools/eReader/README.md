@@ -13,6 +13,7 @@ The window opens tiled. When the workspace you're on already has windows, it fir
 - **Links** in the book (footnotes, its own contents page) jump inside the reader. Web links open in the browser.
 - **Bookmarks**: `B` marks the page you're on (a ribbon shows in the top-right corner; `B` again or a click on it removes it). `M` lists them with the start of the marked page, the chapter and the %, and Enter or a click jumps there. `E` in that list (or its export icon, top right) writes them to `~/Documents/Reader notes/<title>.md` (your XDG documents folder): the title, the author, each bookmark as its chapter and the start of its page, then each highlight as its chapter, its text and its note. The status line says where it went.
 - **Highlights and notes**: drag the mouse over the text to select it (the ends snap to whole words; a click lets go of it). `H` keeps the selection as a highlight, a tint under the text; `N` adds or edits the note of the highlight under the selection (making it first if there's none), typed in the side panel: Enter keeps it, Esc doesn't. A highlight with a note is underlined. `Shift+H` lists them with their chapter and note: Enter or a click jumps there, Delete or the × removes one, `N` edits the note, and `E` exports them with the bookmarks. While nothing is selected, `H` and `N` keep their other meaning (previous page, search matches).
+- **Dictionary**: drag over one word and a small book icon shows at its top-right corner when WordNet has it. Rest the mouse on it and it opens into a card: the word (and the form it was found as: *ran → run*), then each part of speech with up to three senses, each with an example and a few synonyms; it closes once the mouse has left both for a moment. A click on the icon, or `D`, keeps it open until `D`, Esc or a click elsewhere. Plurals and verb forms are found too (*cats*, *studied*, *stopping*). It's offline: [`sdcv`](https://dushistov.github.io/sdcv/) with the WordNet dictionary (see Requirements); without them `D` says so and no icon shows. Switch it off with `dictionary = no`.
 - **Search**: `/` opens a search box. Type words (any case; line breaks between them don't matter), Enter lists every match with its context and chapter, and Enter or a click on one jumps there with the match highlighted. Afterwards `n` and `N` go to the next and previous match.
 - **Time left**: the status line ends with the time left in the chapter and in the book, at your reading speed. The speed is learned from your page turns (or scrolling): skims under 3 s and pauses over 10 min don't count, and until it has learned it assumes ~250 words a minute. Switch it off with `time_left = no`.
 - **Text and layout**: `A` (or the gear in the side panel) opens its settings tab. It lists the installed fonts, each in its own face (type to filter, Enter or a click switches the book to it, and the panel stays open to try another), with the size, spacing, justify, pages / scroll and page layout above, and **All settings**, which opens the ScotchOS settings window on the E-reader (library folder, time left; leaving fullscreen first). **Page layout** (`W` cycles): **Column**, a centred column at most `width` wide; **Full width**, the text across the whole window, less a margin on each side as wide as the gap between two pages; **Two pages**, side by side like an open book (pages mode only; scroll mode uses a column).
@@ -27,6 +28,7 @@ The window opens tiled. When the workspace you're on already has windows, it fir
 | drag | Select text (snaps to words; a click or Esc lets go) |
 | `H` (text selected) | Highlight the selection |
 | `N` (text selected) | Note on the highlight under the selection (Enter keeps it, Esc doesn't) |
+| `D` (one word selected) | Its dictionary card, or closes it (resting the mouse on the icon by the word opens it too) |
 | `Shift+H` | Highlights (Enter or a click jumps; Delete or the × removes one; `N` edits the note; `E` exports) |
 | `/` | Search the book (type, Enter searches, ↑ ↓ and Enter jump) |
 | `A` | Settings, the gear tab: fonts and text (type to filter fonts, Enter picks one, + - size, ← → page layout) |
@@ -63,6 +65,7 @@ In `[reader]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.defa
 | `line_height` | `150` | % of the font height, 100–220 (`.` / `,`) |
 | `justify` | `no` | Justify paragraphs (`Shift+J`) |
 | `time_left` | `yes` | Show the time left in the chapter and the book on the status line |
+| `dictionary` | `yes` | The dictionary icon by a selected word, and `D` (needs `sdcv` and `stardict-wordnet`) |
 
 ## Files in this folder
 
@@ -73,11 +76,12 @@ In `[reader]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.defa
 | `ReaderFullscreen.qml` | The fullscreen overlay layer (`scotchos-reader`, exclusive keyboard). Exists only while open in fullscreen. |
 | `ReaderContent.qml` | What both windows show: library or book, the title and status lines, the sidebar on the left edge, and every key. |
 | `ReaderLibrary.qml` | The cover grid and the filter. Created only while the library is shown, so page turns (which update the positions it sorts by) don't touch it. |
-| `ReaderBook.qml` | The chapter: rich text with a stylesheet made from the theme, pagination, the page layouts (and the second page), scrolling, links, selecting and the highlights. |
+| `ReaderBook.qml` | The chapter: rich text with a stylesheet made from the theme, pagination, the page layouts (and the second page), scrolling, links, selecting, the highlights, and the dictionary icon and card (it runs `sdcv`). |
+| `dict.js` | The dictionary's pure functions: whether a selection is one word, the forms of it to try (endings taken off), and `sdcv`'s WordNet text made into senses, examples and synonyms. |
 | `ReaderKeys.qml` | The card listing every key (`?` / `F1`), in groups. Created only while shown. Its list is written out by hand: keep it the same as the key table above. |
 | `ReaderPanel.qml` | The side panel: contents, bookmarks, highlights and their notes (and the export), search, and the settings (fonts and text). |
 | `book.py` | Lists the library (metadata and covers, cached), converts a book once into theme-free HTML chapters, searches a converted book, and exports its bookmarks and highlights to Markdown. |
-| `tests/` | `test_book.py` and its fixtures: a small EPUB 3 and EPUB 2 (as folders, zipped by the test; the EPUB 2 one has unclosed `<p>`s), FB2, TXT and Markdown, plus the export. `scotchos test` runs it. |
+| `tests/` | `test_book.py` and its fixtures: a small EPUB 3 and EPUB 2 (as folders, zipped by the test; the EPUB 2 one has unclosed `<p>`s), FB2, TXT and Markdown, plus the export. `dict.test.mjs`: `dict.js` on copies of `sdcv`'s output (node). `scotchos test` runs both. |
 | `reader.sh` | What the launcher entry runs: exits if `reader` is off, else `scotchos reader open`. |
 | `scotchos-reader.desktop` | The app launcher entry; `install.sh` copies it to `~/.local/share/applications/` with the real path in `Exec`. |
 | `PRD.md` | Requirements and design. |
@@ -91,12 +95,14 @@ In `[reader]` of `~/.config/scotchos/scotchos.conf` (defaults in [`scotchos.defa
 | Hyprland | `hyprland` | 0.56.2 | Tiles the window, `emptynm` workspace selector (Lua dispatch), focused monitor for fullscreen |
 | Python 3 | `python` | 3.14.8 | `book.py` (standard library only) |
 | mobi (only for MOBI / AZW3 / AZW) | `python-mobi` (AUR), or `pipx install mobi` | 0.4.1 (pipx) | Unpacking Kindle files. A pipx install works as long as its venv uses the same Python version as `python3`, because `book.py` adds that venv's `site-packages` to its path. Without it, the library still lists them (their headers are read directly), and opening one says to install it |
+| sdcv and WordNet (only for the dictionary) | `sdcv`, `stardict-wordnet` (AUR) | sdcv 0.5.5, stardict-wordnet 2.4.2 (WordNet 3.0) | Looking up a selected word, offline. English only; any other StarDict dictionary is ignored (`-u WordNet`) |
 | A serif font | `ttf-dejavu`, `noto-fonts`… | DejaVu Serif 2.37 | Book text (`font = serif`) |
 | JetBrainsMono Nerd Font | `ttf-jetbrains-mono-nerd`, or HyDE's bundled copy | — | Title, status, library and icons |
 
 ```bash
 sudo pacman -S --needed quickshell python ttf-dejavu
 yay -S python-mobi        # MOBI / AZW3 (or: pipx install mobi)
+yay -S sdcv stardict-wordnet   # the dictionary
 ```
 
 ## Changes made to the system
@@ -146,11 +152,12 @@ QML changes hot-reload on save, which closes the window. Logs: `scotchos log 2>&
 | Sidebar on the left edge | `edge` and the two timers under "Sidebar" in `ReaderContent.qml` | a 16 px strip, opens after 200 ms there, closes 400 ms after the mouse has left the panel and the strip |
 | Highlight tint, longest highlight | `Boxes` and `highlight()` in `ReaderBook.qml` | the accent at 25 %, 2000 characters |
 | Ranges of the adjustment keys | `ReaderContent.qml` and `Reader.qml` | size 10–32, width 400–1600, spacing 100–220 |
+| Dictionary: which one, endings tried, senses shown, hover delays | the `sdcv` command in `lookup()` and the timers under "The dictionary chip and card" in `ReaderBook.qml`, `ENDINGS` in `dict.js`, `senses` in the card | WordNet (`-u WordNet`; a StarDict dictionary in another layout would need its own `parse()`), WordNet's morphy endings, 3 per part of speech, opens after 250 ms, closes 350 ms after the mouse leaves |
 | Positions file | `stateDir` in `Reader.qml` | `~/.local/state/scotchos/reader-progress.json` |
 | Where exports go | `exportNotes()` in `Reader.qml` | `$(xdg-user-dir DOCUMENTS)/Reader notes/<title>.md` |
 | Export format | `export()` in `book.py` | `# title`, `*author*`, `## Bookmarks`, then `### chapter · %` and a `>` quote each; `## Highlights` the same, with the note after the quote |
 
-After changing `book.py`, run `scotchos test` (and add a case to `tests/test_book.py` for what you fixed). If its output changed, bump `VERSION` there, so that cached books are converted again.
+After changing `book.py` or `dict.js`, run `scotchos test` (and add a case to `tests/test_book.py` or `tests/dict.test.mjs` for what you fixed). If its output changed, bump `VERSION` there, so that cached books are converted again.
 
 ## How it works
 
@@ -166,6 +173,7 @@ After changing `book.py`, run `scotchos test` (and add a case to `tests/test_boo
 10. **Page layouts and fonts:** the layout only sets the `TextEdit`'s width (the column, the whole view, or half of it less the gap). For **two pages** a second `TextEdit` (created only in that layout) gets the same text, width and font, so it lays out exactly like the first and the same page list fits it: the left shows page 2*k*, the right page 2*k*+1, each with its own curtain, and a page turn moves by two. The font list is `Qt.fontFamilies()`, filtered, built only while the settings tab is open. Picking a font writes `font` to the conf, which restyles the text and repaginates, keeping the position.
 11. **Time left:** each forward move inside a chapter is a sample of characters per minute (characters passed / time since the last move), kept if the move took 3 s to 10 min and the speed is 150–6000 a minute (so skimming and walking away don't count). The average gives the first samples more weight, then 10 % each, and is saved in the positions file as `_reading`. The time left is the remaining characters of the chapter (and of the following chapters, from `book.json`) divided by it.
 12. **Sidebar:** a 16 px `MouseArea` on the left edge of the book view, with `acceptedButtons: Qt.NoButton` so clicks there still reach the page and the panel's click-outside area. While the mouse is on it (and no panel is open), a 200 ms timer opens the contents and marks the panel as a peek. A `HoverHandler` on the panel stays hovered over its rows too; once neither it nor the strip has the mouse, a 400 ms timer closes a peek. Any key in the panel turns the peek into a normally opened panel. The timers run only while the mouse is on the strip or a peek is open. The panel slides in once (140 ms) when it opens, by any means. **All settings** sets the shell's `settingsKey` to `reader` and opens the settings window, which selects that item and clears the key.
+13. **Dictionary:** `word` in `ReaderBook.qml` is the selection when `dict.js`'s `wordOf()` finds it to be one word, and only once the mouse button is up, so a drag doesn't look up every word it crosses. A new word runs one `sdcv -n -j -e -u WordNet` with every form from `forms()` (as written, without a possessive, lower-cased, then WordNet's "morphy" endings taken off: *studies → study*, *hopped → hop*); WordNet's index already holds the irregular ones (*ran*, *men*, *better*). sdcv prints one JSON array per form, and `lookup()` takes the first form with an entry, its own entries before the ones it points to. `parse()` reads WordNet's layout: a headword line, then senses that start five spaces in (`n 1:`, `2:`, `adv :`) and wrap onto deeper lines; a gloss, `"examples"` after semicolons, `[syn: {…}]`; `See {have}` sections are dropped. Results (and misses) are cached per book view; a lookup takes about 3 ms. The run goes through `sh` to say `missing` when sdcv isn't installed. The icon is placed from `positionToRectangle()` of the selection on the page that shows it, and the card is a `Loader` created while open, below the word's line (above it when there's no room), showing at most three senses per part of speech. Two timers (only running while the mouse is on the icon, or the card is open and the mouse has left it) open the card after 250 ms and close it 350 ms after the mouse has left both.
 
 ## Uninstall
 
@@ -173,4 +181,4 @@ To only switch it off, `scotchos disable reader` is enough. To remove it:
 
 1. Delete `~/.local/share/applications/scotchos-reader.desktop`, `~/.local/state/scotchos/reader-progress.json` and `~/.cache/scotchos/reader/`.
 2. Remove `import "tools/eReader"` and the `LazyLoader` holding `Reader` from `shell.qml`, the `reader)` line and its usage line from `bin/scotchos`, the E-reader lines (and the python-mobi hint) from `install.sh`, the "Open E-reader" row from `tools/launcher/CommandsProvider.qml`, the `reader` item from `items` in `settings/SettingsWindow.qml`, and `reader` plus `[reader]` from `scotchos.default.conf` and `~/.config/scotchos/scotchos.conf`. Also remove its row from the root README.
-3. Delete this folder. Optionally `yay -R python-mobi`.
+3. Delete this folder. Optionally `yay -R python-mobi sdcv stardict-wordnet`.

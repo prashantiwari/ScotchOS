@@ -30,7 +30,8 @@ Rectangle {
             { k: "B", d: "Bookmark this page, or remove it" },
             { k: "drag", d: "Select text (a click or Esc lets go)" },
             { k: "H  (selected)", d: "Highlight the selection" },
-            { k: "N  (selected)", d: "Note on the highlight" } ] },
+            { k: "N  (selected)", d: "Note on the highlight" },
+            { k: "D  (a word)", d: "Its dictionary entry (or rest on the chip)" } ] },
         { title: "TEXT AND LAYOUT", rows: [
             { k: "+  /  -", d: "Font size" },
             { k: "]  /  [", d: "Column width" },

@@ -28,6 +28,7 @@ Scope {
     readonly property string pageLayout: pageLayouts.includes(setting("page_layout", "column")) ? setting("page_layout", "column") : "column"
     readonly property bool justify: core.isYes(setting("justify", "no"))
     readonly property bool timeLeft: core.isYes(setting("time_left", "yes"))
+    readonly property bool dictionary: core.isYes(setting("dictionary", "yes"))
     // Live adjustments (keys in the book view) go to the conf, so they apply to every book and survive restarts.
     function set(key, value) { core.setConf("reader", key, String(value)) }
     function step(key, fallback, min, max, by) { set(key, Math.max(min, Math.min(max, clamped(key, fallback, min, max) + by))) }

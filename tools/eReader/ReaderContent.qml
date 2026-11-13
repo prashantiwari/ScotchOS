@@ -55,6 +55,7 @@ Item {
         else if (k === Qt.Key_H && shift) r.panel = "highlights";
         else if (k === Qt.Key_H && bookView.highlight()) {}
         else if (k === Qt.Key_N && bookView.note()) {}
+        else if (k === Qt.Key_D && bookView.define()) {}
         else if (k === Qt.Key_Left || k === Qt.Key_PageUp || k === Qt.Key_H || (k === Qt.Key_Space && shift)) bookView.prev();
         else if (k === Qt.Key_J && shift) r.set("justify", r.justify ? "no" : "yes");
         else if (k === Qt.Key_Down || k === Qt.Key_J) bookView.scrollBy(bookView.lineStep());

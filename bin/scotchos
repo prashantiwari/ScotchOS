@@ -118,7 +118,7 @@ case "$1" in
         python3 -m unittest discover -s "$root/tools/eReader/tests" || ok=1
         echo "keybinds.py (tools/keybinds/tests)"
         python3 -m unittest discover -s "$root/tools/keybinds/tests" || ok=1
-        for suite in common/tests tools/launcher/tests tools/dailyTheoryClient/tests tools/keybinds/tests; do
+        for suite in common/tests tools/eReader/tests tools/launcher/tests tools/dailyTheoryClient/tests tools/keybinds/tests; do
             echo "$suite"
             if command -v node >/dev/null; then
                 node --test "$root/$suite/" || ok=1

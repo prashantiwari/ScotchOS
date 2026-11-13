@@ -3,6 +3,8 @@
 // bottom edge would cut.
 // Two pages side by side add a second TextEdit with the same text and width, showing the next page.
 import QtQuick
+import Quickshell.Io
+import "dict.js" as Dict
 
 Item {
     id: v
@@ -248,6 +250,56 @@ Item {
         return true;
     }
 
+    // ---- Dictionary: a chip by a selected word, opening into its WordNet entry (sdcv) ----
+    // Looked up once the mouse lets go, so a drag doesn't run sdcv for every word it passes over.
+    readonly property string word: reader.dictionary && hasSelection && !area.pressed ? Dict.wordOf(te.selectedText) : ""
+    property var entry: null            // Dict.lookup() of `word`, or null (nothing found yet, or none)
+    property var cache: ({})            // word -> entry (or null), for this book view
+    property bool missing: false        // sdcv isn't installed
+    property bool expanded: false       // the card shows (hovering the chip, or D / a click on it)
+    property bool pinned: false         // opened by D or a click: stays until D, Esc or the selection goes
+    onWordChanged: {
+        expanded = pinned = false;
+        entry = cache[word] ?? null;
+        if (word && !(word in cache)) lookup();
+    }
+    function lookup() {
+        if (dict.running) return;       // its end looks up the new word
+        dict.word = word;
+        dict.command = ["sh", "-c", 'command -v sdcv >/dev/null || { echo missing; exit; }; exec sdcv -n -j -e -u WordNet -- "$@"',
+                        "sh", ...Dict.forms(word)];
+        dict.running = true;
+    }
+    Process {
+        id: dict
+        property string word
+        stdout: StdioCollector {
+            onStreamFinished: {
+                v.missing = text.trim() === "missing";
+                const found = v.missing ? null : Dict.lookup(dict.word, text);
+                if (!v.missing) v.cache[dict.word] = found;
+                if (dict.word === v.word) v.entry = found;
+                else if (v.word && !(v.word in v.cache)) Qt.callLater(v.lookup);
+            }
+        }
+    }
+    // D: the card of the selected word, or closes it. False when no single word is selected.
+    function define() {
+        if (!word) return false;
+        if (expanded) expanded = pinned = false;
+        else if (entry) expanded = pinned = true;
+        else if (missing) reader.say("The dictionary needs sdcv and stardict-wordnet (see the README).");
+        else if (!dict.running) reader.say("No entry for “" + word + "” in WordNet.");
+        return true;
+    }
+    // The selected word, in this item's coordinates, on the page that shows it.
+    readonly property rect wordRect: {
+        if (!word) return Qt.rect(0, 0, 0, 0);
+        const a = te.positionToRectangle(te.selectionStart), b = te.positionToRectangle(te.selectionEnd);
+        const onRight = hasRight && a.y >= leftEnd - 0.5;
+        return Qt.rect((onRight ? right.x : flick.x) + a.x, a.y - (onRight ? leftEnd : flick.contentY), b.x - a.x, a.height);
+    }
+
     // Where a page starting at y ends: the next page starts at the top of the line the bottom edge cuts; a line
     // (or image) taller than the page is cut where the page ends.
     function cut(y) {
@@ -470,6 +522,7 @@ Item {
 
     // ---- Mouse: links, page turns (click a side third), scrolling (the wheel), selecting (drag) ----
     MouseArea {
+        id: area
         anchors.fill: parent
         hoverEnabled: true
         property real wheelSum: 0
@@ -530,6 +583,190 @@ Item {
             // Three lines per notch, like scroll mode; touchpads send many small deltas, so they're summed first.
             wheelSum += wheel.angleDelta.y;
             for (; Math.abs(wheelSum) >= 40; wheelSum -= Math.sign(wheelSum) * 40) v.scrollBy(-wheelSum);
+        }
+    }
+
+    // ---- The dictionary chip and card (over the mouse area, so they take their own hover and clicks) ----
+    readonly property bool wordShown: entry !== null && wordRect.y >= 0 && wordRect.y + wordRect.height <= height
+    // Sized from the book's font (the default 16 px gives a 20 px chip and a 340 px card), so they suit the text.
+    function em(px) { return Math.round(px * fs / 16) }
+    Rectangle {
+        id: chip
+        visible: v.wordShown
+        x: Math.min(v.width - width, v.wordRect.x + v.wordRect.width + 1)
+        y: Math.max(0, v.wordRect.y - height * 0.6)
+        width: v.em(20)
+        height: width
+        radius: width / 2
+        color: Qt.alpha(v.core.bg, 0.97)
+        border.width: 1
+        border.color: v.expanded ? v.core.accent : Qt.alpha(v.core.accent, 0.35)
+        Text {
+            anchors.centerIn: parent
+            text: "\u{F061D}"
+            color: v.core.accent
+            font.family: v.core.font
+            font.pixelSize: v.em(12)
+        }
+        HoverHandler {
+            id: chipHover
+            cursorShape: Qt.PointingHandCursor
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: v.expanded = v.pinned = !v.pinned
+        }
+    }
+    // A short rest on the chip opens the card; once the mouse has left both for a moment, it closes (unless pinned).
+    Timer {
+        interval: 250
+        running: chipHover.hovered && !v.expanded && v.wordShown
+        onTriggered: v.expanded = true
+    }
+    Timer {
+        interval: 350
+        running: v.expanded && !v.pinned && !chipHover.hovered && !(card.item?.hovered ?? false)
+        onTriggered: v.expanded = false
+    }
+    // Created while open; below the word's line, or above the chip when there's no room under it.
+    Loader {
+        id: card
+        active: v.expanded && v.wordShown
+        readonly property real below: v.wordRect.y + v.wordRect.height + 6
+        x: Math.max(0, Math.min(v.width - width, v.wordRect.x - 8))
+        y: below + height <= v.height ? below : Math.max(0, chip.y - 4 - height)
+        width: Math.min(v.em(340), v.width)
+        height: item?.implicitHeight ?? 0
+        sourceComponent: Rectangle {
+            id: box
+            readonly property bool hovered: boxHover.hovered
+            readonly property var e: v.entry
+            readonly property int senses: 3             // shown per part of speech
+            implicitHeight: Math.min(head.height + body.contentHeight + v.em(16 + 10 + 16), Math.max(120, v.height * 0.6))
+            radius: 18
+            color: Qt.alpha(v.core.bg, 0.97)
+            border.width: 1
+            border.color: Qt.alpha(v.core.accent, 0.35)
+            NumberAnimation on opacity { from: 0; to: 1; duration: 120 }
+            HoverHandler { id: boxHover }
+            // Takes clicks (they'd let go of the selection) and the wheel where the list doesn't scroll.
+            MouseArea {
+                anchors.fill: parent
+                onWheel: wheel => wheel.accepted = true
+            }
+            Row {
+                id: head
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: v.em(18); topMargin: v.em(16) }
+                spacing: 8
+                Text {
+                    id: title
+                    text: v.word
+                    textFormat: Text.PlainText
+                    color: v.core.accent
+                    font.family: v.core.font
+                    font.pixelSize: v.em(14)
+                    font.bold: true
+                }
+                // An inflected form: the word it was found as (ran → run).
+                Text {
+                    visible: box.e && box.e.head.toLowerCase() !== v.word.toLowerCase()
+                    anchors.baseline: title.baseline
+                    text: "→ " + (box.e?.head ?? "")
+                    textFormat: Text.PlainText
+                    color: v.core.dim
+                    font.family: v.core.font
+                    font.pixelSize: v.em(11)
+                }
+            }
+            Flickable {
+                id: body
+                anchors { left: parent.left; right: parent.right; top: head.bottom; bottom: parent.bottom
+                          leftMargin: v.em(18); rightMargin: v.em(18); topMargin: v.em(10); bottomMargin: v.em(16) }
+                clip: true
+                contentHeight: list.height
+                boundsBehavior: Flickable.StopAtBounds
+                Column {
+                    id: list
+                    width: body.width
+                    spacing: 12
+                    Repeater {
+                        model: box.e?.entries ?? []
+                        Column {
+                            id: part
+                            required property var modelData
+                            width: list.width
+                            spacing: 6
+                            Text {
+                                text: (part.modelData.pos || "entry").toUpperCase()
+                                      + (part.modelData.head !== box.e.head ? "  ·  " + part.modelData.head : "")
+                                textFormat: Text.PlainText
+                                color: v.core.dim
+                                font.family: v.core.font
+                                font.pixelSize: v.em(10)
+                                font.letterSpacing: 1
+                            }
+                            Repeater {
+                                model: part.modelData.senses.slice(0, box.senses)
+                                Row {
+                                    id: s
+                                    required property var modelData
+                                    required property int index
+                                    spacing: 8
+                                    Text {
+                                        width: v.em(12)
+                                        text: s.index + 1
+                                        color: v.core.accent
+                                        font.family: v.core.font
+                                        font.pixelSize: v.em(11)
+                                    }
+                                    Column {
+                                        width: part.width - v.em(12) - 8
+                                        spacing: 2
+                                        Text {
+                                            width: parent.width
+                                            text: s.modelData.gloss
+                                            textFormat: Text.PlainText
+                                            wrapMode: Text.Wrap
+                                            color: v.core.fg
+                                            font.family: v.reader.bookFont
+                                            font.pixelSize: v.em(13)
+                                        }
+                                        Text {
+                                            visible: s.modelData.examples.length > 0
+                                            width: parent.width
+                                            text: "“" + s.modelData.examples[0] + "”"
+                                            textFormat: Text.PlainText
+                                            wrapMode: Text.Wrap
+                                            color: v.core.dim
+                                            font.family: v.reader.bookFont
+                                            font.pixelSize: v.em(12)
+                                            font.italic: true
+                                        }
+                                        Text {
+                                            visible: s.modelData.syns.length > 0
+                                            width: parent.width
+                                            text: "≈ " + s.modelData.syns.slice(0, 4).join(", ")
+                                            textFormat: Text.PlainText
+                                            wrapMode: Text.Wrap
+                                            color: v.core.dim
+                                            font.family: v.core.font
+                                            font.pixelSize: v.em(10)
+                                        }
+                                    }
+                                }
+                            }
+                            Text {
+                                visible: part.modelData.senses.length > box.senses
+                                leftPadding: v.em(12) + 8
+                                text: "+ " + (part.modelData.senses.length - box.senses) + " more"
+                                color: v.core.dim
+                                font.family: v.core.font
+                                font.pixelSize: v.em(10)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
